@@ -24,6 +24,7 @@ Welcome, the ultimate event management website that streamlines the chaos of org
 - **Flexible Payment Handling**: Smooth alternative to payment gateways, where we can manually verify user payments in a easier way (when they can't be availed) [ code can be modified to include that too] 
 - Display all event participants at one place for certificate processing [Note: currently anyone can access, logic to be coded for change]
 - **Driven by Registration Number**: The primary identifier for all user processes
+- Mails that are unable to be sent because of some reason are stored in `static/unsent_mails`
 
 ## Privileges
 - Super Admin
