@@ -1,0 +1,100 @@
+{%extends "layout.html"%}
+
+{%block head%}
+    
+{%endblock head%}
+
+{%block body%}
+<div class="header"></div>
+<div class="container m-lg-5">
+    <div class="form mb-3">
+        <div class="form-heading">
+            Login!
+        </div>
+        <br/><br/>
+        <form method="POST">
+            {{ form.hidden_tag() }}
+            <div class="formGroup">
+                {% if form.email.errors %}
+                    <div>
+                        <i class="fa fa-envelope" style="color: red;"></i>
+                        {{ form.email(class='for_nam',style='border-color:red;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.email.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-envelope" style="color: #4cd0ec;"></i>
+                        {{ form.email(class='for_nam',placeholder='Email-ID') }}
+                    </div>
+                {% endif %}
+            </div>
+            <br/><br/>
+
+            <div class="formGroup">
+                {% if form.reg_no.errors %}
+                    <div>
+                        <i class="fa fa-pencil" style="color: red;"></i>
+                        {{ form.reg_no(class='for_nam',style='border-color:red;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.reg_no.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-pencil" style="color: #4cd0ec;"></i>
+                        {{ form.reg_no(class='for_nam',placeholder='Your Registration Number in your College') }}
+                    </div>
+                {% endif %}
+            </div>
+            <br/><br/>
+
+
+
+            <div class="formGroup">
+                {% if form.password.errors %}
+                    <div>
+                        <i class="fa fa-lock" style="color: red;"></i>
+                        {{ form.password(class='for_nam',style='border-color:red;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.password.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-lock" style="color: #4cd0ec;"></i>
+                        {{ form.password(class='for_nam',placeholder='Password') }}
+                    </div>
+                {% endif %}
+            </div>
+            <br/><br/>
+
+            <div class="formGroup">
+                {{ form.submit(class='btn') }}</button>
+            </div>
+            <br/><br/>
+            
+        </form>
+        <small class="text-muted" style="margin-left: 8%;color:white;">
+            Forgot Password? <a style="text-decoration: none;" class="ml-2" href="{{ url_for('forgot_password') }}">Reset</a>
+        </small>
+        <small class="text-muted mb-2" style="margin-left: 8%;color:white;">
+            Create new Account? <a style="text-decoration: none;" class="ml-2" href="{{ url_for('signup') }}">Sign Up</a>
+        </small>
+    </div>
+</div>
+<div class="header"></div>
+{%endblock body%}

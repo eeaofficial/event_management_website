@@ -1,0 +1,170 @@
+{%extends "layout.html"%}
+
+{%block head%}
+    <!-- MODIFY COST AND OTHER THINGS AS PER REQUIREMENT -->
+    <script>
+        $(document).ready(function() {
+            $("#other-users").hide();
+            var cost = {
+                'p1':1,
+                'p2':1,
+                'p3':1,
+                'p4':1,
+                'p51':1,
+                'p52':1,
+                'p6':1,
+                'p7':1
+            };
+
+            var validated = false;
+
+            var type = $('#type').val();
+            var total = cost[type];
+            $('#total-cost').html(total);
+            var not_eligible = '{{not_eligible}}'
+            $('#type').on('change', function(){
+                type = $('#type').val();
+                    if(type=='p7') {
+                        $("#other-users").show();
+                        $('#payment').prop('disabled', true);
+                    } else {
+                        $("#other-users").hide();
+                        $('#payment').prop('disabled', false);
+                    }
+                    var total = cost[type];
+                    $('#total-cost').html(total);
+                
+            });
+
+            $('#confirm').click(function(event) {
+                event.preventDefault();
+                $.ajax({
+                    url: 'get-user',
+                    type: 'POST',
+                    data: {
+                        regno1:$('#user1').val(),
+                        regno2:$('#user2').val()
+                    },
+                    success: function(response) {
+                        console.log('sakjdflkj')
+                        $('#other-users-result').html('<p>'+response.msg+'</p>');
+                        if(response.success) {
+                            $('#payment').prop('disabled', false);
+                            $('#other-users-result').append('<p>User 1 : '+response.u1.name+';'+response.u1.college+';'+response.u1.mobile+'</p>');
+                            $('#other-users-result').append('<p>User 2 : '+response.u2.name+';'+response.u2.college+';'+response.u2.mobile+'</p>');
+                        } else {
+                            $('#payment').prop('disabled', true);
+                        }
+                    }
+                });
+            });
+
+            
+            $('#payment').click(function(event){
+                
+                event.preventDefault();
+                amt = $('#total-cost').html();
+                reg_no="{{current_user.reg_no}}"
+                if($('#user1').val()) {
+                    "{{current_user.reg_no}}"+','+$('#user1').val()+','+$('#user2').val()
+                }
+                pass_type = $('#type').val();  
+                var url = "{{url_for('payment')}}?amount="+amt+'&reg_no='+reg_no+'&pass_type='+pass_type;
+                console.log(url)
+                window.location.href = url;
+                
+            });
+        });
+        
+    </script>
+
+{%endblock head%}
+
+{%block body%}
+
+    <div class="container">
+        <div class="form">
+            <div class="form-heading">
+                Buy Pass
+            </div>
+            <div>
+                <marquee><h1>
+                !!! ON DISCOUNT !!!</h1>
+            </marquee>
+            </div>
+            <div>
+                Please Select below the pass required according to the type of event that you wish to participate<br>
+                <ul>
+                    <li>Diamond Pass for <b>ALL EVENTS</b></li>
+                    <li>Platinum Pass for Premium + (Non Tech or Tech) Events <b>Only</b></li>
+                    <li>Gold Pass for Technical and Non-Techical Events <b>Only</b></li>
+                    <li>Premium Pass for Premium Events <b>Only</b></li>
+                    <li>Tech Pass for Technical Events <b>Only</b></li>
+                    <li>Non-Tech Pass for Non Technical Events <b>Only</b></li>
+                    <li>Combo Pass for <b>ALL EVENTS</b> - <b>Total of 3 Participants</b></li>
+                </ul>
+            </div>
+            <br/><br/>
+            <form id="buy-pass-form" action="" method="post" class="signUp">
+                <div class="formGroup">
+                    <div>
+                        Type:
+                        <select name="type" id="type" class="for_nam" style="color:white; background-color: #002333;" required>
+                            <option value="p4">Diamond Pass (All events)</option>
+                            <option value="p51">Platinum Pass (Premium + Non Tech)</option>
+                            <option value="p52">Platinum Pass (Premium + Tech)</option>
+                            <option value="p6">Gold Pass (Tech + Non Tech)</option>
+                            <option value="p1">Premium Pass (Premium Events)</option>
+                            <option value="p2">Tech Pass (Tech Events)</option>
+                            <option value="p3">Non Tech Pass (Non Tech Events)</option>
+                            <option value="p7">Combo Pass (Total 3 Users)</option>
+                        </select>
+                    </div>    
+                </div>
+                <br><br>
+
+                <div class="formGroup">
+                    <div id="other-users">
+                        <div>
+                            <input type="text" class="for_nam" id="user1" placeholder="Other User Registration Number" name="user1">
+                            <div id="user-details-1">
+
+                            </div>
+                        </div>
+                        <div>
+                            <input type="text" class="for_nam" id="user2" placeholder="Other User Registration Number" name="user2">
+                            <div id="user-details-1">
+
+                            </div>
+                        </div>
+                        <br><br>
+                        <div>
+                            <button id="confirm" class="btn">Confirm Other Participants</button>
+                        </div>
+                        <div id="other-users-result">
+
+                        </div>
+                    </div>
+                </div>
+                <br/><br/>
+                <div class="formGroup">
+                    <div>
+                    Total :
+                        <div id="total-cost"></div>
+                    </div>
+                </div>
+                <br/><br/>
+
+                <div class="formGroup">
+                    <button id="payment" class="btn">
+                        Click to scan QR and Pay and Enter Transaction Details
+                    </button>
+                </div>
+                <br/><br/>
+            </form>
+            
+        </div>
+    </div>
+
+
+{%endblock body%}

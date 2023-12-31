@@ -1,0 +1,587 @@
+{%extends "layout.html"%}
+
+{%block head%}
+    <style>
+        .roundParent {
+            display: grid;
+            grid-template-columns: auto auto;
+            grid-template-rows: auto;
+            grid-column-gap: 0px;
+            grid-row-gap: 20px;
+
+            align-items: center;
+        }
+
+        .roundParentRounds { grid-area: 2 / 1 / 3 / 3; }
+
+        .roundDetailsParent {
+            display: grid;
+            grid-template-columns: auto auto;
+            grid-template-rows: auto;
+            grid-column-gap: 0px;
+            grid-row-gap: 20px;
+            
+            align-items: center;
+            padding: 30px;
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            background-color: rgba(26, 51, 92, 0.75);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.125);
+        }
+
+        .roundName { grid-area: 2 / 1 / 3 / 3; }
+        .roundDescription { grid-area: 3 / 1 / 4 / 3; }
+
+        .organiserElement {
+            display: grid;
+            grid-template-columns: auto auto;
+            grid-template-rows: auto;
+            grid-column-gap: 0px;
+
+            align-items: center;
+        }
+
+        #registered-participants{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+        #registered-participants th{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+        #registered-participants td{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+
+
+    </style>
+
+    <script>
+        function updateUserStatus(eventId) {
+            var newStatus = $('.status_' + eventId).prop('checked');
+            $('.status_' + eventId).prop('checked', newStatus);
+            $.ajax({
+                url: '/organiser/update_user_status',
+                type: 'POST',
+                data: {event_id: eventId, new_status: newStatus},
+                success: function(response) {
+                if (response.success) {
+                    if(newStatus) {
+                        $('.attend_' + eventId).text('Attended');
+                    } else {
+                        $('.attend_' + eventId).text('Not yet Attended');
+                    }
+                    alert('User status updated successfully.');
+                } else {
+                    alert('Failed to update user status.');
+                }
+                }
+            });
+        }
+
+        function updateEventResult(userId) {
+            var newWinnerStatus = $('#winner_user_' + userId).prop('checked');
+            var newRunnerStatus = $('#runner_user_' + userId).prop('checked');
+            $.ajax({
+                url: "{{url_for('organiser_update_event_result')}}",
+                type: 'POST',
+                data: {
+                    user_id: userId,
+                    event_id: '{{event.event_id}}',
+                    newWinnerStatus: newWinnerStatus,
+                    newRunnerStatus: newRunnerStatus
+                },
+                success: function(response) {
+                    if (response.success) {
+                        if(newWinnerStatus) {
+                            $('#winner_user_' + userId).prop('checked', true);
+                        } else {
+                            $('#winner_user_' + userId).prop('checked', false);
+                        }
+                        if(newRunnerStatus) {
+                            $('#runner_user_' + userId).prop('checked', true);
+                        } else {
+                            $('#runner_user_' + userId).prop('checked', false);
+                        }
+                        alert('Winner or Runner status updated successfully.');
+                    } else {
+                        alert(response.message+'\nFailed to update Winner or Runner status.');
+                    }
+                }
+            });
+
+        }
+
+        function updateAcceptRegistrationStatus() {
+            var newStatus = $('#status_accept_registration').prop('checked');
+            $.ajax({
+                url: '/organiser/update_event_detail',
+                type: 'POST',
+                data: {event_id: "{{event.event_id}}", newAcceptRegistrationStatus: newStatus},
+                success: function(response) {
+                    if (response.success) {
+                        alert('Event status updated successfully.');
+                    } else {
+                        alert('Failed to update event status.');
+                    }
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            $('#registered-participants').hide();
+            $('#update-event').hide();
+            $('#update-button').click(function() {
+                $('#update-event').show();
+                $('#registered-participants').hide();
+            });
+            $('#participants-button').click(function() {
+                $('#update-event').hide();
+                $('#registered-participants').show();
+            });
+
+            $('#result-button').on('click', function(event){
+                event.preventDefault();
+                
+
+                if(confirm('Are you sure to fix winners as {{event.winner}} and runners as {{event.runner}}')) {
+                    $.ajax({
+                        url:"{{url_for('organiser_event_result')}}",
+                        type:"POST",
+                        data:{
+                            event_id:'{{event.event_id}}'
+                        },
+                        success: function(response){
+                            if(response.message) {
+                                alert(response.message);
+                            }
+                            if(response.success) {
+                                alert(response.winner+'<br>'+response.runner);
+                            }
+                        }
+
+                    })
+                }
+            });
+        });
+
+        $(document).ready(function() {
+            $('#cost-div').hide();
+            $('#category').val('{{event.category}}');
+            var maxRounds = 5;
+            var numRounds = 0;
+
+            var event_rounds = JSON.parse('{{event_rounds|tojson|safe}}')
+            for(i=0; i<'{{event.num_rounds}}'; i++) {
+                var lenght = 5;
+                var randomString = Math.random().toString(36).substring(2, 2+lenght);
+                
+                var $nameBox = $('<div>').attr('class', 'roundName');
+                $nameBox.append( $("<input>").attr("type", "text").attr("class","for_nam").attr("placeholder", "Round Name").attr('name', 'rd_name_'+randomString).prop('required', true).val(event_rounds[i].name));
+                
+                var $descriptionBox = $('<div>').attr('class', 'roundDescription');
+                $descriptionBox.append($("<textarea>").attr("class","for_nam").attr("placeholder", "Round Description").attr('name', 'rd_description_'+randomString).prop('required', true).val(event_rounds[i].description));
+
+                var $timeBox = $('<div>').append($('<input>').attr('type', 'time').attr("class","for_nam").attr('name', 'rd_time_'+randomString).prop('required', true).val(event_rounds[i].time));
+                
+                var $dateBox = $('<div>').append($('<input>').attr('type', 'date').attr("class","for_nam").attr('name', 'rd_date_'+randomString).prop('required', true).val(event_rounds[i].date));
+
+                var $modeBox = $('<select>').attr('class', 'for_nam').attr('name', 'rd_mode_'+randomString).prop('required', true).css({'color':'black', 'background-color':' #002333'}).val(event_rounds[i].mode);
+                $modeBox.append("<option value='physical'>Physical</option>");
+                $modeBox.append("<option value='online'>Online</option>");
+        
+                var $deleteIcon = $("<i>").attr('class', "fa fa-trash");
+                var $deleteBox = $('<div>');
+                $deleteBox.append($('<button>').attr('class', 'btn btn-danger').attr('type', 'button').append($deleteIcon));
+
+                var $wrapper = $("<div>").attr("id", 'input_'+randomString).attr('class', 'roundDetailsParent');
+
+                $wrapper.append($('<div>').append("Round Details :"));
+                $wrapper.append($deleteBox);
+
+                $wrapper.append($nameBox);
+                $wrapper.append($descriptionBox);
+                $wrapper.append($('<div>').append("Start Time:"));
+                $wrapper.append($timeBox);
+                $wrapper.append($('<div>').append("Date:"));
+                $wrapper.append($dateBox);
+                $wrapper.append($('<div>').append("Mode:"));
+                $wrapper.append($modeBox);
+
+                $("#roundDetails").append($wrapper);
+
+                $deleteBox.click(function() {
+                    $wrapper.remove();
+                    numRounds--;
+                });
+                numRounds++;        
+            }
+            
+            var event_organisers = JSON.parse('{{event_organisers|tojson|safe}}');
+
+            for(i=0; i<parseInt('{{event.num_organisers}}')-1; i++) {
+                var lenght = 5;
+                var randomString = Math.random().toString(36).substring(2, 2+lenght);
+        
+                var $regNoBox = $('<div>');
+                $regNoBox.append( $("<input>").attr("type", "text").attr("class","for_nam").attr("placeholder", "Registration Number").attr('name', 'org_'+randomString).prop('required', true).val(event_organisers[i]));
+
+                var $deleteIcon = $("<i>").attr('class', "fa fa-trash");
+                var $deleteBox = $('<div>');
+                $deleteBox.append($('<button>').attr('class', 'btn btn-danger').attr('type', 'button').append($deleteIcon));
+
+                var $wrapper = $("<div>").attr("id", 'input_'+randomString).attr('class', 'organiserElement');
+                $wrapper.append($deleteBox);
+                $wrapper.append($regNoBox);                    
+                $("#organiserDetails").append($wrapper);
+
+                $deleteBox.click(function() {
+                    $wrapper.remove();
+                    numOrganisers--;
+                });
+                numOrganisers++;
+            }
+
+            $("#addRound").click(function() {
+                if (numRounds < maxRounds) {
+                    var lenght = 5;
+                    var randomString = Math.random().toString(36).substring(2, 2+lenght);
+                    
+                    var $nameBox = $('<div>').attr('class', 'roundName');
+                    $nameBox.append( $("<input>").attr("type", "text").attr("class","for_nam").attr("placeholder", "Round Name").attr('name', 'rd_name_'+randomString).prop('required', true));
+                    
+                    var $descriptionBox = $('<div>').attr('class', 'roundDescription');
+                    $descriptionBox.append($("<textarea>").attr("class","for_nam").attr("placeholder", "Round Description").attr('name', 'rd_description_'+randomString).prop('required', true));
+
+                    var $timeBox = $('<div>').append($('<input>').attr('type', 'time').attr("class","for_nam").attr('name', 'rd_time_'+randomString).prop('required', true));
+                    
+                    var $dateBox = $('<div>').append($('<input>').attr('type', 'date').attr("class","for_nam").attr('name', 'rd_date_'+randomString).prop('required', true));
+
+                    var $modeBox = $('<select>').attr('class', 'for_nam').attr('name', 'rd_mode_'+randomString).prop('required', true).css({'color':'black', 'background-color':' #002333'});
+                    $modeBox.append("<option value='physical'>Physical</option>");
+                    $modeBox.append("<option value='online'>Online</option>");
+            
+                    var $deleteIcon = $("<i>").attr('class', "fa fa-trash");
+                    var $deleteBox = $('<div>');
+                    $deleteBox.append($('<button>').attr('class', 'btn btn-danger').attr('type', 'button').append($deleteIcon));
+
+                    var $wrapper = $("<div>").attr("id", 'input_'+randomString).attr('class', 'roundDetailsParent');
+
+                    $wrapper.append($('<div>').append("Round Details :"));
+                    $wrapper.append($deleteBox);
+
+                    $wrapper.append($nameBox);
+                    $wrapper.append($descriptionBox);
+                    $wrapper.append($('<div>').append("Start Time:"));
+                    $wrapper.append($timeBox);
+                    $wrapper.append($('<div>').append("Date:"));
+                    $wrapper.append($dateBox);
+                    $wrapper.append($('<div>').append("Mode:"));
+                    $wrapper.append($modeBox);
+
+                    $("#roundDetails").append($wrapper);
+
+                    $deleteBox.click(function() {
+                        $wrapper.remove();
+                        numRounds--;
+                    });
+                    numRounds++;
+                }
+            });
+
+
+            var maxOrganisers = 5;
+            var numOrganisers = 0;
+
+            $("#addOrganiser").click(function() {
+                if (numOrganisers < maxOrganisers) {
+                    var lenght = 5;
+                    var randomString = Math.random().toString(36).substring(2, 2+lenght);
+                    
+                    var $regNoBox = $('<div>');
+                    $regNoBox.append( $("<input>").attr("type", "text").attr("class","for_nam").attr("placeholder", "Registration Number").attr('name', 'org_'+randomString).prop('required', true));
+
+                    var $deleteIcon = $("<i>").attr('class', "fa fa-trash");
+                    var $deleteBox = $('<div>');
+                    $deleteBox.append($('<button>').attr('class', 'btn btn-danger').attr('type', 'button').append($deleteIcon));
+
+                    var $wrapper = $("<div>").attr("id", 'input_'+randomString).attr('class', 'organiserElement');
+                    $wrapper.append($deleteBox);
+                    $wrapper.append($regNoBox);                    
+                    $("#organiserDetails").append($wrapper);
+
+                    $deleteBox.click(function() {
+                        $wrapper.remove();
+                        numOrganisers--;
+                    });
+                    numOrganisers++;
+                }
+            });
+            
+            
+            $('#category').change(function(){
+                var cat = $('#category').val();
+                if(cat=='workshop') {
+                    $('#cost-div').show();
+                }
+                else {
+                    $('#cost-div').hide();
+                }
+
+            });
+
+            $('#send-sample-mail').click(function(event){
+                event.preventDefault();
+                $.ajax({
+                    url:"{{url_for('send_sample_mail')}}",
+                    type: 'POST',
+                    data:{
+                        id:'{{event.event_id}}'
+                    },
+                    success:function(response){
+                        alert(response.message)
+                    }
+                })
+            });
+        });
+    
+        // $(document).ready(function(){
+        //     $('#filter-user').change(function(){
+        //         console.log($(this).val())
+        //         if($(this).val() == 'a'){
+        //             $("table tr").each(function(){
+        //                 var value = $(this).find("td:eq(3)").html(); // Change "1" to the index of the column you want to check
+        //                 if(value == "Not yet Attended"){
+        //                     $(this).hide();
+        //                 }
+        //             });
+        //         }
+        //         else if($(this).val() == 'na'){
+        //             $("table tr").each(function(){
+        //                 var value = $(this).find("td:eq(3)").html(); // Change "1" to the index of the column you want to check
+        //                 if(value == "Attended"){
+        //                     $(this).hide();
+        //                 }
+        //             });
+        //         }
+                
+        //     });
+        // });
+    </script>
+
+{%endblock head%}
+
+{%block body%}
+
+    <h1>{{event.name}}</h1>
+
+    Event Status : 
+    {% if event.is_event_accepted %}
+    Accepted
+    {%else%}
+    Not yet accepted ; Please contact admin
+    {%endif%}
+    <br/><br/>
+
+    Result status :
+    {% if event.is_result_submitted %}
+        {% if event.is_result_accepted %}
+        Accepted and Published
+        {%else%}
+        Not yet accepted ; Please contact admin
+        {%endif%}
+    {%else%}
+        To be finalised by you
+    {%endif%}
+    <br/><br/><br/>
+
+
+    {%if not event.is_event_accepted%}
+        <button id="update-button" class="btn" {%if event.is_result_submitted %} disabled {% endif %}>Update Event</button>
+    {%endif%}
+    <button id="participants-button" class="btn">See Registed Participants</button>
+    <button class="btn" id="send-sample-mail">Send Sample Mailing Content to you for preview</button>
+    <!-- <select class="for_nam" id="filter-user">
+        <option value="all">All</option>
+        <option value="na">Not yet Attended</option>
+        <option value="a">Attended</option>
+    </select> -->
+
+    {% if not event.is_result_submitted %}
+        <button id="result-button" style="color:red">Confirm and Submit the selected winners and runners (Action CANNOT be undone and event gets FREEZED)</button>
+    {%endif%}
+
+    <div>
+        Accept participant registration
+        <input type="checkbox" id="status_accept_registration" {% if event.is_accepting_registration %}checked{% endif %} onclick="updateAcceptRegistrationStatus()">
+    </div>
+
+    <div id="update-event">
+        <div class="container">
+            <div class="form">
+                <div class="form-heading">
+                    Update Event
+                </div>
+                <br/><br/>
+                <form id="add-event-form" action="" method="post" enctype="multipart/form-data">
+                    <div class="formGroup">
+                        <div>
+                            <i class="fa fa-pen" style="color: blue;"></i>
+                            <input type="text" name="name" placeholder="Name" class="for_nam" value="{{event.name}}" required>
+                        </div>
+                    </div>
+                    <br/><br/>
+
+                    <div class="formGroup">
+                        <div>
+                            <i class="fa fa-pen" style="color: blue;"></i>
+                            <input type="text" name="topic" placeholder="Topic" class="for_nam" value="{{event.topic}}" required>
+                        </div>
+                    </div>
+                    <br/><br/>
+
+                    <div class="formGroup">
+                        <div>
+                            Category:
+                            <select name="category" id="category" class="for_nam" style="color:white; background-color: #002333;" value="{{event.category}}" required>
+                                <option value="tech">Technical</option>
+                                <option value="non_tech">Non Technical</option>
+                                <option value="workshop">Workshop</option>
+                                <option value="premium">Premium Event</option>
+                            </select>
+                        </div>
+                    </div>
+                    <br/><br/>
+
+                    <div class="formGroup" id="cost-div">
+                        <div>
+                            <i class="fa fa-pen" style="color: blue;"></i>
+                            <input type="text" name="cost" placeholder="Cost" class="for_nam">
+                        </div>
+                    </div>
+                    <br/><br/>
+                    <div class="formGroup">
+                        <div>
+                            <i class="fa fa-pen" style="color: blue;"></i>
+                            <input type="file" name="event_pic" placeholder="event picture" class="for_nam" accept="images/*">
+                        </div>
+                    </div>
+                    <br/><br/>
+
+                    <div class="formGroup">
+                        <div>
+                            Description:
+                            <textarea name="description" class="for_nam" required>{{event.description}}</textarea>
+                        </div>
+                    </div>
+                    <br/><br/>
+
+                    <div class="formGroup">
+                        <div>
+                            Mailing Content:
+                            <textarea name="mail_cnt" class="for_nam" required>{{event.on_register_mail_cnt}}</textarea>
+                        </div>
+                    </div>
+                    <br/><br/>
+
+                    <div class="formGroup">
+                        <div>
+                            <i class="fa fa-pen" style="color: blue;"></i>
+                            <input type="number" name="max_team_size" placeholder="Maximum Team Size" class="for_nam" value="{{event.max_team_size}}" required>
+                        </div>
+                    </div>
+                    <br/><br/>
+
+                    <div class="formGroup">
+                        <div class="roundParent">
+                            <div>Round Details</div>
+                            <div>
+                                <button class="btn" id="addRound" type="button">Add Round</button>
+                            </div>
+                            <div id="roundDetails" class="roundParentRounds"></div>    
+                        </div>
+                    </div>
+                    <br/><br/>
+
+                    <div class="formGroup">
+                        <div class="orgParent">
+                            <div>Organiser Details</div>
+                            <div>
+                                <button class="btn" id="addOrganiser" type="button">Add Organiser</button>
+                            </div>
+                            <div id="organiserDetails" class="organiserParent"></div>    
+                        </div>
+                    </div>
+                    <br/><br/>
+
+                    <div class="formGroup">
+                        <div>
+                            <input type="submit" class="btn"/>
+                        </div>
+                    </div>
+                </form>
+                <br/><br/>
+                Note: Max Team size can't be changed <br>
+                Organiser register number should be correct to display their correct details
+
+            </div>
+        </div>
+    </div>
+
+    <br>
+
+    <table id="registered-participants">
+        <thead>
+            <tr>
+                <th>S.No.</th>
+                <th>Name</th>
+                <th>Registration Number</th>
+                <th>Phone Number</th>
+                <th>Email</th>
+                <th>Attended Event (Change Status)</th>
+                <th>Action</th>
+                <th>Action Winner</th>
+                <th>Action Runner</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td colspan="7" style="align-self: center;">
+                    <a href="{{ url_for('organiser_event_download',id=event.event_id) }}">Download Participants Details as Excel</a>
+                </td>
+            </tr>
+            {%for i in registered%}
+                <tr>
+                    <td rowspan="{{i[0] | length}}">{{loop.index}}</td>
+                {%for j in i[0]%}
+                    
+                        {%for x in j[:-3]%}
+                            <td>{{x}}</td>
+                        {%endfor%}
+            
+                        <td class="attend_{{ i[2] }}">
+                            {%if i[1]%}
+                            Attended
+                            {%else%}
+                            Not yet Attended
+                            {%endif%}
+                        </td>
+                        <td><input type="checkbox" class="status_{{ i[2] }}" {% if i[1] %}checked{% endif %} {% if event.is_result_submitted %} disabled {% endif %} onclick="updateUserStatus('{{ i[2] }}')"></td>
+                        <td><input type="checkbox" id="winner_user_{{ j[-3] }}" {% if j[-2] %}checked{% endif %} {% if event.is_result_submitted %} disabled {% endif %} onclick="updateEventResult('{{ j[-3] }}')"></td>
+                        <td><input type="checkbox" id="runner_user_{{ j[-3] }}" {% if j[-1] %}checked{% endif %} {% if event.is_result_submitted %} disabled {% endif %} onclick="updateEventResult('{{ j[-3] }}')"></td>
+                    </tr>
+                {%endfor%}
+            {%endfor%}
+        </tbody>
+    </table>
+
+    <br/><br>
+{%endblock body%}

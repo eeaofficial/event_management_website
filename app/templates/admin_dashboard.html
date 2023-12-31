@@ -1,0 +1,290 @@
+{%extends "layout.html"%}
+
+{%block head%}
+    <script>
+        function updateUserStatus(eventId) {
+            var newAcceptStatus = $('#status_' + eventId).prop('checked');
+            var newResultStatus = $('#result_' + eventId).prop('checked');
+
+            $.ajax({
+                url: '/admin/modify_event',
+                type: 'POST',
+                data: {event_id: eventId, new_accept_status: newAcceptStatus, new_result_status: newResultStatus},
+                success: function(response) {
+                    if (response.success) {
+                        if(newAcceptStatus) {
+                            $('#accept_' + eventId).text('Accepted');
+                        } else {
+                            $('#accept_' + eventId).text('Not yet accepted');
+                        }
+                        if(newResultStatus) {
+                            $('#result_txt_' + eventId).text('Accepted');
+                        } else {
+                            $('#result_txt_' + eventId).text('Not yet accepted');
+                        }
+                        alert('Event status updated successfully.');
+                    } else {
+                        alert('Failed to update event status.');
+                    }
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            $('#events-list').hide();
+            $('#user-data').hide();
+            $('#events-button').click(function() {
+                $('#events-list').show();
+                $('#user-data').hide();
+            });
+            $('#user-button').click(function() {
+                $('#events-list').hide();
+                $.ajax({
+                    url:"{{url_for('admin_get_user')}}",
+                    type: 'POST',
+                    data: {
+                        regno:$('#regno').val()
+                    },
+                    success: function(response){
+                        if(response.error){
+                            alert(response.error)
+                        } else {
+                            $('#user-data').show();
+                            $('#userid').val(response.userid);
+                            $('#name').val(response.name);
+                            $('#email').val(response.email);
+                            $('#reg_no').val(response.reg_no);
+                            $('#college').val(response.college);
+                            $('#dept').val(response.dept);
+                            $('#mobile').val(response.mobile);
+                            $('#events').val(response.events);
+                            $('#org_events').val(response.org_events);
+                            $('#isParticipant').prop('checked', response.isParticipant);
+                            $('#isOrganiser').prop('checked', response.isOrganiser);
+                            $('#isVerifier').prop('checked', response.isVerifier);
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        alert("Error: " + error);
+                    }
+                })
+            });
+
+            $('#update-user').click(function(event) {
+                event.preventDefault();
+                $.ajax({
+                    url:"{{url_for('admin_update_user')}}",
+                    type: 'POST',
+                    data: {
+                        'name':$('#name').val(),
+                        'email':$('#email').val(),
+                        'reg_no':$('#regno').val(),
+                        'college':$('#college').val(),
+                        'dept':$('#dept').val(),
+                        'mobile':$('#mobile').val(),
+                        'events':$('#events').val(),
+                        'org_events':$('#org_events').val(),
+                        // 'college':user.college,
+                        // 'dept':user.dept,
+                        // 'mobile':user.mobile,
+                        // 'events':user.events,
+                        // 'org_events':user.org_events,
+                        'isOrganiser':$('#isOrganiser').prop('checked'),
+                        'isParticipant':$('#isParticipant').prop('checked'),
+                        'isVerifier':$('#isVerifier').prop('checked')
+                        // # 'isAdministrator':user.isAdministrator,
+                        // 'eligible_attending':user.eligible_attending,
+                        // 'payment_session_id':user.payment_session_id,
+                        // 'payment_order_id':user.payment_order_id,
+                        // 'is_valid_payment':user.is_valid_payment
+                    },
+                    success: function(response) {
+                        alert(response.message)
+                    },
+                    error: function(xhr, status, error) {
+                        alert("Error: " + error);
+                    }
+                });
+            });
+        });
+    </script>
+
+    <style>
+        #events-table{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+        #events-table th{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+        #events-table td{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+
+    </style>
+
+{%endblock head%}
+
+{%block body%}
+
+    <button id="events-button">See Events</button>
+    <button id="user-button">Fetch User</button>
+    <div class="formGroup">
+        <div>
+            Registration Number
+        </div>
+        <div>
+            <input type="text" class="for_nam" name="regno" id="regno">
+        </div>
+    </div>
+
+    <div id="events-list">
+        <table id="events-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>ID</th>
+                    <th>Preview</th>
+                    <th>Type</th>
+                    <th>Number of Registrations</th>
+                    <th>Download Participants List</th>
+                    <th>Acceptance Status</th>
+                    <th>Result Status</th>
+                    <th>Acceptance Action</th>
+                    <th>Result Action</th>
+                    <th>Winners</th>
+                    <th>Runners</th>
+                </tr>
+            </thead>
+            <tbody>
+                {%for i in events%}
+                    <tr>
+                        <td>
+                            <a href="{{url_for('organiser_event', id=i.event_id)}}"  target="_blank">
+                                {{i.name}}
+                            </a>
+
+                        </td>
+                        <td>{{i.event_id}}</td>
+                        <td><a href="{{url_for('preview_event', id=i.event_id)}}" target="_blank" class="text-reset">Preview</a></td>
+                        <td>{{i.category}}</td>
+                        <td>{{i.n_registrations}}</td>
+                        <td><a href="{{url_for('organiser_event_download', id=i.event_id)}}">Download</td>
+                        <td id="accept_{{ i.id }}">
+                            {%if i.is_event_accepted%}
+                                Accepted
+                            {%else%}
+                                Not yet accepted
+                            {%endif%}
+                        </td>
+                        <td id="result_txt_{{ i.id }}">
+                            {%if i.is_result_accepted%}
+                                Accepted
+                            {%else%}
+                                Not yet accepted
+                            {%endif%}
+                        </td>
+                        <td><input type="checkbox" id="status_{{ i.id }}" {% if i.is_event_accepted %}checked{% endif %} onclick="updateUserStatus('{{ i.id }}')"></td>
+                        <td>
+                            <input type="checkbox" id="result_{{ i.id }}" {% if i.is_result_accepted %}checked{% endif %} {% if not i.is_result_submitted %}disabled{% endif %} onclick="updateUserStatus('{{ i.id }}')">
+                            {%if not i.is_result_submitted%}
+                                TBA
+                            {%endif%}
+                        </td>
+                        <td>
+                            {% if i.is_result_submitted%}
+                                {% if winner %}
+                                    {% for j in winner%}
+                                        {{j}}<br>
+                                    {%endfor%}
+                                {%endif%}
+                            {%endif%}
+                        </td>
+                        <td>
+                            {% if i.is_result_submitted%}
+                                {% if runner %}
+                                    {% for j in i.runner%}
+                                        {{j}}<br>
+                                    {%endfor%}
+                                {%endif%}
+                            {%endif%}
+                        </td>
+                    </tr>
+                {%endfor%}
+            </tbody>
+        </table>
+    </div>
+
+    <div id="user-data">
+        <div id="user-info"></div>
+        
+        <form id="user-details">
+            <table id="user-table" >
+                <tr>
+                    <th>User ID</th>
+                    <td><input type="text" id="userid" disabled></td>
+                </tr>
+                <tr>
+                    <th>Name</th>
+                    <td><input type="text" id="name" name="name"></td>
+                </tr>
+                <tr>
+                    <th>Email</th>
+                    <td><input type="text" id="email" name="email"></td>
+                </tr>
+                <tr>
+                    <th>Registration Number</th>
+                    <td><input type="text" id="reg_no" disabled></td>
+                </tr>
+                <tr>
+                    <th>College</th>
+                    <td><input type="text" id="college"></td>
+                </tr>
+                <tr>
+                    <th>Department</th>
+                    <td><input type="text" id="dept"></td>
+                </tr>
+                <tr>
+                    <th>Mobile</th>
+                    <td><input type="text" id="mobile"></td>
+                </tr>
+                <tr>
+                    <th>Events</th>
+                    <td><input type="text" id="events"></td>
+                </tr>
+                <tr>
+                    <th>Organising Events</th>
+                    <td><input type="text" id="org_events"></td>
+                </tr>
+                <tr>
+                    <th>isOrganiser</th>
+                    <td><input type="checkbox" id="isOrganiser"></td>
+                </tr>
+                <tr>
+                    <th>isParticipant</th>
+                    <td><input type="checkbox" id="isParticipant"></td>
+                </tr>
+                <tr>
+                    <th>isVerifier</th>
+                    <td><input type="checkbox" id="isVerifier"></td>
+                </tr>
+                <tr>
+                    <th>Action</th>
+                    <td><button class="btn" id="update-user">Update</button></td>
+                </tr>
+                
+            </table>
+        </form>
+    </div>
+
+    <br/><br>
+
+{%endblock body%}

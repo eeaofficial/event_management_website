@@ -1,0 +1,53 @@
+{%extends "layout.html"%}
+
+{%block head%}
+<style>
+    table{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+        table th{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+        table td{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+
+</style>
+{%endblock head%}
+
+{%block body%}
+    <table>
+        <thead>
+            <tr>
+                <th>S.No.</th>
+                <th>Name</th>
+                <th>Registration Number</th>
+                <th>Department</th>
+                <th>College</th>
+                <th>Mobile</th>
+            </tr>
+        </thead>
+        <tbody>
+            {%for i in users%}
+            <tr>
+                <td>{{loop.index}}</td>
+                <td>{{i.name}}</td>
+                <td>{{i.reg_no}}</td>
+                <td>{{i.dept}}</td>
+                <td>{{i.college}}</td>
+                <td>{{i.mobile}}</td>
+            </tr>
+            {%endfor%}
+        </tbody>
+    </table>
+   
+{%endblock body%}

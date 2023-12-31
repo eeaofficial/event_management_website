@@ -1,0 +1,27 @@
+/* html, body {
+    height: 100%;
+  }
+  * {
+    pointer-events: none;
+  }
+  
+  body {
+      // cursor: pointer;
+      user-select: none;
+      overflow: hidden;
+  }
+  
+  #canvas {
+    background: transparent;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+    pointer-events: auto;
+  }
+  
+  .tada{
+    
+  } */

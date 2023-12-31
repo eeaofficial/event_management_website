@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+        {% if title %}
+            {{title}} | Symposium
+        {% else %}
+            Symposium
+        {% endif %}
+    </title>
+    <!-- add icon link -->
+    <link rel="icon" href="{{ url_for('static', filename='logo.jpg')}}" type="image/x-icon">
+
+    <!-- Latest compiled and minified CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Latest compiled JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- jQuery library -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.1/css/all.min.css" integrity="sha512-MV7K8+y+gLIBoVD59lQIYicR65iaqukzvf/nwasF0nqhPay5w/9lJmVM2hMDcnK1OnMGCdVK+iQrJ7lzPJQd1w==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!--For https://ionic.io/ionicons-->
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+
+    <!-- For google fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&display=swap" rel="stylesheet">
+
+    <!--Custom CSS Files-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles_forms.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='homeEvents.css') }}">
+    <!--Custom JS Files-->
+    <script src="{{ url_for('static', filename='scripts.js') }}"></script>
+
+    {%block head%}
+    {%endblock head%}
+
+</head>
+
+<body>
+    <div class="flash-message">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{category}} alert-dismissible fade show" role="alert">
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    {{ message }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+    
+    <nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{url_for('home')}}">
+                <img src="{{url_for('static', filename='images/logo.png')}}" class="rounded-pill" style="width: 40px;"> Symposium
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mynavbar">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="mynavbar">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="{{'active' if active_page == 'events' }} nav-link" href="{{ url_for('events') }}">Events</a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="{{'active' if active_page == 'dashboard' }} nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="{{'active' if active_page == 'logout' }} nav-link" href="{{ url_for('logout') }}">Logout</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="{{'active' if active_page == 'signup' }} nav-link" href="{{ url_for('signup') }}">Register</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="{{'active' if active_page == 'login' }} nav-link" href="{{ url_for('login') }}">Login</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <script>
+        $('.flash-message').delay(2500).fadeOut('slow');
+    </script>
+
+    
+    {%block body%}
+    {%endblock body%}
+
+    <footer class="site-footer">
+      <div>
+          <div class="row">
+              <div class="ml-auto col-sm-auto col-md-4 col-lg-5">
+                <div class="row">
+                  <p><b>Chairpersons</b></p>
+                  <p>Name <i class="fa fa-phone mr-1"></i> Contact </p>
+                  <p>Name <i class="fa fa-phone mr-1"></i> Contact </p>
+                </div>
+              </div>
+              <div class="col-sm-4 col-md-4 col-lg-5">
+                <div class="row">
+                  <img src="{{url_for('static', filename='images/logo.png')}}" class="img-fluid" style="height:150px;width:300px;">
+                </div>
+              </div>
+              <div class="col-sm-5 col-md-4 col-lg-2">
+                  <div class="row">
+                    <p>
+                        <i class="fa fa-envelope"></i>
+                        <a href="mailto:sympo@domain" style="text-decoration: none;color:inherit;">sympo@domain</a>
+                    </p>
+                    <p><i class="fas fa-home me-3"></i> Address</p>
+                  </div>
+              </div>
+          </div>
+          <div class="row">
+              <p class="copyright-text text-center mt-2">&copy; YYYY Copyright <a class="text-reset fw-bold" href="/">this domain</a>
+              <br>
+              <i class="fa fa-solid fa-code"></i> &nbsp; with &nbsp; <i class="fa fa-heart"></i> &nbsp; by
+              <a href="https://author.notexists" style="color:rgb(252, 249, 173); text-decoration: none;">author</a>   
+              <p class="copyright-text text-center mt-2"> Drawing inspiration from <a href="https://github.com/rohinthram/event_management_website" style="color:rgb(252, 249, 173); text-decoration: none;">Event Management Website</a> by
+                <a href="https://www.linkedin.com/in/rohinthram" style="color: rgb(252, 249, 173); text-decoration: none;">Rohinth Ram R V</a>
+              </p>
+          </div>
+      </div>
+  </footer>
+
+
+    
+
+</body>
+</html>

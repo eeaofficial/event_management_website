@@ -1,0 +1,87 @@
+{%extends "layout.html"%}
+
+{%block head%}
+
+{%endblock head%}
+
+{%block body%}
+    <div class="container">
+        <div class="form" style="align-items: center;">
+            <div class="form-heading">
+                Payment
+            </div>
+            <br><br>
+            <form id="paymentForm" enctype="multipart/form-data" method="post" class="signUp">
+                <div class="formGroup">
+                    <div>
+                        <img src="{{url_for('static', filename='/images/'+'qr_code_'+amount+'.jpeg')}}" alt="Payment QR" class="mpic">
+                        <p>vpa@upi</p>
+                    </div>
+                </div>
+                <br><br>
+
+                <div class="formGroup">
+                    <div>
+                        Please scan the above QR to Pay <br>
+                        INR <input type="text" class="for_nam" value="{{amount}}" name="amount" readonly/> <br>
+                        and enter transaction details below
+                    </div>
+                </div>
+                <br>
+                <div class="formGroup">
+                    <div>
+                        For :
+                        <input type="text" class="for_nam" value="{{reg_no}}" name="reg_no" readonly/><br>
+                        (please confirm your registeration number)
+                    </div>
+                </div>
+                <br><br>
+                <div class="formGroup">
+                    <div>
+                        
+                        {% if not workshop_name %}
+                        Pass Type : 
+                            <input type="text" class="for_nam" value="{{pass_name[pass_type]}}" name="pass_type" readonly/>
+                        {%else%}
+                        For Workshop :
+                            <input type="text" class="for_nam" value="{{workshop_name}}" name="pass_type" readonly/>
+                        {%endif%}
+                    </div>
+                </div>
+                <br><br>
+
+                <div class="formGroup">
+                    <div>
+                        <input type="text" class="for_nam" placeholder="Transaction ID" name="tx-id" id="tx-id" required/>
+                    </div>
+                </div>
+                <br><br>
+                
+                <div class="formGroup">
+                    <div>
+                        <input type="file" class="for_nam" name="screenshot" id="screenshot"/> <br>
+                        Proof of payment (Screenshot)
+                    </div>
+                </div>
+                <br><br>
+
+                <div class="formGroup"> <!-- style="display:none;"> ; CHANGE when to stop accepting-->
+                    <div>
+                        <input type="submit" value="Proceed" class="btn">
+                    </div>
+
+                </div>
+                <br><br>
+            </form>
+            <div>
+                {%if verifiers%}
+                    In case of Query please contact <br/><br/>
+                    {%for i in verifiers%}
+                        <b>{{i.name}}</b> <i class="fa fa-phone mr-1"></i> {{i.mobile}}<br/><br/>
+                    {%endfor%}
+                {%endif%}
+            </div>
+            <br><br>
+        </div>
+    </div>
+{%endblock body%}

@@ -1,0 +1,18 @@
+<table style="border: 1px;" class="table table-sucess table-striped table-hover">
+    {%for i in data%}
+        <tr class="table-light">
+            <td>{{i[0]}}</td>
+            <td>
+                <table style="border: 1px white solid;" class="table table-sucess table-striped table-hover">
+                    {%for j in i[1]%}
+                        <tr>
+                            {%for k in j%}
+                                <td>{{k}}</td>
+                            {%endfor%}                    
+                        </tr>
+                    {%endfor%}                
+                </table>
+            </td>
+        </tr>
+    {%endfor%}
+</table>

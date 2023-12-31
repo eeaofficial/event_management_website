@@ -1,0 +1,30 @@
+{%extends "layout.html"%}
+
+{%block head%}
+    <script>
+        $(document).ready(function() {
+    $('#refresh').on('click', function(event){
+        $.ajax({
+            data:{
+                "request":"refresh",
+            },
+            type: 'POST',
+            url: '/certificate-content'
+        })
+        .done(function(data){
+            $('#registrations').html(data.html);
+            $('#time').html('Data as of ' + data.time)
+        });
+    });
+});
+    </script>
+{%endblock head%}
+
+{%block body%}
+    <button class="btn btn-success" id="refresh">Fetch & Filter</button>
+    <button class="btn btn-success" id="print" onclick="window.print();">Print Page</button>
+    
+    <div id="time"></div>
+    <div id="registrations"></div>    
+{%endblock body%}
+

@@ -1,0 +1,37 @@
+{%extends "layout.html"%}
+
+{%block head%}
+    <script>
+        $(document).ready(function() {
+    $('#refresh').on('click', function(event){
+        $.ajax({
+            data:{
+                "request":"refresh",
+                "event_id":$('#event-name').val()
+            },
+            type: 'POST',
+            url: '/refresh'
+        })
+        .done(function(data){
+            $('#registrations').html(data.html);
+            $('#time').html('Data as of ' + data.time)
+        });
+    });
+});
+    </script>
+{%endblock head%}
+
+{%block body%}
+    <button class="btn btn-success" id="refresh">Fetch & Filter</button>
+    <button class="btn btn-success" id="print" onclick="window.print();">Print Page</button>
+    <select name="event-name" id="event-name" style="color:white; background-color: #002333;">
+        <option value="all">All</option>
+        {%for i in events%}
+            <option value="{{i[0]}}">{{i[1]}}</option>
+        {%endfor%}
+    </select>
+    
+    <div id="time"></div>
+    <div id="registrations"></div>    
+{%endblock body%}
+

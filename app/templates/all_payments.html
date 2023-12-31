@@ -1,0 +1,58 @@
+{%extends "layout.html"%}
+
+{%block head%}
+<style>
+    table{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+        table th{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+        table td{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+
+</style>
+{%endblock head%}
+
+{%block body%}
+<button class="btn btn-success" id="print" onclick="window.print();">Print Page</button>
+    <table>
+        <thead>
+            <tr>
+                <th>S.No.</th>
+                <th>Registration Number</th>
+                <th>Name</th>
+                <th>Dept, College</th>
+                <th>Pass Type</th>
+                <th>Amount</th>
+                <th>Transaction Number</th>
+                <th>Is valid Payment</th>
+            </tr>
+        </thead>
+        <tbody>
+            {%for i in payments%}
+            <tr>
+                <td>{{loop.index}}</td>
+                <td>{{i[0].reg_no}}</td>
+                <td>{{i[1].name}}</td>
+                <td>{{i[1].dept}},{{i[1].college}}</td>
+                <td>{{pass_name[i[0].pass_type]}}</td>
+                <td>{{i[0].amount}}</td>
+                <td>{{i[0].tx_no}}</td>
+                <td>{{i[0].is_valid_payment}}</td>
+            </tr>
+            {%endfor%}
+        </tbody>
+    </table>
+   
+{%endblock body%}

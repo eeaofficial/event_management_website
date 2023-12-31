@@ -1,0 +1,254 @@
+{%extends "layout.html"%}
+
+{%block head%}
+
+    <style>
+        .roundParent {
+            display: grid;
+            grid-template-columns: auto auto;
+            grid-template-rows: auto;
+            grid-column-gap: 0px;
+            grid-row-gap: 20px;
+
+            align-items: center;
+        }
+
+        .roundParentRounds { grid-area: 2 / 1 / 3 / 3; }
+
+        .roundDetailsParent {
+            display: grid;
+            grid-template-columns: auto auto;
+            grid-template-rows: auto;
+            grid-column-gap: 0px;
+            grid-row-gap: 20px;
+            
+            align-items: center;
+            padding: 30px;
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            background-color: rgba(26, 51, 92, 0.75);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.125);
+        }
+
+        .roundName { grid-area: 2 / 1 / 3 / 3; }
+        .roundDescription { grid-area: 3 / 1 / 4 / 3; }
+
+        .organiserElement {
+            display: grid;
+            grid-template-columns: auto auto;
+            grid-template-rows: auto;
+            grid-column-gap: 0px;
+
+            align-items: center;
+        }
+
+    </style>
+
+    <script>
+        $(document).ready(function() {
+            var maxRounds = 5;
+            var numRounds = 0;
+
+            $("#addRound").click(function() {
+                if (numRounds < maxRounds) {
+                    var lenght = 5;
+                    var randomString = Math.random().toString(36).substring(2, 2+lenght);
+                    
+                    var $nameBox = $('<div>').attr('class', 'roundName');
+                    $nameBox.append( $("<input>").attr("type", "text").attr("class","for_nam").attr("placeholder", "Round Name").attr('name', 'rd_name_'+randomString).prop('required', true));
+                    
+                    var $descriptionBox = $('<div>').attr('class', 'roundDescription');
+                    $descriptionBox.append($("<textarea>").attr("class","for_nam").attr("placeholder", "Round Description").attr('name', 'rd_description_'+randomString).prop('required', true));
+
+                    var $timeBox = $('<div>').append($('<input>').attr('type', 'time').attr("class","for_nam").attr('name', 'rd_time_'+randomString));
+                    
+                    var $dateBox = $('<div>').append($('<input>').attr('type', 'date').attr("class","for_nam").attr('name', 'rd_date_'+randomString).prop('required', true));
+
+                    var $modeBox = $('<select>').attr('class', 'for_nam').attr('name', 'rd_mode_'+randomString).prop('required', true).css({'color':'black', 'background-color':' #002333'});
+                    $modeBox.append("<option value='physical'>Physical</option>");
+                    $modeBox.append("<option value='online'>Online</option>");
+            
+                    var $deleteIcon = $("<i>").attr('class', "fa fa-trash");
+                    var $deleteBox = $('<div>');
+                    $deleteBox.append($('<button>').attr('class', 'btn btn-danger').attr('type', 'button').append($deleteIcon));
+
+                    var $wrapper = $("<div>").attr("id", 'input_'+randomString).attr('class', 'roundDetailsParent');
+
+                    $wrapper.append($('<div>').append("Round Details :"));
+                    $wrapper.append($deleteBox);
+
+                    $wrapper.append($nameBox);
+                    $wrapper.append($descriptionBox);
+                    $wrapper.append($('<div>').append("Start Time:"));
+                    $wrapper.append($timeBox);
+                    $wrapper.append($('<div>').append("Date:"));
+                    $wrapper.append($dateBox);
+                    $wrapper.append($('<div>').append("Mode:"));
+                    $wrapper.append($modeBox);
+
+                    $("#roundDetails").append($wrapper);
+
+                    $deleteBox.click(function() {
+                        $wrapper.remove();
+                        numRounds--;
+                    });
+                    numRounds++;
+                }
+            });
+
+
+            var maxOrganisers = 2;
+            var numOrganisers = 0;
+
+            $("#addOrganiser").click(function() {
+                if (numOrganisers < maxOrganisers) {
+                    var lenght = 5;
+                    var randomString = Math.random().toString(36).substring(2, 2+lenght);
+                    
+                    var $regNoBox = $('<div>');
+                    $regNoBox.append( $("<input>").attr("type", "text").attr("class","for_nam").attr("placeholder", "Registration Number").attr('name', 'org_'+randomString).prop('required', true));
+
+                    var $deleteIcon = $("<i>").attr('class', "fa fa-trash");
+                    var $deleteBox = $('<div>');
+                    $deleteBox.append($('<button>').attr('class', 'btn btn-danger').attr('type', 'button').append($deleteIcon));
+
+                    var $wrapper = $("<div>").attr("id", 'input_'+randomString).attr('class', 'organiserElement');
+                    $wrapper.append($deleteBox);
+                    $wrapper.append($regNoBox);                    
+                    $("#organiserDetails").append($wrapper);
+
+                    $deleteBox.click(function() {
+                        $wrapper.remove();
+                        numOrganisers--;
+                    });
+                    numOrganisers++;
+                }
+            });
+            $('#cost-div').hide();
+            $('#category').change(function(){
+                var cat = $('#category').val();
+                if(cat=='workshop') {
+                    $('#cost-div').show();
+                }
+                else {
+                    $('#cost-div').hide();
+                }
+
+            });
+        });
+    </script>
+{%endblock head%}
+
+{%block body%}
+    <div class="container">
+        <div class="form">
+            <div class="form-heading">
+                Create Event
+            </div>
+            <br/><br/>
+            <form id="add-event-form" action="" method="post" enctype="multipart/form-data" class="signUp">
+                <div class="formGroup">
+                    <div>
+                        <i class="fa fa-pen" style="color: blue;"></i>
+                        <input type="text" name="name" placeholder="Name of the Event" class="for_nam" required>
+                    </div>
+                </div>
+                <br/><br/>
+
+                <div class="formGroup">
+                    <div>
+                        <i class="fa fa-pen" style="color: blue;"></i>
+                        <input type="text" name="topic" placeholder="Topic" class="for_nam" required>
+                    </div>
+                </div>
+                <br/><br/>
+
+                <div class="formGroup">
+                    <div>
+                        Category:
+                        <select name="category" id="category" class="for_nam" style="color:white; background-color: #002333;" required>
+                            <option value="tech">Technical</option>
+                            <option value="non_tech">Non Technical</option>
+                            <option value="workshop">Workshop</option>
+                            <option value="premium">Premium Event</option>
+                        </select>
+                    </div>
+                </div>
+                <br/><br/>
+                <div class="formGroup" id="cost-div">
+                    <div>
+                        <i class="fa fa-pen" style="color: blue;"></i>
+                        <input type="text" name="cost" placeholder="Cost" class="for_nam">
+                    </div>
+                </div>
+                <br/><br/>
+                <div class="formGroup">
+                    <div>
+                        <i class="fa fa-pen" style="color: blue;"></i>
+                        <input type="file" name="event_pic" placeholder="event picture" class="for_nam" accept="images/*">
+                        <br>
+                        Event Pic or Poster
+                    </div>
+                </div>
+                <br/><br/>
+
+                <div class="formGroup">
+                    <div>
+                        Mailing Content:
+                        <textarea name="mail_cnt" class="for_nam" required></textarea>
+                    </div>
+                </div>
+                <br/><br/>
+
+                <div class="formGroup">
+                    <div>
+                        Description:
+                        <textarea name="description" class="for_nam" required></textarea>
+                    </div>
+                </div>
+                <br/><br/>
+
+                <div class="formGroup">
+                    <div>
+                        <i class="fa fa-pen" style="color: blue;"></i>
+                        <input type="number" name="max_team_size" placeholder="Maximum Team Size" class="for_nam" required>
+                    </div>
+                </div>
+                <br/><br/>
+
+                <div class="formGroup">
+                    <div class="roundParent">
+                        <div>Round Details</div>
+                        <div>
+                            <button class="btn" id="addRound" type="button">Add Round</button>
+                        </div>
+                        <div id="roundDetails" class="roundParentRounds"></div>    
+                    </div>
+                </div>
+                <br/><br/>
+
+                <div class="formGroup">
+                    <div class="orgParent">
+                        <div>Organiser Details</div>
+                        <div>
+                            <button class="btn" id="addOrganiser" type="button">Add Organiser</button>
+                        </div>
+                        <div id="organiserDetails" class="organiserParent"></div>    
+                    </div>
+                </div>
+                <br/><br/>
+
+                <div class="formGroup">
+                    <div>
+                        <input type="submit" class="btn" data-url="{{ url_for('organiser_create_event') }}"/>
+                    </div>
+                </div>
+            </form>
+            <br/><br/>
+            Note: Max Team size can't be changed <br>
+            Organiser register number should be correct to display their correct details
+
+        </div>
+    </div>
+{%endblock body%}

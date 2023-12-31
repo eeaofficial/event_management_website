@@ -1,0 +1,22 @@
+{
+    "e1": {
+        "title" : "Technical Events",
+        "thumbnail" : "images/tech_thumbnail.png",
+        "url" : "tech_events"
+    },
+    "e2": {
+        "title" : "Non Technical Events",
+        "thumbnail" : "images/non_tech_thumbnail.png",
+        "url" : "non_tech_events"
+    },
+    "e3": {
+        "title" : "Workshops",
+        "thumbnail" : "images/workshop_thumbnail.png",
+        "url" : "workshops"
+    },
+    "e4": {
+        "title" : "Premium Events",
+        "thumbnail" : "images/premium_thumbnail.png",
+        "url" : "premium_events"
+    }
+}

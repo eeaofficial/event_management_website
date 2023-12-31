@@ -1,0 +1,209 @@
+{%extends "layout.html"%}
+
+{%block head%}
+<style>
+  .neon {
+    color: #fff;
+    text-shadow: 0 0 10px #fff, 0 0 20px #fff, 0 0 30px #fff, 0 0 40px #ff00de, 0 0 70px #ff00de, 0 0 80px #ff00de, 0 0 10px #ff00de, 0 0 15px #ff00de;
+  }
+
+  .electrify {
+    animation: electrify 3s ease-in-out infinite alternate;
+  }
+
+  @keyframes electrify {
+    0% {
+      transform: translateX(0);
+      opacity: 0.2;
+    }
+
+    25% {
+      transform: translateX(-10px);
+      opacity: 1;
+    }
+
+    50% {
+      transform: translateX(0);
+      opacity: 0.2;
+    }
+
+    75% {
+      transform: translateX(10px);
+      opacity: 1;
+    }
+
+    100% {
+      transform: translateX(0);
+      opacity: 0.2;
+    }
+
+  }
+
+  .glow {
+    animation: glow 1s ease-in-out infinite alternate;
+  }
+
+  @keyframes glow {
+    0% {
+      box-shadow: 0 0 5px #ff00de;
+    }
+
+    50% {
+      box-shadow: 0 0 20px #ff00de;
+    }
+
+    100% {
+      box-shadow: 0 0 5px #ff00de;
+    }
+  }
+</style>
+
+<script>
+  $(document).ready(function(){
+    $('#code-btn').click(function(event){
+      event.preventDefault();
+      $.ajax({
+        url:"{{url_for('verify_code_mit')}}",
+        type:'POST',
+        data:{
+          code:$('#code').val()
+        },
+        success: function(response){
+          alert(response.message)
+        }
+      })
+    });
+  });
+</script>
+{%endblock head%}
+
+{%block body%}
+
+
+<section  style="background-color: #002333;">
+  <div class="container py-5 h-100">
+    <div class="row row-cols-md-2 row-cols-1 h-100 d-flex justify-content-around" style="width: auto !important;">
+      <div class="col" style="width: auto !important;">
+
+        <div class="card electrify glow "
+          style="width:100%;border-radius: 15px;border:2px solid #ff00de;background-color: rgba(0, 0, 0, 0.5);">
+          <div class="card-body text-center">
+            <div class="mt-3 mb-4">
+              <img src="{{url_for('static', filename='images/user.jpg')}}" class="rounded-circle img-fluid"
+                style="width: 100px;" />
+            </div>
+            <h4 class="mb-2 neon">{{current_user.name}}</h4>
+            <p class="text-white mb-4">@<span class="mx-2">{{current_user.reg_no}}</span> <a href="{{url_for('update_profile')}}">edit</a></p>
+            <div class="card-body p-4 ">
+              <h6>Information</h6>
+              <hr class="mt-0 mb-4">
+              <div class="row pt-1">
+                <div class="col-md-6 col-lg-4 mb-2">
+                  <h6>Email</h6>
+                  <p class="text-white">{{current_user.email}}</p>
+                </div>
+                <div class="col-md-6 col-lg-4 mb-2">
+                  <h6>Phone</h6>
+                  <p class="text-white">{{current_user.mobile}}</p>
+                </div>
+                <div class="col-md-6 col-lg-4 mb-2">
+                  <h6>From</h6>
+                  <p class="text-white">{{current_user.dept}}, {{current_user.college}}</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col" style="width: auto !important;">
+        <div class="row row-cols-1">
+          <div class="col" style="width: auto !important;">
+            <div class="card electrify glow "
+              style="width:100%;border-radius: 15px;border:2px solid #ff00de;background-color: rgba(0, 0, 0, 0.5);">
+              <div class="card-header text-center">Your Passes</div>
+              <hr class="mt-0 mb-4">
+              <div class="card-body text-center">
+                <div class="row">
+                  {%if passes%}
+                    {%for i in passes%}
+                      <div class="col-12">{{i}}</div>
+                    {%endfor%}
+                  {%else%}
+                    <div class="col-12">Buy passes to attend events from the below link !</div>
+                  {%endif%}
+
+                  
+                  <ul class="postcard__tagbox">
+                    <li class="tag__item play blue d-block">
+                      <a href="{{url_for('buy_pass')}}">Buy pass</a>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="card electrify glow "
+          style="width:100%;border-radius: 15px;border:2px solid #ff00de;background-color: rgba(0, 0, 0, 0.5);">
+          <div class="card-header text-center">Your Regsitered Events</div>
+          <hr class="mt-0 mb-4">
+          <div class="card-body text-center">
+            <div class="row">
+              {% for i in current_user.events.split(',') %}
+              {%if i %}
+              <div class="col-12"><a style="text-decoration: none;color:inherit;"
+                  href="{{url_for('event_details', id=i)}}">{{events_dict[i].name}}</a></div>
+              {%endif%}
+              {%endfor%}
+              <div class="col-12">*Click on the events check if there's any update</div>
+              <div class="col-12">
+                <a style="text-decoration: none;color:inherit;" href="{{url_for('events')}}">Other Events -></a>
+              </div>
+              
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% if code_possible %}
+          <div class="card electrify glow "
+          style="width:100%;border-radius: 15px;border:2px solid #ff00de;background-color: rgba(0, 0, 0, 0.5);">
+          <div class="card-header text-center">For MIT Students</div>
+          <hr class="mt-0 mb-4">
+          <div class="card-body text-center">
+            <div class="row">
+              
+              <div class="col-12">
+                Your Code Received Via your University mail account
+                <input type="text" placeholder="Your Code" id="code"/>
+                <button class="btn" id="code-btn" style="margin:10px;">Click here to Apply Code</button>
+              </div>
+              <div class="col-12">&nbsp;</div>
+              <div class="col-12">
+                <a href="{{url_for('send_code_mit')}}" class="btn" >Click here to Send Code to your University mail</a><br>
+                  xxxx@student.annauniv.edu, where xxxx is your registration number (if not <b>{{current_user.email}}</b>)
+              </div>
+            </div>
+          </div>
+        {%endif%}
+</section>
+
+<br><br>
+  {% if current_user.isAdministrator %}
+  <a style="text-decoration: none;color:inherit;" href="{{url_for('admin_dashboard')}}">Admin Dashboard</a>
+  {%endif%}
+  <br><br>
+  {% if current_user.isOrganiser %}
+  <a style="text-decoration: none;color:inherit;" href="{{url_for('organiser_dashboard')}}">Organiser Dashboard</a>
+  {%endif%}
+  </div>
+  <br><br>
+  {% if current_user.isVerifier %}
+  <a style="text-decoration: none;color:inherit;" href="{{url_for('verifier_verify')}}">Payment Verifier Dashboard</a>
+  {%endif%}
+{%endblock body%}

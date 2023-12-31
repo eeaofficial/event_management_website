@@ -1,0 +1,101 @@
+{%extends "layout.html"%}
+
+{%block head%}
+    <script>
+        function showImage(url) {
+            var modal = document.getElementById("image-modal");
+            var img = document.getElementById("image-popup");
+            img.src = url;
+            modal.style.display = "block";
+        }
+        
+        function closeImageModal() {
+            var modal = document.getElementById("image-modal");
+            modal.style.display = "none";
+        }
+
+        function updateVerificationStatus(tx_no) {
+            var newStatus = $('#status_' + tx_no).prop('checked');
+            $.ajax({
+                url: "{{url_for('callback')}}",
+                type: 'POST',
+                data: {
+                  tx_no: tx_no, 
+                  new_status: newStatus
+                },
+                success: function(response) {
+                if (response.success) {
+                    if(newStatus) {
+                        $('#disp_' + tx_no).text('Verified');
+                    } else {
+                        $('#disp_' + tx_no).text('Not yet Verified');
+                    }
+                    alert('Payment status updated successfully.'+response.success);
+                } else {
+                    alert(response.message);
+                    alert('Failed to update Payment status.');
+                }
+                }
+            });
+        }
+    </script>
+
+<style>
+  table{
+      padding: 2px;
+      margin: auto;
+      border-width: 1px;
+      border-style: ridge;
+  }
+  table th{
+      padding: 2px;
+      margin: auto;
+      border-width: 1px;
+      border-style: ridge;
+  }
+  table td{
+      padding: 2px;
+      margin: auto;
+      border-width: 1px;
+      border-style: ridge;
+  }
+
+</style>
+{%endblock head%}
+
+{%block body%}
+
+<table>
+    <thead>
+      <tr>
+        <th>S.No.</th>
+        <th>User</th>
+        <th>Transaction ID</th>
+        <th>Pass Type</th>
+        <th>Screenshot</th>
+        <th>Status</th>
+        <th>Validity</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item,user in payments %}
+      <tr>
+        <td>{{loop.index}}</td>
+        <td>{{user}}</td>
+        <td>{{ item.tx_no }}</td>
+        <td>{{item.pass_type}}</td>
+        <td><img src="{{ item.screenshot }}" alt="{{ item.image_alt }}"></td>
+        <td id="disp_{{item.tx_no}}">
+          {%if item.is_valid_payment%}
+            Verified
+          {%else%}
+            Yet to be Verified
+          {%endif%}
+        </td>
+        <td><input type="checkbox" name="{{ item.is_valid_payment }}" id="status_{{item.tx_no}}" {% if item.is_valid_payment%}checked{% endif %} onclick="updateVerificationStatus('{{ item.tx_no }}')"></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  
+{%endblock body%}

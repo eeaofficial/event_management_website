@@ -1,0 +1,231 @@
+{%extends "layout.html"%}
+
+{%block head%}
+    <script src="{{url_for('static', filename='form_submit.js')}}"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles_login.css') }}">
+    <style>
+        .parent {
+            display: grid;
+            grid-template-columns: auto auto;
+            grid-template-rows: auto auto auto;
+            column-gap: 20px;
+            row-gap: 20px;
+            align-items: center;
+            justify-content: center;
+            align-self: center;
+            text-align: center;
+            font-size: large;
+            letter-spacing: 1.5px;
+        }
+
+        .div1 { grid-area: 1 / 1 / 2 / 3; }
+
+        .modal-content {
+            background-color: #1c7ed6;
+        }
+
+        .for_nam{
+            border: none;
+            border-bottom: white solid 2px;
+            background-color: transparent;
+            color: white;
+        }
+
+        .for_nam:focus{
+            outline: none;
+        }
+
+
+        .for_nam:focus::placeholder{
+            color: white;
+        }
+        .btn {    
+            background-color: #1c7ed6;
+            color: inherit;
+            border: 1px solid white;
+        }
+
+        @media only screen and (max-width: 1000px){
+            .parent {
+                display: grid;
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 2fr 1.5f 1fr 1fr;
+                grid-column-gap: 0;
+            }
+            .div1 { grid-area: 1 ; }
+            .event-img {
+                height: 150px;
+            }
+            .btn-reg {
+                margin-top: 30px;
+            }
+        }
+
+        .imp-info {
+            animation: zoominoutsinglefeatured 1.5s infinite;
+            color: violet;
+            font-weight: bold;
+        }
+
+        @keyframes zoominoutsinglefeatured {
+            0% {
+                transform: scale(1,1);
+            }
+            50% {
+                transform: scale(1.2,1.2);
+            }
+            100% {
+                transform: scale(1,1);
+            }
+        }
+        
+    </style>
+    <script>
+        $(document).ready(function() {
+            $('#register-workshop').on('click', function(event){
+                event.preventDefault();
+                amt = '{{event.event_cost}}';
+                reg_no="{{current_user.reg_no}}"
+                pass_type = 'workshop_'+'{{event.event_id}}'
+                var url = "{{url_for('payment')}}?amount="+amt+'&reg_no='+reg_no+'&pass_type='+pass_type;
+                console.log(url);
+                window.location.href = url;
+            });
+        });
+    </script>
+{%endblock head%}
+
+{%block body%}
+<!-- <script src="https://sdk.cashfree.com/js/ui/2.0.0/cashfree.sandbox.js"></script> -->
+    <div class="container">
+        <div class="parent">
+            <div class="div1" style="color:#c627c6;text-shadow: #c627c6 2px 2px; ">
+                <h1>{{event.name}}</h1>
+            </div>
+            <div class="div2" style="border: solid gold 3px; border-radius: 5px;"> <img src="{{url_for('static', filename='images/events/'+event.thumbnail)}}" class="event-img"></div>
+            <div>
+                <div style="color:#6de456">
+                    {{event.description | safe}}
+                </div>
+                <br><br>
+                {%if event.category in ['tech', 'non_tech', 'title_event', 'premium'] %}
+                    Maximum Team Size : {{event.max_team_size}}
+                {%endif%}
+                <br><br>
+                
+                {%for i,j in event.rounds.items() %}
+                    Round : {{j.name}} @ <b>{{j.time}}</b> onwards, <b>{{j.date}}</b> <br>
+                    Description : {{j.description}} <br>
+                    Mode : {{j.mode}} <br><br>
+                {%endfor%}
+
+                <div class="imp-info">
+                    {% if event.category in ['tech', 'non_tech', 'premium']%}
+                        Cash Prizes !!! <br><br>
+                    {%endif%}
+                    Certificates for all participants
+                </div>
+
+            </div>
+            
+            <div style="color:rgb(248, 248, 156);">
+                For further details : <br/><br/>
+                {%for i in organiser_details%}
+                    <b>{{i.name}}</b> <i class="fa fa-phone mr-1"></i> {{i.mobile}}<br/><br/>
+                {%endfor%}
+            </div>
+            {% if event.is_accepting_registration %}
+                {%if current_user.is_authenticated %}
+                    {% if id in current_user.events.split(',') %}
+                        <button type="button" class="btn btn-info btn-lg success">Registered!</button>
+                    {%else%}
+                        {%if event.category not in is_eligible%}
+                            <button type="button" class="btn btn-info btn-lg success" disabled>No Eligible Pass Available</button>
+                        {%else%}
+                            {%if event.category == 'workshop'%}
+                                    <button type="button" class="btn btn-info btn-lg" id="register-workshop">Pay INR {{event.event_cost}} & Register</button>
+                            {%else%}
+                                <button type="button" class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#register-modal">Register</button>
+                            {%endif%}    
+                        {%endif%}
+                        
+                    {%endif%}
+                {%else%}
+                    <button type="button" class="btn btn-info btn-lg btn-reg">
+                        <a href="{{url_for('login')}}" style="color: inherit;text-decoration: none;">Login to Register</a>
+                    </button>
+                {%endif%}
+            {% endif %}
+            <br>
+        </div>
+    </div>   
+    
+    
+    <!-- Modals -->
+    <div class="modal fade" id="register-modal" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content col-md-offset-2 col-md-8">
+                <div class="modal-header">
+                    <span class="fa fa-file-text">  {{event.name}}</span>
+                    <button type="button" class="close" data-bs-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <!-- <button id="rowAdder" type="button"
+                            class="btn btn-dark">
+                            <span class="bi bi-plus-square-dotted">
+                            </span> ADD
+                        </button> -->
+                    <div>
+                        Enter Registration number of all team members
+                        <br>
+                        Team Members :
+                    </div>
+                        
+                    <form id="modal-form" action="" class="form">
+                        <div class="formGroup">
+                            <input class="for_nam" type="text" id="reg1" value="{{current_user.reg_no}}" disabled/>
+                        </div>
+                        {% for i in range(event.max_team_size-1)%}
+                        <div class="formGroup">
+                            <div id="row"> <div class="input-group m-3">
+                            <div class="input-group-prepend">
+                            <button class="btn btn-danger btn-sm" id="DeleteRow" type="button">
+                            <i class="bi bi-trash"></i> &times;</button> </div>
+                            <input class="for_nam" type="text" id="reg{{i+2}}" class="form-control m-input" value="Reg No"> </div> </div>
+                        </div>
+                        {% endfor%}
+                        <input type="submit" class="btn" value="Register"/>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                        {%if event.category in ['tech', 'non_tech', 'premium'] %}
+                            Max Team Size : <div id="teamSize">{{event.max_team_size}}</div><br>
+                            {%if event.max_team_size > 1%}
+                                * Click the &times; to register with less than {{event.max_team_size}} participants
+                            {%endif%}
+                        {%endif%}
+                        <div id="event-id" style="display: none;">{{id}}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="alert-modal" role="dialog">
+        <div class="modal-dialog">
+            <div class="modal-content col-md-offset-2 col-md-8">
+                <div class="modal-header">
+                    <span class="fa fa-envelope">  Alert</span>
+                    <button type="button" class="close" data-bs-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="msg"></div>
+                </div>
+                <div class="modal-footer">
+                    Electrofocus 2k23
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+{%endblock body%}

@@ -1,0 +1,20 @@
+{%extends "layout.html"%}
+
+{%block body%}
+
+    The events organised by you : 
+    
+    {%for event in events%}
+        <li>
+            <a style="text-decoration: none;color:inherit;" href="{{url_for('organiser_event', id=event.event_id)}}">{{event.name}}</a> 
+            {% if not event.is_event_accepted %}
+                (To be Accepted)
+            {%endif%}
+            (<a href="{{url_for('preview_event', id=event.event_id)}}" class="text-reset" target="_blank">Preview</a>)
+        </li>
+    {%endfor%}
+
+    <br/><br/><br/>
+    <a style="text-decoration: none;color:inherit;" href="{{url_for('organiser_create_event')}}">Create a New Event</a>
+    
+{%endblock body%}

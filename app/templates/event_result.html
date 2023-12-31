@@ -1,0 +1,282 @@
+{%extends "layout.html"%}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles_result.css') }}">
+
+    <style>
+
+.parent {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 2fr 1fr;
+            grid-column-gap: 20px;
+            align-items: center;
+            justify-content: center;
+            align-self: center;
+            text-align: center;
+            font-size: large;
+            letter-spacing: 1.5px;
+        }
+
+        .div1 { grid-area: 1 / 1 / 2 / 3; }
+
+        .modal-content {
+            background-color: #1c7ed6;
+        }
+
+        .for_nam{
+            border: none;
+            border-bottom: white solid 2px;
+            background-color: transparent;
+            color: white;
+        }
+
+        .for_nam:focus{
+            outline: none;
+        }
+
+
+        .for_nam:focus::placeholder{
+            color: white;
+        }
+        .btn {    
+            background-color: #1c7ed6;
+            color: inherit;
+            border: 1px solid white;
+        }
+
+        @media only screen and (max-width: 1000px){
+            .parent {
+                display: grid;
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 2fr 1.5f 1fr 1fr;
+                grid-column-gap: 0;
+            }
+            .div1 { grid-area: 1 ; }
+            .event-img {
+                height: 150px;
+            }
+            .btn-reg {
+                margin-top: 30px;
+            }
+        }
+
+        .imp-info {
+            animation: zoominoutsinglefeatured 1.5s infinite
+        }
+
+        @keyframes zoominoutsinglefeatured {
+            0% {
+                transform: scale(1,1);
+            }
+            50% {
+                transform: scale(1.2,1.2);
+            }
+            100% {
+                transform: scale(1,1);
+            }
+        }
+    </style>
+
+
+    
+{% endblock head %}
+
+
+{% block body %}
+<!-- <script src="{{ url_for('static', filename='confetti.js') }}"></script> -->
+
+<!-- <div class="confetti-land">
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+    <div class="confetti"></div>
+</div> -->
+
+<!-- <select id="type">
+    <option value="cornfetti">Candy Corn</option>
+    <option value="leaves">Fall Leaves</option>
+    <option value="bookmarks" selected>Bookmarks</option>
+    <!-option value="snowflake">Snowflakes</option->
+  </select> -->
+
+  <!-- <canvas id="canvas">
+  </canvas>
+
+  <div>
+  !--     <div class="copy" id="tada">🎉</div> --
+      <div class="tada" id="tada">
+        
+      </div>
+  </div> -->
+
+<div>
+    <div></div>
+
+    <div class="container">
+        <div class="parent">
+            <div class="div1">
+                <h1 style="color: rgba(255, 0, 238, 0.655);">{{event.title}}</h1>
+            </div>
+            <!-- <div>
+                {{event.description | safe}}
+                <br><br>
+                {%if event.category in ['tech', 'non_tech', 'title_event'] %}
+                    Maximum Team Size : {{event.maxTeamSize}}
+                {%endif%}
+                <br><br>
+                {%for i in event.rounds %}
+                    {{i.name}} @ <b>{{i.time}}</b> <br>
+                    Mode : {{i.mode}} <br><br>
+                {%endfor%}
+
+                <!- <div class="imp-info">
+                    {% if event.category in ['tech', 'non_tech', 'title_event']%}
+                        Cash Prizes !!! <br><br>
+                    {%endif%}
+                    Certificates for all participants
+                </div> ->
+
+            </div> -->
+            
+            <!-- <div class="div2"> <img src="{{url_for('static', filename=event.thumbnail)}}" class="event-img" width="70%" height="250px"></div> -->
+            
+            <div class="imp-info">
+                {% if event.category in ['tech', 'non_tech']%}
+                    <h1 style="color:rgb(170, 215, 24);">Winners</h1> <br>
+                {%elif event.category in ['title_event']%}
+                    <h1 style="color:rgb(170, 215, 24);">Mr. Title</h1> <br>
+                {%endif%}
+                {% for i in winners %}
+                    {{i.name}} <br>
+                    {{i.reg_no}} <br><br>
+                {%endfor%}
+            </div>
+
+            <div class="imp-info">
+                {% if event.category in ['tech', 'non_tech']%}
+                    <h1 style="color:rgb(170, 215, 24);">Runners</h1> <br>
+                {%elif event.category in ['title_event']%}
+                    <h1 style="color:rgb(170, 215, 24);">Ms. Title</h1> <br>
+                {%endif%}
+                {% for i in runners %}
+                    {{i.name}} <br>
+                    {{i.reg_no}} <br><br>
+                {%endfor%}
+            </div>
+
+            </div>
+            <div></div>
+            <!-- <div>
+                {%if event.category in ['tech', 'non_tech', 'title_event'] %}
+                    For further details : <br/><br/>
+                    {%for i in event.contact%}
+                        <b>{{i.name}}</b> <i class="fa fa-phone mr-1"></i> {{i.mobile}}<br/>
+                    {%endfor%}
+                {%else%}
+                    Speakers : <br/><br/>
+                    {%for i in event.contact%}
+                        <b>{{i.name}}</b><br/>
+                    {%endfor%}
+                {%endif%}
+            </div>
+            <div>
+                {%if current_user.is_authenticated %}
+                    {% if id not in current_user.events.split(',') %}
+                        <button type="button" class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#register-modal">Register</button>
+                    {%else%}
+                        <button type="button" class="btn btn-info btn-lg success">Registered!</button>
+                    {%endif%}
+
+                {%else%}
+                    <button type="button" class="btn btn-info btn-lg btn-reg">
+                        <a href="{{url_for('login')}}" style="color: inherit;text-decoration: none;">Login to Register</a>
+                    </button>
+                {%endif%}
+            </div> -->
+            <div></div>
+            
+        </div>
+    </div>   
+
+
+    
+</div>
+
+{% endblock body%}

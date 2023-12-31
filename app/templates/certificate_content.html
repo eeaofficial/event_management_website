@@ -1,0 +1,13 @@
+<table style="border: 1px;" class="table table-sucess table-striped table-hover">
+    {%for i in data%}
+        <tr class="table-light">
+            <td>{{i[0].name}}</td>
+            <td>
+                {{i[1].name}}
+            </td>
+            <td>{{i[1].reg_no}}</td>
+            <td>{{i[1].dept}}</td>
+            <td>{{i[1].college}}</td>
+        </tr>
+    {%endfor%}
+</table>

@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <style>
+        .err{
+            display: grid;
+            place-items: center;
+            align-content: center;
+            min-height: 100vh;
+        }
+    </style>
+{% endblock head %}
+
+{% block body %}
+
+<div class="err">
+    <h1>Method Not Allowed</h1>
+    <h2>Error 405</h2>
+</div>
+
+{% endblock body %}

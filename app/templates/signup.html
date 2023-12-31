@@ -1,0 +1,285 @@
+{%extends "layout.html"%}
+
+{%block head%}
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles_login.css') }}">
+
+    <script>
+        $(document).ready(function() {
+            var clg_sel = $('#college');
+            var dept_sel = $('#dept');
+
+            var other_clg_name = $('#other_college_name_div');
+            var other_dept_name = $('#other_dept_name_div');
+
+            other_clg_name.hide();
+            other_dept_name.hide();
+
+            clg_sel.change(function() {
+                if(clg_sel.val()=='Other') {
+                    other_clg_name.show();
+                } else {
+                    other_clg_name.hide();
+                }
+            });
+
+            dept_sel.change(function() {
+                console.log(dept_sel.val());
+                if(dept_sel.val()=='Other') {
+                    other_dept_name.show();
+                } else {
+                    other_dept_name.hide();
+                }
+            });
+        });
+    </script>
+
+{%endblock head%}
+
+{%block body%}
+<div class="header"></div>
+
+<div class="container">
+    <div class="form">
+        <div class="form-heading">
+            Sign Up
+        </div>
+        <form method="POST" class="signUp" id="signup-form">
+            {{ form.hidden_tag() }}
+        
+            <div class="formGroup">
+                {% if form.email.errors %}
+                    <div>
+                        <i class="fa fa-envelope" style="color: red;"></i>
+                        {{ form.email(class='for_nam',style='border-color:red;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.email.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-envelope" style="color: #4cd0ec;"></i>
+                        {{ form.email(class='for_nam',placeholder='Email-ID') }}
+                    </div>
+                {% endif %}
+            </div>
+            <br/><br/>
+
+            <div class="formGroup">
+                {% if form.name.errors %}
+                    <div>
+                        <i class="fa fa-user" style="color: red;"></i>
+                        {{ form.name(class='for_nam',style='border-color:red;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.name.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-user" style="color: #4cd0ec;"></i>
+                        {{ form.name(class='for_nam',placeholder='Name') }}
+                    </div>
+                {% endif %}
+            </div>
+            <br/><br/>
+
+            <div class="formGroup">
+                {% if form.reg_no.errors %}
+                    <div>
+                        <i class="fa fa-pencil" style="color: red;"></i>
+                        {{ form.reg_no(class='for_nam',style='border-color:red;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.reg_no.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-pencil" style="color: #4cd0ec;"></i>
+                        {{ form.reg_no(class='for_nam',placeholder='Your Registration Number in your College') }}
+                    </div>
+                {% endif %}
+            </div>
+            <br/><br/>
+
+            <div class="formGroup">
+                {% if form.dept.errors %}
+                    <div>
+                        <i class="fa fa-building" style="color: red;"></i>
+                        {{ form.dept(class='for_name dept',style='border-color:red;color:white; background-color: #002333;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.dept.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-building" style="color: #4cd0ec;"></i>
+                        {{ form.dept(class='for_nam dept',placeholder='Department', style="color:white; background-color: #002333;") }}
+                    </div>
+                {% endif %}
+            </div>
+            <br/><br/>
+            
+            <div id="other_dept_name_div" style="display: none;" class="formGroup">
+                {% if form.other_dept_name.errors %}
+                    <div>
+                        <i class="fa fa-building" style="color: red;"></i>
+                        {{ form.other_dept_name(class='for_nam',style='border-color:red;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.other_dept_name.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-building" style="color: #4cd0ec;"></i>
+                        {{ form.other_dept_name(class='for_nam',placeholder='Department') }}
+                    </div>
+                {% endif %}
+                <br/><br/>
+            </div>
+            
+
+            <div class="formGroup">
+                {% if form.college.errors %}
+                    <div>
+                        <i class="fa fa-building" style="color: red;"></i>
+                        {{ form.college(class='for_name dept',style='border-color:red;color:white; background-color: #002333;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.college.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-building" style="color: #4cd0ec;"></i>
+                        {{ form.college(class='for_nam dept',placeholder='College', style="color:white; background-color: #002333;") }}
+                    </div>
+                {% endif %}
+                (College Name with Address)
+            </div>
+            <br/><br/>
+
+            <div id="other_college_name_div" style="display: none;" class="formGroup">
+                {% if form.other_college_name.errors %}
+                    <div>
+                        <i class="fa fa-building" style="color: red;"></i>
+                        {{ form.other_college_name(class='for_nam',style='border-color:red;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.other_college_name.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-building" style="color: #4cd0ec;"></i>
+                        {{ form.other_college_name(class='for_nam',placeholder='College Name') }}
+                    </div>
+                {% endif %}
+                <br/><br/>
+            </div>
+            
+
+            <div class="formGroup">
+                {% if form.mobile.errors %}
+                    <div>
+                        <i class="fa fa-mobile" style="color: red;"></i>
+                        {{ form.mobile(class='for_nam',style='border-color:red;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.mobile.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-mobile" style="color: #4cd0ec;"></i>
+                        {{ form.mobile(class='for_nam',placeholder='Mobile') }}
+                    </div>
+                {% endif %}
+            </div>
+            <br/><br/>
+            
+            <div class="formGroup">
+                {% if form.password.errors %}
+                    <div>
+                        <i class="fa fa-lock" style="color: red;"></i>
+                        {{ form.password(class='for_nam',style='border-color:red;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.password.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-lock" style="color: #4cd0ec;"></i>
+                        {{ form.password(class='for_nam',placeholder='Password') }}
+                    </div>
+                {% endif %}
+            </div>
+            <br/><br/>
+            
+            <div class="formGroup">
+                {% if form.confirm_password.errors %}
+                    <div>
+                        <i class="fa fa-check" style="color: red;"></i>
+                        {{ form.confirm_password(class='for_nam',style='border-color:red;') }}
+                    </div>
+                    <span style="font-size: small; color: red;">
+                        {% for error in form.confirm_password.errors %}
+                            {%if error%}
+                                {{ error }} 
+                            {%endif%}
+                        {% endfor %}
+                    </span>
+                {% else %}
+                    <div>
+                        <i class="fa fa-check" style="color: #4cd0ec;"></i>
+                        {{ form.confirm_password(class='for_nam',placeholder='Confirm Password') }}
+                    </div>
+                {% endif %}
+            </div>
+            <br/><br/>
+
+            <div class="formGroup">
+                {{ form.submit(class='btn') }}
+            </div>
+            <br/>
+            
+        </form>
+        <small class="text-muted" style="margin-left: 8%;color:white;">
+            Already Have An Account? <a style="text-decoration: none;" class="ml-2" href="{{ url_for('login') }}">Sign In</a>
+        </small>
+    </div>
+</div>
+<div class="header"></div>
+
+{%endblock body%}
