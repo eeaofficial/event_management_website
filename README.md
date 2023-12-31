@@ -144,6 +144,8 @@ Welcome, the ultimate event management website that streamlines the chaos of org
 ![modify-user](/readme_assets/modify_user.png)
 
 
+---
+
 > Because managing events should be as smooth as attending them! ????
 
 ---
