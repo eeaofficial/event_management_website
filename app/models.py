@@ -1,7 +1,13 @@
-from app import db, login_manager, app, bcrypt
-from flask_login import UserMixin
+"""
+Models
+"""
+
 import os
+
+from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+
+from app import db, login_manager, app, bcrypt
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -109,18 +115,18 @@ with app.app_context():
         db.create_all()
 
     # hard coded creation of SUPER ADMIN login
-    email='super-admin@domain.com'
-    user = User.query.filter_by(email=email).first()
-    hashed_password = bcrypt.generate_password_hash('superPASS').decode('utf-8')
-    if not user:
+    super_email='super-admin@domain.com'
+    super_user = User.query.filter_by(email=super_email).first()
+    super_pass = bcrypt.generate_password_hash('superPASS').decode('utf-8')
+    if not super_user:
         admin = User(
                 name='SuperAdmin',
-                email=email,
+                email=super_email,
                 reg_no='1234567890',
                 dept='',
                 college='',
                 events='',
-                password=hashed_password,
+                password=super_pass,
                 mobile=0,
                 isOrganiser=True,
                 isParticipant=True,

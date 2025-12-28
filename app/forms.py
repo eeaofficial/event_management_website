@@ -1,14 +1,14 @@
+"""
+Forms
+"""
+
+
 from flask_wtf import FlaskForm
 from wtforms import *
 from wtforms.fields import DateField, TimeField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
-from datetime import date
 
 from app.models import User
-
-from string import ascii_letters, digits
-
-from datetime import datetime
 # change ALL FORM and FORM ELEMENTS as per requirement
 class SignUpForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -64,7 +64,7 @@ class SignUpForm(FlaskForm):
 
     def validate_mobile(self, mobile):
         try:
-            n = int(mobile.data)
+            int(mobile.data)
         except:
             raise ValidationError('Invalid Mobile Number')
 
@@ -145,6 +145,6 @@ class UpdateProfileForm(FlaskForm):
 
     def validate_mobile(self, mobile):
         try:
-            n = int(mobile.data)
+            int(mobile.data)
         except:
             raise ValidationError('Invalid Mobile Number')
