@@ -2,7 +2,7 @@
 Routes
 """
 
-import os
+
 from datetime import datetime
 import hashlib
 import json
@@ -10,7 +10,7 @@ import random
 import string
 from pathlib import Path
 
-from flask import  render_template, flash, redirect, url_for, request, jsonify, send_file
+from flask import  render_template, flash, redirect, url_for, request, jsonify, send_file, send_from_directory
 from flask_login import login_user, current_user, logout_user, login_required
 
 from app import app, db, bcrypt, upload_dir, static_dir
@@ -18,7 +18,7 @@ from app.forms import *
 from app.models import *
 # from app.send_mail_smtp import send_mail
 from app.send_mail_http import send_mail_http as send_mail
-from app.utils import is_code_applicable
+from app.utils import is_code_applicable, save_image
 
 # hash_file = hashlib.sha256()
 
@@ -53,6 +53,16 @@ pass_id = {
     'Deep Learning using Python' : 'workshop_mOXHL',
     'Different types of multiple access technologies and 5G usage scenarios with its key capabilities' : 'workshop_gjhuR'
 }
+
+@app.route('/uploads/<path:filename>')
+def uploaded_file(filename):
+    """
+    used primarily for serving uploaded files paths
+    example
+    <img src="{{ url_for('uploaded_file', filename='payment_screenshots/tx12345.png') }}"/>
+
+    """
+    return send_from_directory(str(upload_dir), filename)
 
 @app.route('/')
 def home():
@@ -384,25 +394,25 @@ def payment():
             flash(f'A proof with this is already submitted', 'danger')
             return redirect(url_for('dashboard'))
 
-        filename = ''
-        if 'screenshot' in request.files:
-            image = request.files['screenshot']
-            if image:
-                img = Image.open(image)
-                img = img.resize((500, 500))
-                x = Path(image.filename)
-                pic = data['tx-id'].strip() + x.suffix
-                filename = str(upload_dir / 'payment_screenshots' / pic)
-                img.save(filename)
-        else:
+        if not 'screenshot' in request.files:
             flash('Invalid Proof or proof not uploaded !')
+            return redirect(url_for('dashboard'))
+
+        image = request.files['screenshot']
+        _, _, filename = save_image(
+            image,
+            filename=data['tx-id'].strip(),
+            category='payment_screenshots'
+        )
+        if not filename:
+            flash('Error in uploading proof image !', 'danger')
             return redirect(url_for('dashboard'))
 
         p = Payments(
             reg_no=data['reg_no'],
             pass_type=pass_id[data['pass_type']],
             tx_no=data['tx-id'].strip(),
-            screenshot='/'.join(filename.split('/')[1:]),
+            screenshot=filename,
             amount=data['amount'],
             is_valid_payment=False
         )
@@ -844,16 +854,14 @@ def organiser_create_event():
             cost = details['cost']
 
         event_pic = 'default.jpg'
-
         if 'event_pic' in request.files:
             image = request.files['event_pic']
-            if image:
-                img = Image.open(image)
-                img = img.resize((500, 500))
-                x = Path(image.filename)
-                event_pic = event_id + x.suffix
-                filename = str(upload_dir / event_pic)
-                img.save(filename)
+            _, _, new_path = save_image(
+                image,
+                filename=event_id,
+                category='event_thumbnails'
+            )
+            event_pic = new_path or event_pic
 
         evt = EventDetails(
             event_id=event_id,
@@ -947,13 +955,11 @@ def organiser_event(id):
         event_pic = evt.thumbnail
         if 'event_pic' in request.files:
             image = request.files['event_pic']
-            if image:
-                img = Image.open(image)
-                img = img.resize((500, 500))
-                x = Path(image.filename)
-                event_pic = id + x.suffix
-                filename = str(upload_dir / event_pic)
-                img.save(filename)
+            _, _, new_path = save_image(
+                image,
+                filename=id
+            )
+            event_pic = new_path or event_pic
 
         evt.name=details['name']
         evt.category=details['category']
@@ -1131,27 +1137,6 @@ def send_sample_mail():
     if not 'success' in ret:
         return jsonify({'message':'Unable to send Mail; Contact Admin'})
     return jsonify({'message':'Mail sent'})
-
-# @app.route('/dummy')
-# def dummy():
-#     p = Payments.query.filter_by(tx_no='308402653374').first()
-#     p.pass_type = 'p4'
-#     db.session.commit()
-#     for i in ['30849492950438', '308492794755', '308492862297']:
-#         p = Payments.query.filter_by(tx_no=i).first()
-#         p.pass_type = 'workshop_gjhuR'
-#     db.session.commit()
-#     p = Payments.query.filter_by(tx_no='344800386602').first()
-#     p.pass_type = 'p1'
-
-#     db.session.commit()
-#     return 'success'
-# @app.route('/dummy')
-# def dummy():
-#     p = Payments.query.filter_by(tx_no='308951538705 ').first()
-#     p.tx_no = '308951538705'
-#     db.session.commit()
-#     return 'success'
 
 @app.route('/organiser/preview-event/<id>')
 @login_required
@@ -1414,16 +1399,6 @@ def certificate_content():
                 data.append([e, u])
 
     return jsonify({"html":render_template('certificate_content.html', data=data), "time":str(datetime.now())})
-
-# @app.route('/dummy')
-# def dummy():
-#     e = EventDetails.query.filter_by(event_id='TRawK').first()
-#     e.event_cost = 349
-#     db.session.commit()
-#     e = EventDetails.query.filter_by(event_id='mOXHL').first()
-#     e.event_cost = 349
-#     db.session.commit()
-#     return 'done'
 
 @app.route('/admin/all-payments')
 @login_required

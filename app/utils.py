@@ -27,3 +27,60 @@ def is_code_applicable() -> bool:
 
     return code_applicable
 
+def make_valid_file_name(filename: str) -> str:
+    """
+        Get Valid File Name
+        TODO: add limit_size: int=100
+    """
+
+    illegal_chars = ['-', ' ', '/','\\', ':', '*', '?', '"', '<', '>', '|', '&']
+
+    for i in illegal_chars:
+        filename = filename.replace(i, '_')
+
+    return filename
+
+def save_image(
+        image: FileStorage,
+        filename: str,
+        category:str='',
+        size:tuple[int]=(500,500)
+    ) -> tuple[bool, str, str]:
+    """
+        image is a FileStorage object
+        category is used to store images separately
+        category will be the subdirectory in static/images/<>
+
+        File extension will be preserved as that of the image object
+
+        Return 
+        (bool, str, str): success status, message, relative path to store to fetch the file
+    """
+
+    if not image:
+        return (False, 'No image provided', '')
+
+    valid_size = len(size)==2 and isinstance(size[0], float) and isinstance(size[1], float)
+    if not valid_size:
+        size = (500, 500)
+
+    res_dir = upload_dir / category
+    res_dir.mkdir(parents=True, exist_ok=True)
+
+    filename = make_valid_file_name(filename)
+    if not filename:
+        return (False, 'Invalid file name', '')
+
+    img_ext = Path(image.filename).suffix
+    filename = f'{filename}.{img_ext}'
+    file_path = res_dir / filename
+
+    img = Image.open(image)
+    img = img.resize(size)
+    img.save(file_path)
+    img.close()
+
+    if file_path.exists():
+        return (True, 'success',filename)
+
+    return (False, 'Error saving image', '')
