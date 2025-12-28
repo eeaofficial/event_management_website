@@ -1536,6 +1536,104 @@ def all_payments_download():
     return resp
 
 
+# **************** Unsent Mail Management ****************
+
+@app.route('/admin/unsent-mails')
+@login_required
+def view_unsent_mails():
+    if not current_user.isAdministrator:
+        flash('Invalid Route!', 'danger')
+        return redirect(url_for('dashboard'))
+
+    unsent_mails_dir = os.path.join(app.static_folder, 'unsent_mails')
+    unsent_mails = []
+
+    if os.path.exists(unsent_mails_dir):
+        for filename in os.listdir(unsent_mails_dir):
+            if filename.endswith('.json'):
+                filepath = os.path.join(unsent_mails_dir, filename)
+                try:
+                    with open(filepath, 'r') as f:
+                        mail_data = json.load(f)
+                        unsent_mails.append({
+                            'filename': filename,
+                            'to': mail_data.get('to', 'N/A'),
+                            'subject': mail_data.get('subject', 'N/A'),
+                            'body': mail_data.get('body', '')[:100] + '...' if len(mail_data.get('body', '')) > 100 else mail_data.get('body', ''),
+                            'full_data': mail_data
+                        })
+                except:
+                    pass
+
+    return render_template('unsent_mails.html', unsent_mails=unsent_mails)
+
+
+@app.route('/admin/resend-mail/<filename>', methods=['POST'])
+@login_required
+def resend_unsent_mail(filename):
+    if not current_user.isAdministrator:
+        return jsonify({'message': 'error', 'details': 'Not authorized'})
+
+    unsent_mails_dir = os.path.join(app.static_folder, 'unsent_mails')
+    filepath = os.path.join(unsent_mails_dir, filename)
+
+    # Security check: ensure file is in unsent_mails directory
+    if not os.path.abspath(filepath).startswith(os.path.abspath(unsent_mails_dir)):
+        return jsonify({'message': 'error', 'details': 'Invalid file path'})
+
+    if not os.path.exists(filepath):
+        return jsonify({'message': 'error', 'details': 'File not found'})
+
+    try:
+        with open(filepath, 'r') as f:
+            mail_data = json.load(f)
+
+        # Resend the mail
+        result = send_mail(
+            mail_data.get('to'),
+            mail_data.get('subject'),
+            mail_data.get('body'),
+            format=mail_data.get('format', 'plain'),
+            attachments=mail_data.get('attchments', []),
+            signature=mail_data.get('signature', '')
+        )
+
+        if result == 'success':
+            # Delete the file after successful resend
+            os.remove(filepath)
+            return jsonify({'message': 'success', 'details': 'Mail resent successfully and record deleted'})
+        else:
+            return jsonify({'message': 'error', 'details': 'Failed to resend mail'})
+
+    except Exception as e:
+        return jsonify({'message': 'error', 'details': str(e)})
+
+
+@app.route('/admin/delete-unsent-mail/<filename>', methods=['POST'])
+@login_required
+def delete_unsent_mail(filename):
+    if not current_user.isAdministrator:
+        return jsonify({'message': 'error', 'details': 'Not authorized'})
+
+    unsent_mails_dir = os.path.join(app.static_folder, 'unsent_mails')
+    filepath = os.path.join(unsent_mails_dir, filename)
+
+    # Security check: ensure file is in unsent_mails directory
+    if not os.path.abspath(filepath).startswith(os.path.abspath(unsent_mails_dir)):
+        return jsonify({'message': 'error', 'details': 'Invalid file path'})
+
+    try:
+        if os.path.exists(filepath):
+            os.remove(filepath)
+            return jsonify({'message': 'success', 'details': 'Mail record deleted'})
+        else:
+            return jsonify({'message': 'error', 'details': 'File not found'})
+    except Exception as e:
+        return jsonify({'message': 'error', 'details': str(e)})
+
+# ***********************************************
+
+
 # **************** Error Pages ****************
 
 @app.errorhandler(404)
