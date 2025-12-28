@@ -18,6 +18,7 @@ from app.forms import *
 from app.models import *
 # from app.send_mail_smtp import send_mail
 from app.send_mail_http import send_mail_http as send_mail
+from app.utils import is_code_applicable
 
 # hash_file = hashlib.sha256()
 
@@ -207,12 +208,7 @@ def dashboard():
         except:
             passes.append(i)
 
-    code_possible = False
-    r = current_user.reg_no
-    # modify institution previledge accordingly
-    if current_user.college == 'MIT':
-        if '201950' in r or '202050' in r or '202150' in r or '202250' in r:
-            code_possible = True
+    code_possible = is_code_applicable()
 
     return render_template('dashboard.html', title=current_user.name, events_dict=events_dict, passes=passes, code_possible=code_possible)
 
@@ -222,11 +218,7 @@ def dashboard():
 def verify_code_mit():
     data = dict(request.form)
     code_ori = hashlib.sha256(current_user.reg_no.encode('utf-8')).hexdigest()[20:50]
-    code_possible = False
-    r = current_user.reg_no
-    if current_user.college == 'MIT':
-        if '201950' in r or '202050' in r or '202150' in r or '202250' in r:
-            code_possible = True
+    code_possible = is_code_applicable()
     if not code_possible:
         return jsonify({'message':'error code only for MIT'})
 
@@ -272,12 +264,7 @@ import hashlib
 @app.route('/send-code-mit')
 @login_required
 def send_code_mit():
-    code_possible = False
-    r = current_user.reg_no
-    # access codes for certain institution; can be extended following the idea used
-    if current_user.college == 'MIT':
-        if '201950' in r or '202050' in r or '202150' in r or '202250' in r:
-            code_possible = True
+    code_possible = is_code_applicable()
 
     if code_possible:
         code = hashlib.sha256(current_user.reg_no.encode('utf-8')).hexdigest()[20:50]
@@ -300,7 +287,6 @@ def update_profile():
     form = UpdateProfileForm()
 
     if form.validate_on_submit():
-        # print('done validdation')
         if form.dept.data == 'Other':
             dept = form.other_dept_name.data
         else:
@@ -577,26 +563,6 @@ def tech_events():
 @app.route('/non-tech-events')
 def non_tech_events():
     events = EventDetails.query.filter_by(category='non_tech', is_event_accepted=True).all()
-    # based on institution previlegde - display some event ; can be extended for other event categories also
-    # correct_events = []
-    # for i in events:
-    #     if i.event_id == 'bhDMT' or i.event_id == 'Xlwac':
-    #         pass
-    #     else:
-    #         correct_events.append(i)
-    # if current_user.is_authenticated:
-    #     code_possible = False
-    #     r = current_user.reg_no
-    #     if current_user.college == 'MIT':
-    #         if '201950' in r or '202050' in r or '202150' in r or '202250' in r:
-    #             code_possible = True
-    #     if code_possible:
-    #         x = EventDetails.query.filter_by(event_id='bhDMT', is_event_accepted=True).first()
-    #         if x:
-    #             correct_events.append(x)
-    #         y = EventDetails.query.filter_by(event_id='Xlwac', is_event_accepted=True).first()
-    #         if y:
-    #             correct_events.append(y)
     return render_template('events_list.html', title='Non Tech Events', active_page='events', events=events, header='Non Technical Events')
 
 @app.route('/premium-events')
@@ -645,17 +611,11 @@ def event_details(id):
         flash('Seems like event no longer exist please contact the support team', 'danger')
         return redirect(url_for('home'))
 
-    # based on institution previlegde
-    code_possible = False
-    if current_user.is_authenticated:
-        r = current_user.reg_no
-        if current_user.college == 'MIT':
-            if '201950' in r or '202050' in r or '202150' in r or '202250' in r:
-                code_possible = True
+    code_possible = is_code_applicable()
 
-        if id in ['Xlwac', 'bhDMT'] and (not code_possible):
-            flash('This event is only for MIT Students', 'danger')
-            return redirect(url_for('home'))
+    if id in ['Xlwac', 'bhDMT'] and (not code_possible):
+        flash('This event is only for MIT Students', 'danger')
+        return redirect(url_for('home'))
 
     is_eligible = []
     if current_user.is_authenticated:
