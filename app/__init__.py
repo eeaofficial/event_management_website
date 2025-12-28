@@ -1,8 +1,14 @@
+"""
+app/__init__.py
+"""
+
+import os
+from pathlib import Path
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
-import os
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -20,6 +26,10 @@ login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
 
 app.config["UPLOAD_FOLDER"] = os.environ.get("UPLOAD_FOLDER")
+upload_dir = Path(app.config['UPLOAD_FOLDER'])
+upload_dir.mkdir(parents=True, exist_ok=True)
 
+static_dir = Path(app.static_folder)
+static_dir.mkdir(parents=True, exist_ok=True)
 
 from app import routes
