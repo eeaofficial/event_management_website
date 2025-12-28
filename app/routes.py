@@ -76,7 +76,7 @@ def signup():
             dept = form.other_dept_name.data
         else:
             dept = form.dept.data
-        
+
         if form.college.data == 'Other':
             clg = form.other_college_name.data
         else:
@@ -132,7 +132,7 @@ def login():
             return redirect(next_page) if next_page else redirect(url_for('dashboard'))
         else:
             flash('Login Unsuccessful. Please check email and password', 'danger')
-    
+
     return render_template('login.html', title='Login', form=form, active_page='login')
 
 @app.route('/logout')
@@ -210,7 +210,7 @@ def dashboard():
             passes.append(pass_name[i])
         except:
             passes.append(i)
-    
+
     code_possible = False
     r = current_user.reg_no
     # modify institution previledge accordingly
@@ -254,12 +254,12 @@ def verify_code_mit():
 # @app.route('/dummy')
 # def dummy():
 #     evts = Events.query.filter_by(event_id='hIvTL').all()
-    
+
 #     e = EventDetails.query.filter_by(event_id='hIvTL').first()
-    
+
 #     for i in evts:
 #         u = User.query.filter_by(reg_no=i.reg_no).first()
-        
+
 #         subject = 'Registation Successful | <Symposium-Name> year'
 #         to = u.email
 #         body = f'''<br>
@@ -285,22 +285,22 @@ def send_code_mit():
 
     if code_possible:
         code = hashlib.sha256(current_user.reg_no.encode('utf-8')).hexdigest()[20:50]
-        
-        ret = send_mail(current_user.email, 'Code for Getting access to All events | <Symposium-Name> year', 
-                      f'Your Code : {code} <br><br> THIS PASS IS SUBJECT TO VERIFICATION AT REGISTRATION DESK !!! <br><br>', format='html') 
+
+        ret = send_mail(current_user.email, 'Code for Getting access to All events | <Symposium-Name> year',
+                      f'Your Code : {code} <br><br> THIS PASS IS SUBJECT TO VERIFICATION AT REGISTRATION DESK !!! <br><br>', format='html')
         if not 'success' in ret:
             flash(f'Unable to send mail; Contact admin', 'danger')
         else:
             flash('Mail Sent','success')
         return redirect(url_for('dashboard'))
-    
+
     flash('Invalid Request','danger')
     return redirect(url_for('dashboard'))
 
 @app.route('/update-profile', methods=['GET', 'POST'])
 @login_required
 def update_profile():
-    
+
     form = UpdateProfileForm()
 
     if form.validate_on_submit():
@@ -309,7 +309,7 @@ def update_profile():
             dept = form.other_dept_name.data
         else:
             dept = form.dept.data
-        
+
         if form.college.data == 'Other':
             clg = form.other_college_name.data
         else:
@@ -347,11 +347,11 @@ def buy_pass():
 @login_required
 def get_user():
     data = dict(request.form)
-    
+
     r = {}
     regno1 = data['regno1']
     regno2 = data['regno2']
-    
+
     msg = ''
 
     f1 = False
@@ -362,7 +362,7 @@ def get_user():
         if u1passes:
             u1ptyes = [p.pass_type for p in u1passes]
             if 'p4' in u1ptyes:
-                return jsonify({'msg':f'Registration Number :{regno1} has already the pass'})                
+                return jsonify({'msg':f'Registration Number :{regno1} has already the pass'})
         else:
             f1 = True
             r['u1'] = {'name':u1.name,'college':u1.college,'mobile':u1.mobile}
@@ -375,20 +375,20 @@ def get_user():
         if u2passes:
             u2ptyes = [p.pass_type for p in u2passes]
             if 'p4' in u2ptyes:
-                return jsonify({'msg':f'Registration Number :{regno2} has already the pass'})                
+                return jsonify({'msg':f'Registration Number :{regno2} has already the pass'})
         else:
             f2 = True
             r['u2'] = {'name':u2.name,'college':u2.college,'mobile':u2.mobile}
     else:
         msg += f'<br><br>Registration Number ({regno2}) seems not existing'
     # print(u1passes)
-    
+
     if u1 and u2 and f1 and f2:
         if u1.reg_no == u2.reg_no:
             return jsonify({'msg':'Same User repeated'})
         r.update({'msg':'Passes for these users can be obtained', 'success':'success'})
         return jsonify(r)
-    
+
     return jsonify({'msg':msg})
 
 @app.route('/payment', methods=['GET', 'POST'])
@@ -470,7 +470,7 @@ def callback():
                             u.events += id+','
                         else:
                             u.events = id+','
-                        
+
                         evt = EventDetails.query.filter_by(event_id=id).first()
                         evt.n_registrations += 1
 
@@ -489,7 +489,7 @@ def callback():
                         body += evt.on_register_mail_cnt
                         ret = send_mail(to, subject, body, format='html')
                         err_msg += f'{ret}\n'
-                        
+
                     elif p.pass_type not in ['p1','p2','p3','p4','p51','p52','p6','p7']:
                         if 'workshop' in pass_id[p.pass_type]:
                             _, id = pass_id[p.pass_type].split('_')
@@ -498,7 +498,7 @@ def callback():
                                 u.events += id+','
                             else:
                                 u.events = id+','
-                            
+
                             evt = EventDetails.query.filter_by(event_id=id).first()
                             evt.n_registrations += 1
 
@@ -535,7 +535,7 @@ def callback():
         if err_msg:
             msg +=  f"Mailing Errors: {err_msg}\n"
         return jsonify({'success':msg})
-    
+
 
 @app.route('/verifier-verify')
 @login_required
@@ -543,14 +543,13 @@ def verifier_verify():
     if not current_user.isVerifier:
         flash('Invalid Route !', 'danger')
         return redirect(url_for('organiser_dashboard'))
-    
+
     p = []
     payments = Payments.query.filter_by(is_valid_payment=False).all()
-    
+
     for i in payments:
         u = User.query.filter_by(reg_no=i.reg_no).first()
         p.append((i, u))
-        
 
     return render_template('verifier_verify.html', payments=p)
 
@@ -560,13 +559,12 @@ def verifier_verify_all():
     if not current_user.isVerifier:
         flash('Invalid Route !', 'danger')
         return redirect(url_for('organiser_dashboard'))
-    
+
     p = []
     payments = Payments.query.all()
     for i in payments:
         u = User.query.filter_by(reg_no=i.reg_no).first()
         p.append((i, u))
-        
 
     return render_template('verifier_verify.html', payments=p)
 
@@ -642,15 +640,15 @@ def eligible_events():
 @app.route('/event-details/<id>')
 def event_details(id):
     event = EventDetails.query.filter_by(event_id=id).first()
-    
+
     if not event:
         flash('Seems like event no longer exist please contact the support team', 'danger')
         return redirect(url_for('home'))
-    
+
     if not event.is_event_accepted:
         flash('Seems like event no longer exist please contact the support team', 'danger')
         return redirect(url_for('home'))
-    
+
     # based on institution previlegde
     code_possible = False
     if current_user.is_authenticated:
@@ -658,16 +656,16 @@ def event_details(id):
         if current_user.college == 'MIT':
             if '201950' in r or '202050' in r or '202150' in r or '202250' in r:
                 code_possible = True
-        
+
         if id in ['Xlwac', 'bhDMT'] and (not code_possible):
             flash('This event is only for MIT Students', 'danger')
             return redirect(url_for('home'))
-            
+
     is_eligible = []
     if current_user.is_authenticated:
         is_eligible.append('workshop')
         is_eligible.extend(eligible_events())
-    
+
     organiser_details = []
     o1 = User.query.filter_by(reg_no=event.primary_organiser).first()
     organiser_details.append(
@@ -680,29 +678,27 @@ def event_details(id):
     for reg_no in event.other_organisers.split(','):
         i = User.query.filter_by(reg_no=reg_no).first()
         if i:
-            organiser_details.append(
-                {
+            organiser_details.append({
                     'name' : i.name,
                     'mobile' : i.mobile
-                }    
-            )
+            })
 
     if not event.is_result_accepted:
         return render_template('event_details.html', event=event, id=id, organiser_details=organiser_details, is_eligible=is_eligible)
-        
+
     winners = []
     runners = []
     if event.winner:
         for i in event.winner.split(','):
             winners.append(User.query.filter_by(reg_no=i).first())
-    
+
     if event.runner:
         for i in event.runner.split(','):
             runners.append(User.query.filter_by(reg_no=i).first())
 
     return render_template('event_result.html', winners=winners, runners=runners, event=event)
-            
-    
+
+
 @app.route('/register', methods=["POST"])
 @login_required
 def register():
@@ -717,7 +713,7 @@ def register():
                 if x:
                     if data['id'] in x.events.split(','):
                         return jsonify({"error": f'{x.reg_no} Already registered!'})
-                    
+
                     users.append(x)
                 else:
                     return jsonify({"error":f'{value} does not have an account !'})
@@ -727,7 +723,7 @@ def register():
 
         r = ''
         users = set(users)
-        
+
         for i in users:
             p = Payments.query.filter_by(reg_no=i.reg_no).all()
             if not p:
@@ -737,7 +733,7 @@ def register():
             is_eligible = eligible_events()
             if evt.category not in is_eligible:
                 return jsonify({'error':'No pass!'})
-            
+
         for i in users:
             r+=(str(i.reg_no)+',')
             i.events += data['id']+','
@@ -747,16 +743,15 @@ def register():
         if not evt.is_accepting_registration:
             raise Exception("This event is no loonger accepting registrations")
             # return jsonify({"error":"This event is no loonger accepting registrations"})
-        
+
         evt_reg = Events(
             event_id=data['id'],
             reg_no = r[:-1],
             time=str(datetime.now()),
             )
 
-        
         evt.n_registrations += 1
-    
+
         db.session.add(evt_reg)
         db.session.commit()
 
@@ -785,16 +780,16 @@ def admin_login():
     if not (current_user.isAdministrator or current_user.id == 66):
         flash('Invalid Route','danger')
         return redirect(url_for('dashboard'))
-    
+
     if not current_user.isAdministrator:
         # to monitor admin logins - super admin
         send_mail('super_admin@domain.com', 'Admin Login Detected', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
-        
+
     data = []
     evts = Events.query.order_by(Events.event_id).all()
-    
+
     events = EventDetails.query.with_entities(EventDetails.event_id, EventDetails.name).all()
-    
+
     for i in evts:
         name = EventDetails.query.filter_by(event_id=i.event_id).first().name
         us = []
@@ -864,17 +859,17 @@ def organiser_create_event():
             if 'rd_' == i[:3]:
                 _, _, id = i.split('_')
                 ids.append(id)
-        
+
         for i in ids:
             rounds.update({i:{}})
-                
+
         for i in rounds:
             for j in details.keys():
                 if 'rd_' == j[:3]:
                     _, t, id = j.split('_')
                     if i == id:
                         rounds[i].update({t:details['rd_'+t+'_'+id]})
-    
+
         # print(rounds)
 
         nRounds = len(rounds.keys())
@@ -1092,7 +1087,7 @@ def organiser_event_download(id):
     if not current_user.isOrganiser:
         flash('Invalid Route!', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     evt = EventDetails.query.filter_by(event_id=id).first()
 
     if not evt:
@@ -1105,7 +1100,7 @@ def organiser_event_download(id):
         if current_user.reg_no not in organiser_reg_nos:
             flash(f'You are not the organiser of Event {evt.name}!', 'danger')
             return redirect(url_for('dashboard'))
-    
+
     evts = Events.query.filter_by(event_id=id).all()
     data = []
     n = 5
@@ -1119,8 +1114,8 @@ def organiser_event_download(id):
                 data.append([sno, u.name, u.reg_no, u.mobile, u.email, event.event_attended])
                 n += 1
         sno += 1
-    start_row.append(n)    
-    
+    start_row.append(n)
+
     output = BytesIO()
     workbook = xlsxwriter.Workbook(output)
     worksheet = workbook.add_worksheet(f'{evt.name}')
@@ -1168,7 +1163,7 @@ def send_sample_mail():
     if not current_user.isAdministrator:
         if current_user.reg_no not in organiser_reg_nos and not current_user.isOrganiser:
             return jsonify({'message':f'You are not the organiser of Event {e.name}!'})
-                
+
     subject = 'Registation Successful | <Symposium-Name> year <Sample ; for Organiser>'
     to = current_user.email
     body = f'''<br>
@@ -1192,7 +1187,7 @@ def send_sample_mail():
 #     db.session.commit()
 #     p = Payments.query.filter_by(tx_no='344800386602').first()
 #     p.pass_type = 'p1'
-    
+
 #     db.session.commit()
 #     return 'success'
 # @app.route('/dummy')
@@ -1208,11 +1203,11 @@ def preview_event(id):
     evt = EventDetails.query.filter_by(event_id=id).first()
     orgs = [evt.primary_organiser]
     orgs.extend(evt.other_organisers.split(',')[:-1])
-    
+
     if not current_user.isAdministrator:
         if current_user.reg_no not in orgs:
             flash('Invalid Route !', 'danger')
-    
+
     organiser_details = []
     o1 = User.query.filter_by(reg_no=evt.primary_organiser).first()
     organiser_details.append(
@@ -1229,7 +1224,7 @@ def preview_event(id):
                 {
                     'name' : i.name,
                     'mobile' : i.mobile
-                }    
+                }
             )
 
     page = '<h1>Preview<h1>'
@@ -1275,13 +1270,13 @@ def organiser_update_event_result():
     for i in e:
         if u.reg_no in i.reg_no:
             break
-    
+
     if not i.event_attended:
         return jsonify({'message':'Participant not attended event'})
     if not evt:
         return jsonify({'message':'No such Event'})
-    
-    
+
+
     if data['newWinnerStatus'] == 'true':
         if evt.winner:
             evt.winner += u.reg_no + ','
@@ -1308,14 +1303,14 @@ def organiser_update_event_result():
 def organiser_event_result():
     data = dict(request.form)
     evt = EventDetails.query.filter_by(event_id=data['event_id']).first()
-    
+
     if not evt:
         return jsonify({'message':'no such event'})
 
     evt.is_result_submitted = True
 
     db.session.commit()
-    
+
     return jsonify({'success':'success', 'winner':evt.winner, 'runner':evt.runner})
 
 
@@ -1325,9 +1320,8 @@ def admin_dashboard():
     if not current_user.isAdministrator:
         flash('Invalid Route!', 'danger')
         return redirect(url_for('organiser_dashboard'))
-    
+
     events = EventDetails.query.all()
-    
 
     return render_template('admin_dashboard.html', events=events)
 
@@ -1338,7 +1332,7 @@ def admin_modify_user():
     if not current_user.isAdministrator:
         flash('Invalid Route!', 'danger')
         return redirect(url_for('organiser_dashboard'))
-    
+
     if request.method == "POST":
         pass
 
@@ -1350,7 +1344,7 @@ def admin_modify_user():
 def admin_get_user():
     if not current_user.isAdministrator:
         return jsonify({'error':'not admin'})
-    
+
     data = dict(request.form)
     # print(data)
     regno = data['regno']
@@ -1380,10 +1374,10 @@ def admin_get_user():
 def admin_update_user():
     if not current_user.isAdministrator:
         return jsonify({'error':'not admin'})
-    
+
     data = dict(request.form)
     # print(data)
-    
+
     user = User.query.filter_by(reg_no=data['reg_no']).first()
     if not user:
         return jsonify({'error':'no such user'})
@@ -1433,7 +1427,7 @@ def admin_all_users():
     if not current_user.isAdministrator:
         flash('Invalid Route', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     users = User.query.all()
     return render_template('all_user.html', users=users)
 
@@ -1482,12 +1476,11 @@ def admin_all_payments():
     if not (current_user.isAdministrator or current_user.id == 66):
         flash('Invalid Route', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     if not current_user.isAdministrator:
         # to monitor admin logins - super admin
         send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
-        
-    
+
     payments = Payments.query.order_by(Payments.pass_type.asc()).all()
     data = []
     for i in payments:
@@ -1502,11 +1495,10 @@ def all_payments_download():
     if not (current_user.isAdministrator or current_user.id == 66):
         flash('Invalid Route', 'danger')
         return redirect(url_for('dashboard'))
-    
+
     if not current_user.isAdministrator:
         # to monitor admin logins - super admin
         send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
-        
 
     payments = Payments.query.order_by(Payments.pass_type.asc()).all()
     data = []

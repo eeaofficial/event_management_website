@@ -17,8 +17,8 @@ class SignUpForm(FlaskForm):
     dept = SelectField(
         'Department',
         choices=[
-            ('Aero', 'Aeronautical'), 
-            ('Auto', 'Automobile'), 
+            ('Aero', 'Aeronautical'),
+            ('Auto', 'Automobile'),
             ('CT', 'Computer Technology'),
             ('EC', 'Electronics and Communication'),
             ('IT', 'Information Technology'),
@@ -44,7 +44,7 @@ class SignUpForm(FlaskForm):
     )
 
     other_college_name = StringField('College Name')
-    
+
     mobile = StringField('Phone', validators=[DataRequired(), Length(min=10, max=10)])
     password = PasswordField('Password', validators=[DataRequired()])
     confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password', "Password doesn't match")])
@@ -56,7 +56,7 @@ class SignUpForm(FlaskForm):
     #     user = User.query.filter_by(email=email.data).first()
     #     if user:
     #         raise ValidationError('Account already exists')
-    
+
     def validate_reg_no(self, reg_no):
         user = User.query.filter_by(reg_no=reg_no.data).first()
         if user:
@@ -68,7 +68,7 @@ class SignUpForm(FlaskForm):
         except:
             raise ValidationError('Invalid Mobile Number')
 
-        
+
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     reg_no = StringField('College Registration Number', validators=[DataRequired()])
@@ -101,8 +101,8 @@ class UpdateProfileForm(FlaskForm):
     dept = SelectField(
         'Department',
         choices=[
-            ('Aero', 'Aeronautical'), 
-            ('Auto', 'Automobile'), 
+            ('Aero', 'Aeronautical'),
+            ('Auto', 'Automobile'),
             ('CT', 'Computer Technology'),
             ('EC', 'Electronics and Communication'),
             ('IT', 'Information Technology'),
@@ -128,7 +128,7 @@ class UpdateProfileForm(FlaskForm):
     )
 
     other_college_name = StringField('College Name')
-    
+
     mobile = StringField('Phone', validators=[DataRequired(), Length(min=10, max=10)])
 
     submit = SubmitField('Update')

@@ -16,7 +16,7 @@ class User(db.Model, UserMixin):
     dept = db.Column(db.String(30), nullable=False)
     password = db.Column(db.String(128), nullable=False)
     mobile = db.Column(db.String(10), nullable=False)
-    
+
     #comma seperated event ids
     events = db.Column(db.String(500))
 
@@ -42,7 +42,7 @@ class User(db.Model, UserMixin):
             user_id = s.loads(token)['user_id']
         except:
             return None
-        
+
         return User.query.get(user_id)
 
     def __repr__(self):
@@ -84,14 +84,14 @@ class EventDetails(db.Model):
 
     #admin should accept to make things "on-line" at website for the public
     is_event_accepted = db.Column(db.Boolean, default=False, nullable=False)
-    
+
     is_result_submitted = db.Column(db.Boolean, default=False, nullable=False)
     is_result_accepted = db.Column(db.Boolean, default=False, nullable=False) # if result accepted by admin; will be pushed "on-line"
-    
+
     workshop_fee = db.Column(db.Integer, default=0, nullable=False)
     n_registrations = db.Column(db.Integer, default=0, nullable=False)
     on_register_mail_cnt = db.Column(db.String(1000), default='', nullable=False)
-    
+
 class Payments(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     reg_no = db.Column(db.String(200), nullable=False) # reg number of user
@@ -102,7 +102,7 @@ class Payments(db.Model):
     screenshot = db.Column(db.String(50), nullable=False)
     tx_no = db.Column(db.String(50), unique=True, nullable=False)
     is_valid_payment = db.Column(db.Boolean, default=False, nullable=False)
-    
+
 
 with app.app_context():
     if "database.db" not in os.listdir():
