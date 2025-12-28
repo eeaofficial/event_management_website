@@ -168,16 +168,16 @@
                 {%for i in events%}
                     <tr>
                         <td>
-                            <a href="{{url_for('organiser_event', id=i.event_id)}}"  target="_blank">
+                            <a href="{{url_for('organiser_event', idx=i.event_id)}}"  target="_blank">
                                 {{i.name}}
                             </a>
 
                         </td>
                         <td>{{i.event_id}}</td>
-                        <td><a href="{{url_for('preview_event', id=i.event_id)}}" target="_blank" class="text-reset">Preview</a></td>
+                        <td><a href="{{url_for('preview_event', idx=i.event_id)}}" target="_blank" class="text-reset">Preview</a></td>
                         <td>{{i.category}}</td>
                         <td>{{i.n_registrations}}</td>
-                        <td><a href="{{url_for('organiser_event_download', id=i.event_id)}}">Download</td>
+                        <td><a href="{{url_for('organiser_event_download', idx=i.event_id)}}">Download</td>
                         <td id="accept_{{ i.id }}">
                             {%if i.is_event_accepted%}
                                 Accepted

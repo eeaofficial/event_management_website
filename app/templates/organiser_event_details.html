@@ -555,7 +555,7 @@
         <tbody>
             <tr>
                 <td colspan="7" style="align-self: center;">
-                    <a href="{{ url_for('organiser_event_download',id=event.event_id) }}">Download Participants Details as Excel</a>
+                    <a href="{{ url_for('organiser_event_download',idx=event.event_id) }}">Download Participants Details as Excel</a>
                 </td>
             </tr>
             {%for i in registered%}

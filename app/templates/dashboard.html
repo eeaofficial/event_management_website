@@ -155,7 +155,7 @@
               {% for i in current_user.events.split(',') %}
               {%if i %}
               <div class="col-12"><a style="text-decoration: none;color:inherit;"
-                  href="{{url_for('event_details', id=i)}}">{{events_dict[i].name}}</a></div>
+                  href="{{url_for('event_details', idx=i)}}">{{events_dict[i].name}}</a></div>
               {%endif%}
               {%endfor%}
               <div class="col-12">*Click on the events check if there's any update</div>

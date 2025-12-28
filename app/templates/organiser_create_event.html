@@ -130,11 +130,14 @@
                 var cat = $('#category').val();
                 if(cat=='workshop') {
                     $('#cost-div').show();
+                    $('#max_team_size').val('1');
+                    $('#max_team_size').prop('readonly', true);
                 }
                 else {
                     $('#cost-div').hide();
+                    $('#max_team_size').val('');
+                    $('#max_team_size').prop('readonly', false);
                 }
-
             });
         });
     </script>
@@ -211,8 +214,9 @@
 
                 <div class="formGroup">
                     <div>
+                        Team Size:
                         <i class="fa fa-pen" style="color: blue;"></i>
-                        <input type="number" name="max_team_size" placeholder="Maximum Team Size" class="for_nam" required>
+                        <input type="number" name="max_team_size" placeholder="Maximum Team Size" class="for_nam" id="max_team_size" required>
                     </div>
                 </div>
                 <br/><br/>
