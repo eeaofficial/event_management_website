@@ -1,19 +1,29 @@
-from flask import  render_template, flash, redirect, url_for, request, jsonify, send_file
-from app import app, db, bcrypt
+"""
+Routes
+"""
 
-from app.forms import *
-from app.models import *
-
-from flask_login import login_user, current_user, logout_user, login_required
-
+import os
+from datetime import datetime
 import hashlib
-# hash_file = hashlib.sha256()
-
 import json
 import random
 import string
+from pathlib import Path
 
-from datetime import datetime
+from flask import  render_template, flash, redirect, url_for, request, jsonify, send_file
+from flask_login import login_user, current_user, logout_user, login_required
+
+from app import app, db, bcrypt
+from app.forms import *
+from app.models import *
+
+# hash_file = hashlib.sha256()
+
+upload_dir = Path(app.config['UPLOAD_FOLDER'])
+upload_dir.mkdir(parents=True, exist_ok=True)
+
+static_dir = Path(app.static_folder)
+static_dir.mkdir(parents=True, exist_ok=True)
 
 # modify the pass names as per the sympo
 pass_name = {
@@ -387,25 +397,25 @@ def payment():
     if request.method == 'POST':
         data = dict(request.form)
 
+        pa = Payments.query.filter_by(tx_no=data['tx-id']).first()
+        if pa:
+            flash(f'A proof with this is already submitted', 'danger')
+            return redirect(url_for('dashboard'))
+
         filename = ''
         if 'screenshot' in request.files:
             image = request.files['screenshot']
             if image:
                 img = Image.open(image)
-                img = img.resize((500, 500)) 
-                pic = data['tx-id']+'.'+image.filename.split('.')[-1]
-                filename = os.path.join(app.config['UPLOAD_FOLDER'], 'payment_screenshots')
-                filename = os.path.join(filename, pic)
+                img = img.resize((500, 500))
+                x = Path(image.filename)
+                pic = data['tx-id'].strip() + x.suffix
+                filename = str(upload_dir / 'payment_screenshots' / pic)
                 img.save(filename)
         else:
-            flash('Invalid Proof or proof not uploaded !')        
+            flash('Invalid Proof or proof not uploaded !')
             return redirect(url_for('dashboard'))
 
-        pa = Payments.query.filter_by(tx_no=data['tx-id']).first()
-        if pa:
-            flash(f'A proof with this is already submitted', 'danger')
-            return redirect(url_for('dashboard'))
-        
         p = Payments(
             reg_no=data['reg_no'],
             pass_type=pass_id[data['pass_type']],
@@ -419,7 +429,7 @@ def payment():
 
         flash('Payment Submitted; You\'ll be notified upon Verification', 'success')
         return redirect(url_for('dashboard'))
-    
+
     amount = request.args.get('amount')
     # print('aamt : ', amount)
     reg_no = request.args.get('reg_no')
@@ -427,7 +437,7 @@ def payment():
     workshop_name = ''
     if pass_type and 'workshop' in pass_type:
         workshop_name = EventDetails.query.filter_by(event_id=pass_type[-5:]).first().name
-    
+
     verifiers = User.query.filter_by(isVerifier=True, isAdministrator=False).all()
 
     return render_template('payment.html', amount=amount, reg_no=reg_no, pass_type=pass_type, pass_name=pass_name, workshop_name=workshop_name, verifiers=verifiers)
@@ -888,9 +898,10 @@ def organiser_create_event():
             image = request.files['event_pic']
             if image:
                 img = Image.open(image)
-                img = img.resize((500, 500)) 
-                event_pic = event_id+'.'+image.filename.split('.')[-1]
-                filename = os.path.join(app.config['UPLOAD_FOLDER'], event_pic)
+                img = img.resize((500, 500))
+                x = Path(image.filename)
+                event_pic = event_id + x.suffix
+                filename = str(upload_dir / event_pic)
                 img.save(filename)
 
         evt = EventDetails(
@@ -962,10 +973,10 @@ def organiser_event(id):
             if 'rd_' == i[:3]:
                 _, _, id_rd = i.split('_')
                 ids.append(id_rd)
-        
+
         for i in ids:
             rounds.update({i:{}})
-                
+
         for i in rounds:
             for j in details.keys():
                 if 'rd_' == j[:3]:
@@ -987,9 +998,10 @@ def organiser_event(id):
             image = request.files['event_pic']
             if image:
                 img = Image.open(image)
-                img = img.resize((500, 500)) 
-                event_pic = id+'.'+image.filename.split('.')[-1]
-                filename = os.path.join(app.config['UPLOAD_FOLDER'], event_pic)
+                img = img.resize((500, 500))
+                x = Path(image.filename)
+                event_pic = id + x.suffix
+                filename = str(upload_dir / event_pic)
                 img.save(filename)
 
         evt.name=details['name']
@@ -1003,7 +1015,6 @@ def organiser_event(id):
         evt.thumbnail=event_pic
         evt.topic=details['topic']
         evt.on_register_mail_cnt=details['mail_cnt']
-        
 
         for i in organisers:
             user = User.query.filter_by(reg_no=i).first()
@@ -1028,7 +1039,7 @@ def organiser_event(id):
 
     organiser_reg_nos = [evt.primary_organiser]
     organiser_reg_nos.extend(evt.other_organisers.split(','))
-    
+
     if not current_user.isAdministrator:
         if current_user.reg_no not in organiser_reg_nos and not current_user.isOrganiser:
             flash(f'You are not the organiser of Event {evt.name}!', 'danger')
@@ -1065,7 +1076,7 @@ def organiser_event(id):
 
                 us.append((u.name, u.reg_no, u.mobile, u.email, u.id, isWinner, isRunner))
         data.append([us]+[event.event_attended, event.id])
-    
+
     # for i in data:
     #     for j in i[0]:
     #         print(j)
@@ -1401,7 +1412,7 @@ def admin_update_user():
 
     db.session.commit()
 
-    return jsonify({'message':'success'})    
+    return jsonify({'message':'success'})
 
 
 @app.route('/admin/modify_event', methods=["POST"])
@@ -1545,25 +1556,30 @@ def view_unsent_mails():
         flash('Invalid Route!', 'danger')
         return redirect(url_for('dashboard'))
 
-    unsent_mails_dir = os.path.join(app.static_folder, 'unsent_mails')
+    unsent_mails_dir = static_dir / 'unsent_mails'
     unsent_mails = []
 
-    if os.path.exists(unsent_mails_dir):
-        for filename in os.listdir(unsent_mails_dir):
-            if filename.endswith('.json'):
-                filepath = os.path.join(unsent_mails_dir, filename)
-                try:
-                    with open(filepath, 'r') as f:
-                        mail_data = json.load(f)
-                        unsent_mails.append({
-                            'filename': filename,
-                            'to': mail_data.get('to', 'N/A'),
-                            'subject': mail_data.get('subject', 'N/A'),
-                            'body': mail_data.get('body', '')[:100] + '...' if len(mail_data.get('body', '')) > 100 else mail_data.get('body', ''),
-                            'full_data': mail_data
-                        })
-                except:
-                    pass
+    if unsent_mails_dir.exists():
+        for filename in unsent_mails_dir.glob('*.json'):
+            filepath = unsent_mails_dir / filename
+            try:
+                with open(filepath, 'r') as file:
+                    mail_data = json.load(file)
+                    data_to = mail_data.get('to', 'N/A')
+                    data_subject = mail_data.get('subject', 'N/A')
+                    data_body = mail_data.get('body', '')
+                    if len(data_body) > 100:
+                        data_body = data_body[:100] + '...'
+
+                    unsent_mails.append({
+                        'filename': filename,
+                        'to': data_to,
+                        'subject': data_subject,
+                        'body': data_body,
+                        'full_data': mail_data
+                    })
+            except Exception as e:
+                print(f"Error reading {filename}: {e}")
 
     return render_template('unsent_mails.html', unsent_mails=unsent_mails)
 
@@ -1574,14 +1590,14 @@ def resend_unsent_mail(filename):
     if not current_user.isAdministrator:
         return jsonify({'message': 'error', 'details': 'Not authorized'})
 
-    unsent_mails_dir = os.path.join(app.static_folder, 'unsent_mails')
-    filepath = os.path.join(unsent_mails_dir, filename)
+    unsent_mails_dir = static_dir / 'unsent_mails'
+    filepath = unsent_mails_dir / filename
 
     # Security check: ensure file is in unsent_mails directory
-    if not os.path.abspath(filepath).startswith(os.path.abspath(unsent_mails_dir)):
+    if not filepath.is_relative_to(unsent_mails_dir):
         return jsonify({'message': 'error', 'details': 'Invalid file path'})
 
-    if not os.path.exists(filepath):
+    if not filepath.exists():
         return jsonify({'message': 'error', 'details': 'File not found'})
 
     try:
@@ -1594,13 +1610,11 @@ def resend_unsent_mail(filename):
             mail_data.get('subject'),
             mail_data.get('body'),
             format=mail_data.get('format', 'plain'),
-            attachments=mail_data.get('attchments', []),
-            signature=mail_data.get('signature', '')
+            attachments=mail_data.get('attchments', [])
         )
 
         if result == 'success':
-            # Delete the file after successful resend
-            os.remove(filepath)
+            filepath.unlink() # Delete the file after successful resend
             return jsonify({'message': 'success', 'details': 'Mail resent successfully and record deleted'})
         else:
             return jsonify({'message': 'error', 'details': 'Failed to resend mail'})
@@ -1615,16 +1629,16 @@ def delete_unsent_mail(filename):
     if not current_user.isAdministrator:
         return jsonify({'message': 'error', 'details': 'Not authorized'})
 
-    unsent_mails_dir = os.path.join(app.static_folder, 'unsent_mails')
-    filepath = os.path.join(unsent_mails_dir, filename)
+    unsent_mails_dir = static_dir / 'unsent_mails'
+    filepath = unsent_mails_dir / filename
 
     # Security check: ensure file is in unsent_mails directory
-    if not os.path.abspath(filepath).startswith(os.path.abspath(unsent_mails_dir)):
+    if not filepath.is_relative_to(unsent_mails_dir):
         return jsonify({'message': 'error', 'details': 'Invalid file path'})
 
     try:
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        if filepath.exists():
+            filepath.unlink()
             return jsonify({'message': 'success', 'details': 'Mail record deleted'})
         else:
             return jsonify({'message': 'error', 'details': 'File not found'})
@@ -1672,7 +1686,7 @@ def send_mail(to, subject, body, format='plain', attachments=[], signature=''):
         server.login(smtp_username, smtp_password)
 
         file_attachments = attachments
-        
+
         #create email
         mimeMessage = MIMEMultipart()
         mimeMessage['From'] = 'user@domain.com'
@@ -1680,15 +1694,13 @@ def send_mail(to, subject, body, format='plain', attachments=[], signature=''):
         mimeMessage['Subject'] = subject
         mimeMessage['Date'] = formatdate(localtime=True)
         #mimeMessage.attach(MIMEText(html,'html'))
-        mimeMessage.attach(MIMEText(body, format))
-
         if not signature:
-            # SIGNATURE
             signature = '''
 Thanks & Regards,
 Organizing Team
-            '''
-        mimeMessage.attach(MIMEText(signature, 'plain'))
+'''
+        # expected signature and body same format
+        mimeMessage.attach(MIMEText(body + signature, format))
 
         for attachment in file_attachments:
             content_type, encoding = mimetypes.guess_type(attachment)
@@ -1711,19 +1723,20 @@ Organizing Team
         server.quit()
         return 'success'
     except Exception as e:
+        print('Mail Sending Error:', e)
+
         unsent_mail = {}
         unsent_mail['to'] = to
         unsent_mail['subject'] = subject
         unsent_mail['body'] = body
-        unsent_mail['signature'] = signature
         unsent_mail['attchments'] = attachments
-        save_unsent_mail_directory = os.path.join(app.static_folder, 'unsent_mails')
-        os.makedirs(save_unsent_mail_directory, exist_ok=True)
-        save_file_path = os.path.join(
-            save_unsent_mail_directory,
-            f'{hashlib.sha256(body.encode()).hexdigest()[10:40]}.json')
+        save_unsent_mail_directory = static_dir / 'unsent_mails'
+        save_unsent_mail_directory.mkdir(parents=True, exist_ok=True)
+        filename = f'{hashlib.sha256(body.encode()).hexdigest()[10:40]}.json'
+        save_file_path = save_unsent_mail_directory / filename
         with open(save_file_path, 'w') as file:
             json.dump(unsent_mail, file)
+
         return 'error'
 
 
@@ -1739,12 +1752,10 @@ from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 import mimetypes
 
-import os
-
-def send_mail_http(to, subject, body, format='plain', attachments=[]):
+def send_mail_http(to, subject, body, format='plain', attachments=[], signature=''):
     creds = None
-    SCOPES = ['https://mail.google.com/']
-    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    scopes = ['https://mail.google.com/']
+    creds = Credentials.from_authorized_user_file('token.json', scopes)
     service = build('gmail', 'v1', credentials=creds)
 
     file_attachments = attachments
@@ -1758,7 +1769,16 @@ def send_mail_http(to, subject, body, format='plain', attachments=[]):
     mimeMessage['to'] = to
     mimeMessage['subject'] = subject
     #mimeMessage.attach(MIMEText(html,'html'))
-    mimeMessage.attach(MIMEText(body, format))
+
+    if not signature:
+            # SIGNATURE
+            signature = '''
+Thanks & Regards,
+Organizing Team
+'''
+
+    # expected signature and body same format
+    mimeMessage.attach(MIMEText(body + signature, format))
 
     for attachment in file_attachments:
         content_type, encoding = mimetypes.guess_type(attachment)
@@ -1777,12 +1797,28 @@ def send_mail_http(to, subject, body, format='plain', attachments=[]):
     raw_string = base64.urlsafe_b64encode(mimeMessage.as_bytes()).decode()
 
 
-    message = service.users().messages().send(
-        userId='me',
-        body={'raw': raw_string}).execute()
+    try:
+        message = service.users().messages().send(
+            userId='me',
+            body={'raw': raw_string}
+        ).execute()
+    except Exception as e:
+        message = f'An error occurred: {e}'
+
+        unsent_mail = {}
+        unsent_mail['to'] = to
+        unsent_mail['subject'] = subject
+        unsent_mail['body'] = body
+        unsent_mail['attchments'] = attachments
+        save_unsent_mail_directory = static_dir / 'unsent_mails'
+        save_unsent_mail_directory.mkdir(parents=True, exist_ok=True)
+        filename = f'{hashlib.sha256(body.encode()).hexdigest()[10:40]}.json'
+        save_file_path = save_unsent_mail_directory / filename
+        with open(save_file_path, 'w') as file:
+            json.dump(unsent_mail, file)
 
     return message
-    
+
 
 # ***********************************************
 
