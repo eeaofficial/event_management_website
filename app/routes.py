@@ -39,31 +39,15 @@ pass_name = {
     'workshop_gjhuR':'Different types of multiple access technologies and 5G usage scenarios with its key capabilities'
 }
 
-# reverse of pass_name dict
-pass_id = {
-    'Premium Pass (All Premium Events)' : 'p1',
-    'Tech Pass (All Tech Events)' : 'p2',
-    'Non Tech Pass (All Non-Tech Events)' : 'p3',
-    'Diamond Pass (All Events)' : 'p4',
-    'Platinum Pass (All Premium and Non-Tech Events)' : 'p51',
-    'Platinum Pass (All Premium and Tech Events)' : 'p52',
-    'Gold Pass (All Tech and Non-Tech Events)' : 'p6',
-    'Combo Pass (All Events ; 3 Participants)' : 'p7',
-    'Empowering Chip Design Innovators: RISC-V Workshop with Skywater 130nm Chips' : 'workshop_hIvTL',
-    'Data analysis on different domain Model training and advancements' : 'workshop_TRawK',
-    'Deep Learning using Python' : 'workshop_mOXHL',
-    'Different types of multiple access technologies and 5G usage scenarios with its key capabilities' : 'workshop_gjhuR'
-}
-
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     """
     used primarily for serving uploaded files paths
     example
     <img src="{{ url_for('uploaded_file', filename='payment_screenshots/tx12345.png') }}"/>
-
     """
-    return send_from_directory(str(upload_dir), filename)
+    base_dir = upload_dir.absolute()
+    return send_from_directory(base_dir, filename, as_attachment=False)
 
 @app.route('/')
 def home():
@@ -400,7 +384,7 @@ def payment():
 
         p = Payments(
             reg_no=data['reg_no'],
-            pass_type=pass_id[data['pass_type']],
+            pass_type=data['pass_type'],
             tx_no=data['tx-id'].strip(),
             screenshot=filename,
             amount=data['amount'],
@@ -413,7 +397,6 @@ def payment():
         return redirect(url_for('dashboard'))
 
     amount = request.args.get('amount')
-    # print('aamt : ', amount)
     reg_no = request.args.get('reg_no')
     pass_type = request.args.get('pass_type')
     workshop_name = ''
@@ -474,8 +457,8 @@ def callback():
                         err_msg += f'{ret}\n'
 
                     elif p.pass_type not in ['p1','p2','p3','p4','p51','p52','p6','p7']:
-                        if 'workshop' in pass_id[p.pass_type]:
-                            _, id = pass_id[p.pass_type].split('_')
+                        if 'workshop' in p.pass_type:
+                            _, id = p.pass_type.split('_')
                             u = User.query.filter_by(reg_no=p.reg_no).first()
                             if u.events:
                                 u.events += id+','
@@ -730,7 +713,10 @@ def register():
             Team Members : {', '.join(people)} <br>
             '''
             body += evt.on_register_mail_cnt
-            ret = send_mail(to, subject, body, format='html')
+            try:
+                ret = send_mail(to, subject, body, format='html')
+            except Exception as e:
+                print(e)
             msg = "registered!\n"
             if 'success' not in ret:
                 msg += "Unable to send mail; contact admin\n"
@@ -953,7 +939,8 @@ def organiser_event(idx):
             image = request.files['event_pic']
             _, _, new_path = save_image(
                 image,
-                filename=idx
+                filename=idx,
+                category='event_thumbnails'
             )
             event_pic = new_path or event_pic
 

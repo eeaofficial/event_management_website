@@ -38,13 +38,13 @@
                 <br><br>
                 <div class="formGroup">
                     <div>
-                        
+                        <input type="text" class="for_nam" value="{{pass_type}}" name="pass_type" readonly hidden/>
                         {% if not workshop_name %}
                         Pass Type : 
-                            <input type="text" class="for_nam" value="{{pass_name[pass_type]}}" name="pass_type" readonly/>
+                            <input type="text" class="for_nam" value="{{pass_name[pass_type]}}" name="pass_name" readonly/>
                         {%else%}
                         For Workshop :
-                            <input type="text" class="for_nam" value="{{workshop_name}}" name="pass_type" readonly/>
+                            <input type="text" class="for_nam" value="{{workshop_name}}" name="pass_name" readonly/>
                         {%endif%}
                     </div>
                 </div>

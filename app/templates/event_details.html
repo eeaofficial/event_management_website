@@ -101,7 +101,7 @@
             <div class="div1" style="color:#c627c6;text-shadow: #c627c6 2px 2px; ">
                 <h1>{{event.name}}</h1>
             </div>
-            <div class="div2" style="border: solid gold 3px; border-radius: 5px;"> <img src="{{url_for('static', filename='images/events/'+event.thumbnail)}}" class="event-img"></div>
+            <div class="div2" style="border: solid gold 3px; border-radius: 5px;"> <img src="{{url_for('uploaded_file', filename='event_thumbnails/'+event.thumbnail)}}" class="event-img"></div>
             <div>
                 <div style="color:#6de456">
                     {{event.description | safe}}
