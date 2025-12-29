@@ -2,6 +2,7 @@
 token.json
 **/__init__.pyc
 **/instance
-.env
+**/.env
 **/unsent_mails
 *.db
+**/uploads

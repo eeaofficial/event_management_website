@@ -72,7 +72,7 @@ def save_image(
         return (False, 'Invalid file name', '')
 
     img_ext = Path(image.filename).suffix
-    filename = f'{filename}.{img_ext}'
+    filename = f'{filename}{img_ext}'
     file_path = res_dir / filename
 
     img = Image.open(image)
