@@ -11,17 +11,17 @@ import string
 from io import BytesIO
 import xlsxwriter
 
-from flask import  render_template, flash, redirect, url_for, request, jsonify, send_file, send_from_directory
+from flask import  render_template, flash, redirect, url_for, request, jsonify, send_file, send_from_directory, Blueprint
 from flask_login import login_user, current_user, logout_user, login_required
 
-from app import app, db, bcrypt, upload_dir, static_dir
+from app.extensions import db, bcrypt
 from app.forms import *
 from app.models import *
 # from app.send_mail_smtp import send_mail
 from app.send_mail_http import send_mail_http as send_mail
-from app.utils import is_code_applicable, save_image
+from app.utils import is_code_applicable, save_image, get_upload_dir, get_static_dir
 
-# hash_file = hashlib.sha256()
+bp = Blueprint("", __name__)
 
 # modify the pass names as per the sympo
 pass_name = {
@@ -39,22 +39,22 @@ pass_name = {
     'workshop_gjhuR':'Different types of multiple access technologies and 5G usage scenarios with its key capabilities'
 }
 
-@app.route('/uploads/<path:filename>')
+@bp.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     """
     used primarily for serving uploaded files paths
     example
     <img src="{{ url_for('uploaded_file', filename='payment_screenshots/tx12345.png') }}"/>
     """
-    base_dir = upload_dir.absolute()
+    base_dir = get_upload_dir()
     return send_from_directory(base_dir, filename, as_attachment=False)
 
-@app.route('/')
+@bp.route('/')
 def home():
     event_types = json.load(open('event_types.json'))
     return render_template('home.html', title='', event_types=event_types)
 
-@app.route('/signup', methods=["GET", "POST"])
+@bp.route('/signup', methods=["GET", "POST"])
 def signup():
     if current_user.is_authenticated:
         flash('Already Logged In. Please Log Out to Register', 'info')
@@ -107,7 +107,7 @@ def signup():
     return render_template('signup.html', title='Register', form=form, active_page='signup')
 
 
-@app.route('/login', methods=["GET", "POST"])
+@bp.route('/login', methods=["GET", "POST"])
 def login():
     if current_user.is_authenticated:
         flash('Already Logged In.', 'info')
@@ -127,7 +127,7 @@ def login():
 
     return render_template('login.html', title='Login', form=form, active_page='login')
 
-@app.route('/logout')
+@bp.route('/logout')
 def logout():
     if current_user.is_authenticated:
         logout_user()
@@ -149,7 +149,7 @@ def send_reset_email(user):
         flash('Unable to send mail; Contact admin', 'danger')
     return ret
 
-@app.route('/forgot-password', methods=["GET", "POST"])
+@bp.route('/forgot-password', methods=["GET", "POST"])
 def forgot_password():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
@@ -164,7 +164,7 @@ def forgot_password():
 
     return render_template('forgot_password.html', title='Forgot Password', form=form)
 
-@app.route('/forgot-password/<token>', methods=["GET", "POST"])
+@bp.route('/forgot-password/<token>', methods=["GET", "POST"])
 def reset_password(token):
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
@@ -186,7 +186,7 @@ def reset_password(token):
     return render_template('reset_password.html', title='Reset Password',form=form)
 
 
-@app.route('/dashboard')
+@bp.route('/dashboard')
 @login_required
 def dashboard():
     events = current_user.events.split(',')
@@ -211,7 +211,7 @@ def dashboard():
     )
 
 # based on institution previlegde
-@app.route('/verify-code-mit', methods=['POST'])
+@bp.route('/verify-code-mit', methods=['POST'])
 @login_required
 def verify_code_mit():
     data = dict(request.form)
@@ -238,7 +238,7 @@ def verify_code_mit():
 
 # based on institution previlegde
 
-@app.route('/send-code-mit')
+@bp.route('/send-code-mit')
 @login_required
 def send_code_mit():
     code_possible = is_code_applicable()
@@ -265,7 +265,7 @@ THIS PASS IS SUBJECT TO VERIFICATION AT REGISTRATION DESK !!!
     flash('Invalid Request','danger')
     return redirect(url_for('dashboard'))
 
-@app.route('/update-profile', methods=['GET', 'POST'])
+@bp.route('/update-profile', methods=['GET', 'POST'])
 @login_required
 def update_profile():
     form = UpdateProfileForm()
@@ -295,7 +295,7 @@ def update_profile():
     return render_template('update_profile.html', form=form)
 
 # based on pass idea you have for your sympo
-@app.route('/buy-pass')
+@bp.route('/buy-pass')
 @login_required
 def buy_pass():
     not_eligible = []
@@ -309,7 +309,7 @@ def buy_pass():
     # print(eligible_events())
     return render_template('buy_pass.html', not_eligible=not_eligible)
 
-@app.route('/get-user', methods=['POST'])
+@bp.route('/get-user', methods=['POST'])
 @login_required
 def get_user():
     data = dict(request.form)
@@ -357,7 +357,7 @@ def get_user():
 
     return jsonify({'msg':msg})
 
-@app.route('/payment', methods=['GET', 'POST'])
+@bp.route('/payment', methods=['GET', 'POST'])
 @login_required
 def payment():
     if request.method == 'POST':
@@ -410,7 +410,7 @@ def payment():
         workshop_name=workshop_name, verifiers=verifiers
     )
 
-@app.route('/callback', methods=['POST'])
+@bp.route('/callback', methods=['POST'])
 @login_required
 def callback():
     data = dict(request.form)
@@ -511,7 +511,7 @@ Please feel free to contact the organisers in case of discrepencies
         return jsonify({'success':msg})
 
 
-@app.route('/verifier-verify')
+@bp.route('/verifier-verify')
 @login_required
 def verifier_verify():
     if not current_user.isVerifier:
@@ -527,7 +527,7 @@ def verifier_verify():
 
     return render_template('verifier_verify.html', payments=p)
 
-@app.route('/verifier-verify-all')
+@bp.route('/verifier-verify-all')
 @login_required
 def verifier_verify_all():
     if not current_user.isVerifier:
@@ -542,27 +542,27 @@ def verifier_verify_all():
 
     return render_template('verifier_verify.html', payments=p)
 
-@app.route('/events')
+@bp.route('/events')
 def events():
     event_types = json.load(open('event_types.json'))
     return render_template('events.html', title='Events', active_page='events', event_types=event_types)
 
-@app.route('/tech-events')
+@bp.route('/tech-events')
 def tech_events():
     all_events = EventDetails.query.filter_by(category='tech', is_event_accepted=True).all()
     return render_template('events_list.html', title='Tech Events', active_page='events', events=all_events, header='Technical Events')
 
-@app.route('/non-tech-events')
+@bp.route('/non-tech-events')
 def non_tech_events():
     all_events = EventDetails.query.filter_by(category='non_tech', is_event_accepted=True).all()
     return render_template('events_list.html', title='Non Tech Events', active_page='events', events=all_events, header='Non Technical Events')
 
-@app.route('/premium-events')
+@bp.route('/premium-events')
 def premium_events():
     all_events = EventDetails.query.filter_by(category='premium', is_event_accepted=True).all()
     return render_template('events_list.html', title='Premium Events', active_page='events', events=all_events, header='Premium Events')
 
-@app.route('/workshops')
+@bp.route('/workshops')
 def workshops():
     all_events = EventDetails.query.filter_by(category='workshop', is_event_accepted=True).all()
     return render_template('events_list.html', title='Workshops', active_page='events', events=all_events, header='Workshops')
@@ -591,7 +591,7 @@ def eligible_events():
 
     return is_eligible
 
-@app.route('/event-details/<idx>')
+@bp.route('/event-details/<idx>')
 def event_details(idx):
     event = EventDetails.query.filter_by(event_id=idx).first()
 
@@ -648,7 +648,7 @@ def event_details(idx):
     return render_template('event_result.html', winners=winners, runners=runners, event=event)
 
 
-@app.route('/register', methods=["POST"])
+@bp.route('/register', methods=["POST"])
 @login_required
 def register():
     data = dict(request.form)
@@ -724,7 +724,7 @@ def register():
     except Exception as e:
         return jsonify({"error":f'{e}'})
 
-@app.route('/sympo/admin/see/data', methods=["GET", "POST"])
+@bp.route('/sympo/admin/see/data', methods=["GET", "POST"])
 @login_required
 def admin_login():
     # allow certain user to see data like "current_user.id == 66"
@@ -770,7 +770,7 @@ def get_data(event_id):
 
     return data
 
-@app.route('/refresh', methods=["POST"])
+@bp.route('/refresh', methods=["POST"])
 @login_required
 def refresh():
     if not current_user.isAdministrator:
@@ -783,7 +783,7 @@ def refresh():
         return jsonify({"html":render_template('admin_data_content.html', data=data), "time":str(datetime.now())})
     return jsonify({"html":"error"})
 
-@app.route('/organiser/dashboard')
+@bp.route('/organiser/dashboard')
 @login_required
 def organiser_dashboard():
     if not current_user.isOrganiser:
@@ -793,7 +793,7 @@ def organiser_dashboard():
     events = EventDetails.query.filter_by(primary_organiser=current_user.reg_no)
     return render_template('organiser_dashboard.html', events=events)
 
-@app.route('/organiser/create-event', methods=['GET', 'POST'])
+@bp.route('/organiser/create-event', methods=['GET', 'POST'])
 @login_required
 def organiser_create_event():
     if not current_user.isOrganiser:
@@ -885,7 +885,7 @@ def organiser_create_event():
     return render_template('organiser_create_event.html')
 
 
-@app.route('/organiser/event/<idx>', methods=['GET', 'POST'])
+@bp.route('/organiser/event/<idx>', methods=['GET', 'POST'])
 @login_required
 def organiser_event(idx):
     if not current_user.isOrganiser:
@@ -1023,7 +1023,7 @@ def organiser_event(idx):
     )
 
 
-@app.route('/organiser/event/<idx>/download')
+@bp.route('/organiser/event/<idx>/download')
 @login_required
 def organiser_event_download(idx):
     if not current_user.isOrganiser:
@@ -1090,7 +1090,7 @@ def organiser_event_download(idx):
     resp.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     return resp
 
-@app.route('/send-sample-mail', methods=['POST'])
+@bp.route('/send-sample-mail', methods=['POST'])
 @login_required
 def send_sample_mail():
     data = dict(request.form)
@@ -1118,7 +1118,7 @@ def send_sample_mail():
         return jsonify({'message':'Unable to send Mail; Contact Admin'})
     return jsonify({'message':'Mail sent'})
 
-@app.route('/organiser/preview-event/<idx>')
+@bp.route('/organiser/preview-event/<idx>')
 @login_required
 def preview_event(idx):
     evt = EventDetails.query.filter_by(event_id=idx).first()
@@ -1153,7 +1153,7 @@ def preview_event(idx):
 
     return page
 
-@app.route('/organiser/update_user_status', methods=['POST'])
+@bp.route('/organiser/update_user_status', methods=['POST'])
 @login_required
 def update_user_status():
     event_id = request.form['event_id']
@@ -1164,7 +1164,7 @@ def update_user_status():
     db.session.commit()
     return jsonify(success=True)
 
-@app.route('/organiser/update_event_detail', methods=['POST'])
+@bp.route('/organiser/update_event_detail', methods=['POST'])
 @login_required
 def update_event_detail():
     event_id = request.form['event_id']
@@ -1174,7 +1174,7 @@ def update_event_detail():
     db.session.commit()
     return jsonify(success=True)
 
-@app.route('/organiser/update_event_result', methods=['POST'])
+@bp.route('/organiser/update_event_result', methods=['POST'])
 @login_required
 def organiser_update_event_result():
     data =dict(request.form)
@@ -1219,7 +1219,7 @@ def organiser_update_event_result():
     db.session.commit()
     return jsonify(success=True)
 
-@app.route('/organiser/event_result', methods=['POST'])
+@bp.route('/organiser/event_result', methods=['POST'])
 @login_required
 def organiser_event_result():
     data = dict(request.form)
@@ -1235,7 +1235,7 @@ def organiser_event_result():
     return jsonify({'success':'success', 'winner':evt.winner, 'runner':evt.runner})
 
 
-@app.route('/admin/dashboard')
+@bp.route('/admin/dashboard')
 @login_required
 def admin_dashboard():
     if not current_user.isAdministrator:
@@ -1247,7 +1247,7 @@ def admin_dashboard():
     return render_template('admin_dashboard.html', events=all_events)
 
 
-@app.route('/admin/modify_user', methods=['GET', 'POST'])
+@bp.route('/admin/modify_user', methods=['GET', 'POST'])
 @login_required
 def admin_modify_user():
     if not current_user.isAdministrator:
@@ -1260,7 +1260,7 @@ def admin_modify_user():
     return render_template('admin_modify_user.html')
 
 
-@app.route('/admin/get_user', methods=['POST'])
+@bp.route('/admin/get_user', methods=['POST'])
 @login_required
 def admin_get_user():
     if not current_user.isAdministrator:
@@ -1290,7 +1290,7 @@ def admin_get_user():
         return jsonify({'error':'No Such Participant!'})
 
 
-@app.route('/admin/update_user', methods=['POST'])
+@bp.route('/admin/update_user', methods=['POST'])
 @login_required
 def admin_update_user():
     if not current_user.isAdministrator:
@@ -1330,7 +1330,7 @@ def admin_update_user():
     return jsonify({'message':'success'})
 
 
-@app.route('/admin/modify_event', methods=["POST"])
+@bp.route('/admin/modify_event', methods=["POST"])
 def admin_modify_event():
     event_id = request.form['event_id']
     new_accept_status = request.form['new_accept_status'] == 'true'
@@ -1342,7 +1342,7 @@ def admin_modify_event():
     return jsonify(success=True)
 
 
-@app.route('/admin/all-users')
+@bp.route('/admin/all-users')
 @login_required
 def admin_all_users():
     if not current_user.isAdministrator:
@@ -1352,7 +1352,7 @@ def admin_all_users():
     users = User.query.all()
     return render_template('all_user.html', users=users)
 
-@app.route('/bg/certificate')
+@bp.route('/bg/certificate')
 @login_required
 def certificate():
     return 'contact admin' # CHANGE: remove when required
@@ -1365,7 +1365,7 @@ def certificate():
     return render_template('certificate_data.html')
 
 
-@app.route('/certificate-content', methods=['POST'])
+@bp.route('/certificate-content', methods=['POST'])
 @login_required
 def certificate_content():
     return jsonify({'html':'contact admin'})
@@ -1380,7 +1380,7 @@ def certificate_content():
 
     return jsonify({"html":render_template('certificate_content.html', data=data), "time":str(datetime.now())})
 
-@app.route('/admin/all-payments')
+@bp.route('/admin/all-payments')
 @login_required
 def admin_all_payments():
     if not current_user.isAdministrator:
@@ -1394,7 +1394,7 @@ def admin_all_payments():
         data.append([i, u])
     return render_template('all_payments.html', payments=data, pass_name=pass_name)
 
-@app.route('/admin/all-payments/download')
+@bp.route('/admin/all-payments/download')
 @login_required
 def all_payments_download():
     # allow certain user to see data like "current_user.id == 66", when you don't want to give them admin access
@@ -1461,14 +1461,14 @@ def all_payments_download():
 
 # **************** Unsent Mail Management ****************
 
-@app.route('/admin/unsent-mails')
+@bp.route('/admin/unsent-mails')
 @login_required
 def view_unsent_mails():
     if not current_user.isAdministrator:
         flash('Invalid Route!', 'danger')
         return redirect(url_for('dashboard'))
 
-    unsent_mails_dir = static_dir / 'unsent_mails'
+    unsent_mails_dir = get_static_dir() / 'unsent_mails'
     unsent_mails = []
 
     if unsent_mails_dir.exists():
@@ -1496,13 +1496,13 @@ def view_unsent_mails():
     return render_template('unsent_mails.html', unsent_mails=unsent_mails)
 
 
-@app.route('/admin/resend-mail/<filename>', methods=['POST'])
+@bp.route('/admin/resend-mail/<filename>', methods=['POST'])
 @login_required
 def resend_unsent_mail(filename):
     if not current_user.isAdministrator:
         return jsonify({'message': 'error', 'details': 'Not authorized'})
 
-    unsent_mails_dir = static_dir / 'unsent_mails'
+    unsent_mails_dir = get_static_dir() / 'unsent_mails'
     filepath = unsent_mails_dir / filename
 
     # Security check: ensure file is in unsent_mails directory
@@ -1535,13 +1535,13 @@ def resend_unsent_mail(filename):
         return jsonify({'message': 'error', 'details': str(e)})
 
 
-@app.route('/admin/delete-unsent-mail/<filename>', methods=['POST'])
+@bp.route('/admin/delete-unsent-mail/<filename>', methods=['POST'])
 @login_required
 def delete_unsent_mail(filename):
     if not current_user.isAdministrator:
         return jsonify({'message': 'error', 'details': 'Not authorized'})
 
-    unsent_mails_dir = static_dir / 'unsent_mails'
+    unsent_mails_dir = get_static_dir() / 'unsent_mails'
     filepath = unsent_mails_dir / filename
 
     # Security check: ensure file is in unsent_mails directory
@@ -1559,20 +1559,8 @@ def delete_unsent_mail(filename):
 
 # ***********************************************
 
-
-# **************** Error Pages ****************
-
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template('page_not_found.html')
-@app.errorhandler(405)
-def method_not_allowed(e):
-    return render_template('method_not_allowed.html')
-
-# ***********************************************
-
 # ******** remove after testing ***********
-@app.route('/beta/send_message/<msg>/to/<idx>')
+@bp.route('/beta/send_message/<msg>/to/<idx>')
 def send(msg, idx):
     message = send_mail(idx, 'Hello(Beta)', msg)
     return message

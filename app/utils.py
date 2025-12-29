@@ -9,8 +9,13 @@ import string
 from PIL import Image
 from flask_login import current_user
 from werkzeug.datastructures import FileStorage
+from flask import current_app
 
-from app import upload_dir
+def get_upload_dir() -> Path:
+    return Path(current_app.config['UPLOAD_FOLDER']).resolve()
+
+def get_static_dir() -> Path:
+    return Path(current_app.static_folder).resolve()
 
 # access codes for certain institution; can be extended following the idea used
 def is_code_applicable() -> bool:
@@ -66,7 +71,7 @@ def save_image(
     if not valid_size:
         size = (500, 500)
 
-    res_dir = upload_dir / category
+    res_dir = get_upload_dir() / category
     res_dir.mkdir(parents=True, exist_ok=True)
 
     filename = make_valid_file_name(filename)

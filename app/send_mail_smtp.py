@@ -14,7 +14,7 @@ from email.utils import formatdate
 
 import mimetypes
 
-from app import static_dir
+from app.utils import get_static_dir
 
 smtp_server = 'smtp.dreamhost.com'
 smtp_port = 587
@@ -74,7 +74,7 @@ Organizing Team
         unsent_mail['subject'] = subject
         unsent_mail['body'] = body
         unsent_mail['attchments'] = attachments
-        save_unsent_mail_directory = static_dir / 'unsent_mails'
+        save_unsent_mail_directory = get_static_dir() / 'unsent_mails'
         save_unsent_mail_directory.mkdir(parents=True, exist_ok=True)
         filename = f'{hashlib.sha256(body.encode()).hexdigest()[10:40]}.json'
         save_file_path = save_unsent_mail_directory / filename

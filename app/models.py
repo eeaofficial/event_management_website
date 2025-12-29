@@ -4,10 +4,11 @@ Models
 
 import os
 
+from flask import current_app
 from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
-from app import db, login_manager, app, bcrypt
+from app.extensions import db, login_manager, bcrypt
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -38,12 +39,12 @@ class User(db.Model, UserMixin):
     isVerifier = db.Column(db.Boolean, default=False, nullable=False)
 
     def get_reset_token(self, expiry_sec=1800):
-        s = Serializer(app.config['SECRET_KEY'], expiry_sec)
+        s = Serializer(current_app.config['SECRET_KEY'], expiry_sec)
         return s.dumps( {'user_id': self.id} ).decode('utf-8')
 
     @staticmethod
     def verify_reset_token(token):
-        s = Serializer(app.config['SECRET_KEY'])
+        s = Serializer(current_app.config['SECRET_KEY'])
         try:
             user_id = s.loads(token)['user_id']
         except:
@@ -108,30 +109,3 @@ class Payments(db.Model):
     screenshot = db.Column(db.String(50), nullable=False)
     tx_no = db.Column(db.String(50), unique=True, nullable=False)
     is_valid_payment = db.Column(db.Boolean, default=False, nullable=False)
-
-
-with app.app_context():
-    if "database.db" not in os.listdir():
-        db.create_all()
-
-    # hard coded creation of SUPER ADMIN login
-    super_email='super-admin@domain.com'
-    super_user = User.query.filter_by(email=super_email).first()
-    super_pass = bcrypt.generate_password_hash('superPASS').decode('utf-8')
-    if not super_user:
-        admin = User(
-                name='SuperAdmin',
-                email=super_email,
-                reg_no='1234567890',
-                dept='',
-                college='',
-                events='',
-                password=super_pass,
-                mobile=0,
-                isOrganiser=True,
-                isParticipant=True,
-                isAdministrator=True,
-                isVerifier=True
-                )
-        db.session.add(admin)
-        db.session.commit()

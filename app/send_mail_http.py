@@ -14,7 +14,7 @@ import mimetypes
 from googleapiclient.discovery import build
 from google.oauth2.credentials import Credentials
 
-from app import static_dir
+from app.utils import get_static_dir
 
 def send_mail_http(to, subject, body, format='plain', attachments=None, signature=''):
     file_attachments = attachments or []
@@ -69,7 +69,7 @@ Organizing Team
         unsent_mail['subject'] = subject
         unsent_mail['body'] = body
         unsent_mail['attchments'] = attachments
-        save_unsent_mail_directory = static_dir / 'unsent_mails'
+        save_unsent_mail_directory = get_static_dir() / 'unsent_mails'
         save_unsent_mail_directory.mkdir(parents=True, exist_ok=True)
         filename = f'{hashlib.sha256(body.encode()).hexdigest()[10:40]}.json'
         save_file_path = save_unsent_mail_directory / filename
