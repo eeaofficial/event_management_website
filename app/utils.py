@@ -3,6 +3,8 @@ Utility functions
 """
 
 from pathlib import Path
+import random
+import string
 
 from PIL import Image
 from flask_login import current_user
@@ -84,3 +86,11 @@ def save_image(
         return (True, 'success',filename)
 
     return (False, 'Error saving image', '')
+
+def random_string(length: int=5) -> str:
+    """
+    Generate a random string of fixed length
+    """
+    letters = string.ascii_letters + string.digits
+    result_str = ''.join(random.choice(letters) for _ in range(length))
+    return result_str

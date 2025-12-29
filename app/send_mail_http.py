@@ -17,16 +17,7 @@ from google.oauth2.credentials import Credentials
 from app import static_dir
 
 def send_mail_http(to, subject, body, format='plain', attachments=None, signature=''):
-    creds = None
-    scopes = ['https://mail.google.com/']
-    creds = Credentials.from_authorized_user_file('token.json', scopes)
-    service = build('gmail', 'v1', credentials=creds)
-
     file_attachments = attachments or []
-
-    #html = ''
-    #with open('message.html') as msg:
-    #    html += msg.read()
 
     #create email
     mimeMessage = MIMEMultipart()
@@ -62,6 +53,10 @@ Organizing Team
 
 
     try:
+        creds = None
+        scopes = ['https://mail.google.com/']
+        creds = Credentials.from_authorized_user_file('token.json', scopes)
+        service = build('gmail', 'v1', credentials=creds)
         message = service.users().messages().send(
             userId='me',
             body={'raw': raw_string}
