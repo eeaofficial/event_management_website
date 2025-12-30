@@ -12,7 +12,7 @@ from flask_login import login_user, current_user, logout_user, login_required
 
 from app.extensions import db, bcrypt
 from app.forms import SignUpForm, LoginForm, ResetRequestForm, ResetPasswordForm, UpdateProfileForm
-from app.models import User, EventDetails, Payments, Events
+from app.models import Users, EventDetails, Payments, Events
 from app.utils import is_code_applicable, save_image, get_upload_dir
 from app.init_data import pass_name
 from app.mail_utils import send_mail_http as send_mail
@@ -54,7 +54,7 @@ def signup():
         else:
             clg = form.college.data
 
-        user = User(
+        user = Users(
             name=form.name.data,
             email=form.email.data,
             reg_no=form.reg_no.data,
@@ -96,7 +96,7 @@ def login():
     form = LoginForm()
 
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data, reg_no=form.reg_no.data).first()
+        user = Users.query.filter_by(email=form.email.data, reg_no=form.reg_no.data).first()
         if user and bcrypt.check_password_hash(user.password, form.password.data):
             login_user(user)
             next_page = request.args.get('next')
@@ -136,7 +136,7 @@ def forgot_password():
     form = ResetRequestForm()
 
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data, reg_no=form.reg_no.data).first()
+        user = Users.query.filter_by(email=form.email.data, reg_no=form.reg_no.data).first()
         ret = send_reset_email(user)
         if 'success' in ret:
             flash('Please check your mail for reset !', 'info')
@@ -149,7 +149,7 @@ def reset_password(token):
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
 
-    user = User.verify_reset_token(token)
+    user = Users.verify_reset_token(token)
     if not user:
         flash('Invalid request or Expired token !!!', 'warning')
         return redirect(url_for('forgot_password'))
@@ -261,7 +261,7 @@ def update_profile():
         else:
             clg = form.college.data
 
-        user = User.query.filter_by(reg_no=current_user.reg_no).first()
+        user = Users.query.filter_by(reg_no=current_user.reg_no).first()
         user.email = form.email.data
         user.name = form.name.data
         user.college = clg
@@ -302,7 +302,7 @@ def get_user():
 
     f1 = False
     f2 = False
-    u1 = User.query.filter_by(reg_no=regno1).first()
+    u1 = Users.query.filter_by(reg_no=regno1).first()
     if u1:
         u1passes = Payments.query.filter_by(reg_no=u1.reg_no).all()
         if u1passes:
@@ -315,7 +315,7 @@ def get_user():
     else:
         msg += f'Registration Number ({regno1}) seems not existing'
 
-    u2 = User.query.filter_by(reg_no=regno2).first()
+    u2 = Users.query.filter_by(reg_no=regno2).first()
     if u2:
         u2passes = Payments.query.filter_by(reg_no=u2.reg_no).all()
         if u2passes:
@@ -383,7 +383,7 @@ def payment():
     if pass_type and 'workshop' in pass_type:
         workshop_name = EventDetails.query.filter_by(event_id=pass_type[-5:]).first().name
 
-    verifiers = User.query.filter_by(isVerifier=True, isAdministrator=False).all()
+    verifiers = Users.query.filter_by(isVerifier=True, isAdministrator=False).all()
 
     return render_template('payment.html', amount=amount,
         reg_no=reg_no, pass_type=pass_type, pass_name=pass_name,
@@ -405,13 +405,13 @@ def callback():
     if p.is_valid_payment:
         for i in p.reg_no.split(','):
             if i:
-                u = User.query.filter_by(reg_no=i).first()
+                u = Users.query.filter_by(reg_no=i).first()
                 ret = send_mail(u.email, 'Transaction found in Order | <Symposium-Name>', f'Your Payment with Transaction number {tx_no} is found in order and is accepted')
                 err_msg += ret['details'] + '\n'
                 try:
                     if 'workshop' in p.pass_type:
                         _, idx = p.pass_type.split('_')
-                        u = User.query.filter_by(reg_no=p.reg_no).first()
+                        u = Users.query.filter_by(reg_no=p.reg_no).first()
                         if u.events:
                             u.events += idx+','
                         else:
@@ -439,7 +439,7 @@ def callback():
                     elif p.pass_type not in ['p1','p2','p3','p4','p51','p52','p6','p7']:
                         if 'workshop' in p.pass_type:
                             _, idx = p.pass_type.split('_')
-                            u = User.query.filter_by(reg_no=p.reg_no).first()
+                            u = Users.query.filter_by(reg_no=p.reg_no).first()
                             if u.events:
                                 u.events += idx+','
                             else:
@@ -474,7 +474,7 @@ def callback():
         err_msg = ""
         for i in p.reg_no.split(','):
             if i:
-                u = User.query.filter_by(reg_no=i).first()
+                u = Users.query.filter_by(reg_no=i).first()
                 msg = f"""
 Your Payment with Transaction number {tx_no} is put to verification.
 Please feel free to contact the organisers in case of discrepencies
@@ -564,7 +564,7 @@ def event_details(idx):
         is_eligible.extend(eligible_events())
 
     organiser_details = []
-    o1 = User.query.filter_by(reg_no=event.primary_organiser).first()
+    o1 = Users.query.filter_by(reg_no=event.primary_organiser).first()
     organiser_details.append(
         {
             'name' : o1.name,
@@ -573,7 +573,7 @@ def event_details(idx):
     )
 
     for reg_no in event.other_organisers.split(','):
-        i = User.query.filter_by(reg_no=reg_no).first()
+        i = Users.query.filter_by(reg_no=reg_no).first()
         if i:
             organiser_details.append({
                     'name' : i.name,
@@ -588,11 +588,11 @@ def event_details(idx):
     runners = []
     if event.winner:
         for i in event.winner.split(','):
-            winners.append(User.query.filter_by(reg_no=i).first())
+            winners.append(Users.query.filter_by(reg_no=i).first())
 
     if event.runner:
         for i in event.runner.split(','):
-            runners.append(User.query.filter_by(reg_no=i).first())
+            runners.append(Users.query.filter_by(reg_no=i).first())
 
     return render_template('event_result.html', winners=winners, runners=runners, event=event)
 
@@ -607,7 +607,7 @@ def register():
             if 'reg' not in key:
                 continue
             try:
-                x = User.query.filter_by(reg_no=value).first()
+                x = Users.query.filter_by(reg_no=value).first()
                 if x:
                     if data['id'] in x.events.split(','):
                         return jsonify({"error": f'{x.reg_no} Already registered!'})
@@ -698,7 +698,7 @@ def certificate_content():
         e = EventDetails.query.filter_by(event_id=i.event_id).first()
         for i in i.reg_no.split(','):
             if i:
-                u = User.query.filter_by(reg_no=i).first()
+                u = Users.query.filter_by(reg_no=i).first()
                 data.append([e, u])
 
     return jsonify({"html":render_template('certificate_content.html', data=data), "time":str(datetime.now())})

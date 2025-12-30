@@ -10,9 +10,10 @@ from app.extensions import db, login_manager
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return Users.query.get(int(user_id))
 
-class User(db.Model, UserMixin):
+class Users(db.Model, UserMixin):
+    __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(30), nullable=False)
     email = db.Column(db.String(100), nullable=False)
@@ -48,13 +49,14 @@ class User(db.Model, UserMixin):
         except Exception as e:
             return None
 
-        return User.query.get(user_id)
+        return Users.query.get(user_id)
 
     def __repr__(self):
-        return f"User('{self.name}', '{self.email}', '{self.reg_no}', '{self.dept}', '{self.college}', '{self.mobile}', [{self.events}])"
+        return f"Users('{self.name}', '{self.email}', '{self.reg_no}', '{self.dept}', '{self.college}', '{self.mobile}', [{self.events}])"
 
 
 class Events(db.Model):
+    __tablename__ = 'events'
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.String(5), nullable=False)
     reg_no = db.Column(db.String(10*30+4), nullable=False)
@@ -66,6 +68,7 @@ class Events(db.Model):
 
 
 class EventDetails(db.Model):
+    __tablename__ = 'event_details'
     id = db.Column(db.Integer, primary_key=True)
     event_id = db.Column(db.String(5), nullable=False, unique=True)
     name = db.Column(db.String(20), nullable=False)
@@ -98,6 +101,7 @@ class EventDetails(db.Model):
     on_register_mail_cnt = db.Column(db.String(1000), default='', nullable=False)
 
 class Payments(db.Model):
+    __tablename__ = 'payments'
     id = db.Column(db.Integer, primary_key=True)
     reg_no = db.Column(db.String(200), nullable=False) # reg number of user
     pass_type = db.Column(db.String(20), nullable=False)

@@ -5,7 +5,7 @@ verifier routes
 from flask import flash, url_for, Blueprint, redirect, render_template
 from flask_login import login_required, current_user
 
-from app.models import User, Payments
+from app.models import Users, Payments
 
 bp = Blueprint("verifier", __name__)
 
@@ -20,7 +20,7 @@ def verifier_verify():
     payments = Payments.query.filter_by(is_valid_payment=False).all()
 
     for i in payments:
-        u = User.query.filter_by(reg_no=i.reg_no).first()
+        u = Users.query.filter_by(reg_no=i.reg_no).first()
         p.append((i, u))
 
     return render_template('verifier_verify.html', payments=p)
@@ -35,7 +35,7 @@ def verifier_verify_all():
     p = []
     payments = Payments.query.all()
     for i in payments:
-        u = User.query.filter_by(reg_no=i.reg_no).first()
+        u = Users.query.filter_by(reg_no=i.reg_no).first()
         p.append((i, u))
 
     return render_template('verifier_verify.html', payments=p)

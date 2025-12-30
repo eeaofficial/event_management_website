@@ -8,7 +8,7 @@ from wtforms import *
 from wtforms.fields import DateField, TimeField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 
-from app.models import User
+from app.models import Users
 # change ALL FORM and FORM ELEMENTS as per requirement
 class SignUpForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -53,12 +53,12 @@ class SignUpForm(FlaskForm):
 
     # if email needs to be unique, uncomment below snippet of code
     # def validate_email(self, email):
-    #     user = User.query.filter_by(email=email.data).first()
+    #     user = Users.query.filter_by(email=email.data).first()
     #     if user:
     #         raise ValidationError('Account already exists')
 
     def validate_reg_no(self, reg_no):
-        user = User.query.filter_by(reg_no=reg_no.data).first()
+        user = Users.query.filter_by(reg_no=reg_no.data).first()
         if user:
             raise ValidationError('Account already exists')
 
@@ -81,7 +81,7 @@ class ResetRequestForm(FlaskForm):
     submit = SubmitField('Get Reset Link')
 
     def validate_email(self, email):
-        user = User.query.filter_by(email=email.data).first()
+        user = Users.query.filter_by(email=email.data).first()
         if not user:
             raise ValidationError('No such account exists')
 
@@ -139,7 +139,7 @@ class UpdateProfileForm(FlaskForm):
             int(reg_no.data)
         except:
             raise ValidationError('Invalid Registration Number')
-        user = User.query.filter_by(reg_no=reg_no.data).first()
+        user = Users.query.filter_by(reg_no=reg_no.data).first()
         if user:
             raise ValidationError('Account already exists')
 

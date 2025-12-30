@@ -2,7 +2,7 @@
 init
 """
 
-from app.models import User
+from app.models import Users
 from app.extensions import db, bcrypt
 
 # modify the pass names as per the sympo
@@ -25,10 +25,10 @@ pass_name = {
 # hard coded creation of SUPER ADMIN login
 def ensure_super_admin():
     super_email='super-admin@domain.com'
-    super_user = User.query.filter_by(email=super_email).first()
+    super_user = Users.query.filter_by(email=super_email).first()
     super_pass = bcrypt.generate_password_hash('superPASS').decode('utf-8')
     if not super_user:
-        admin = User(
+        admin = Users(
                 name='SuperAdmin',
                 email=super_email,
                 reg_no='1234567890',

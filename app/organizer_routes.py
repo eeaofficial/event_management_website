@@ -11,7 +11,7 @@ from flask import redirect, render_template, flash, url_for, request, Blueprint,
 from flask_login import login_required, current_user
 import xlsxwriter
 
-from app.models import EventDetails, User, Events
+from app.models import EventDetails, Users, Events
 from app.utils import save_image
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
@@ -103,7 +103,7 @@ def organiser_create_event():
             current_user.org_events = event_id + ','
 
         for i in organisers:
-            user = User.query.filter_by(reg_no=i).first()
+            user = Users.query.filter_by(reg_no=i).first()
             if not user:
                 flash('Some organiser doesn\'t seem to have an account', 'warning')
             else:
@@ -163,7 +163,7 @@ def organiser_event(idx):
         orgs = [evt.primary_organiser]
         orgs.extend(evt.other_organisers.split(','))
         for i in orgs:
-            u = User.query.filter_by(reg_no=i).first()
+            u = Users.query.filter_by(reg_no=i).first()
             if u:
                 if u.org_events:
                     u.org_events = u.org_events.replace(evt.event_id+',', '')
@@ -220,7 +220,7 @@ def organiser_event(idx):
         evt.on_register_mail_cnt=details['mail_cnt']
 
         for i in organisers:
-            user = User.query.filter_by(reg_no=i).first()
+            user = Users.query.filter_by(reg_no=i).first()
             if not user:
                 flash('Some organiser doesn\'t seem to have an account', 'warning')
             else:
@@ -267,7 +267,7 @@ def organiser_event(idx):
         e = EventDetails.query.filter_by(event_id=idx).first()
         for i in event.reg_no.split(','):
             if i:
-                u = User.query.filter_by(reg_no=i).first()
+                u = Users.query.filter_by(reg_no=i).first()
                 is_winner = False
                 is_runner = False
                 if e.winner:
@@ -315,7 +315,7 @@ def organiser_event_download(idx):
         start_row.append(n)
         for i in event.reg_no.split(','):
             if i:
-                u = User.query.filter_by(reg_no=i).first()
+                u = Users.query.filter_by(reg_no=i).first()
                 data.append([sno, u.name, u.reg_no, u.mobile, u.email, event.event_attended])
                 n += 1
         sno += 1
@@ -379,7 +379,7 @@ def preview_event(idx):
             flash('Invalid Route !', 'danger')
 
     organiser_details = []
-    o1 = User.query.filter_by(reg_no=evt.primary_organiser).first()
+    o1 = Users.query.filter_by(reg_no=evt.primary_organiser).first()
     organiser_details.append(
         {
             'name' : o1.name,
@@ -388,7 +388,7 @@ def preview_event(idx):
     )
 
     for reg_no in evt.other_organisers.split(','):
-        i = User.query.filter_by(reg_no=reg_no).first()
+        i = Users.query.filter_by(reg_no=reg_no).first()
         if i:
             organiser_details.append(
                 {
@@ -431,7 +431,7 @@ def organiser_update_event_result():
     event_id = data['event_id']
     # print('user id',user_id)
     # print('event id', event_id)
-    u = User.query.filter_by(id=user_id).first()
+    u = Users.query.filter_by(id=user_id).first()
     evt = EventDetails.query.filter_by(event_id=event_id).first()
     if not u:
         return jsonify({'message':'No such Participant'})

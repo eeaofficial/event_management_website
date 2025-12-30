@@ -11,7 +11,7 @@ from flask import Blueprint, render_template, request, jsonify, abort, send_file
 from flask_login import current_user
 import xlsxwriter
 
-from app.models import EventDetails, User, Payments, Events
+from app.models import EventDetails, Users, Payments, Events
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
 from app.init_data import pass_name
@@ -32,7 +32,7 @@ def get_data(event_id):
         us = []
         for i in i.reg_no.split(','):
             if i:
-                u = User.query.filter_by(reg_no=i).first()
+                u = Users.query.filter_by(reg_no=i).first()
                 us.append((u.name, u.reg_no, u.mobile, u.email))
         data.append((name, us))
 
@@ -68,7 +68,7 @@ def admin_get_user():
     data = dict(request.form)
     # print(data)
     regno = data['regno']
-    user = User.query.filter_by(reg_no=regno).first()
+    user = Users.query.filter_by(reg_no=regno).first()
     if user:
         return jsonify({
                 'userid':user.id,
@@ -97,7 +97,7 @@ def admin_update_user():
     data = dict(request.form)
     # print(data)
 
-    user = User.query.filter_by(reg_no=data['reg_no']).first()
+    user = Users.query.filter_by(reg_no=data['reg_no']).first()
     if not user:
         return jsonify({'error':'no such user'})
     if data.get('name'):
@@ -149,7 +149,7 @@ def admin_see_data():
         us = []
         for i in i.reg_no.split(','):
             if i:
-                u = User.query.filter_by(reg_no=i).first()
+                u = Users.query.filter_by(reg_no=i).first()
                 us.append((u.name, u.reg_no, u.mobile, u.email))
         data.append((name, us))
     return render_template('data.html', data=data, events=all_events)
@@ -189,7 +189,7 @@ def admin_all_users():
     if not current_user.is_authenticated or not current_user.isAdministrator:
         abort(404)
 
-    users = User.query.all()
+    users = Users.query.all()
     return render_template('all_user.html', users=users)
 
 @bp.route('/all-payments')
@@ -204,7 +204,7 @@ def admin_all_payments():
     payments = Payments.query.order_by(Payments.pass_type.asc()).all()
     data = []
     for i in payments:
-        u = User.query.filter_by(reg_no=i.reg_no).first()
+        u = Users.query.filter_by(reg_no=i.reg_no).first()
         data.append([i, u])
     return render_template('all_payments.html', payments=data, pass_name=pass_name)
 
@@ -220,7 +220,7 @@ def all_payments_download():
     data = []
     sno = 1
     for i in payments:
-        u = User.query.filter_by(reg_no=i.reg_no).first()
+        u = Users.query.filter_by(reg_no=i.reg_no).first()
         try:
             p = pass_name[i.pass_type]
         except Exception as e:

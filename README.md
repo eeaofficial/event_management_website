@@ -43,7 +43,7 @@ Welcome, the ultimate event management website that streamlines the chaos of org
 - Payment Verifier
     - check and validate payment related things
     - can also perform "user" actions
-- User
+- Users
     - buy passes
     - register into events
 - Access to different privilege (organiser, payment verifier, admin) function is provided through seperate dashboards accessable from general user dashboard
