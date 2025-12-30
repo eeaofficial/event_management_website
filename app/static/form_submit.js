@@ -3,6 +3,8 @@ $(document).ready(function() {
         event.preventDefault();
         $('#msg').html('Please Wait!!!');
         $.ajax({
+            url: "{{url_for('register')}}",
+            type: 'POST',
             data:{
                 "id":$('#event-id').html(),
                 "reg1":$('#reg1').val(),
@@ -11,9 +13,7 @@ $(document).ready(function() {
                 "reg4":$('#reg4').val(),
                 "reg5":$('#reg5').val(),
                 'type':'{{event.category}}'
-            },
-            type: 'POST',
-            url: '/register'
+            }
         })
         .done(function(data){
             if(data.error) {

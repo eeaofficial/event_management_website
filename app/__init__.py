@@ -9,9 +9,13 @@ from dotenv import load_dotenv
 from flask import Flask
 
 from app.extensions import db, bcrypt, login_manager
-from app.routes import bp
 from app.init_data import ensure_super_admin
 from app.error_handlers import register_error_handlers
+from app.routes import bp
+from app.verifier_routes import bp as verifier_bp
+from app.organizer_routes import bp as organizer_bp
+from app.admin_routes import bp as admin_bp
+
 
 load_dotenv()
 
@@ -32,6 +36,9 @@ db.init_app(app)
 bcrypt.init_app(app)
 
 app.register_blueprint(bp, url_prefix='/')
+app.register_blueprint(verifier_bp, url_prefix='/verifier')
+app.register_blueprint(organizer_bp, url_prefix='/organizer')
+app.register_blueprint(admin_bp, url_prefix='/admin')
 
 register_error_handlers(app)
 

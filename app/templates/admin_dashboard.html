@@ -7,7 +7,7 @@
             var newResultStatus = $('#result_' + eventId).prop('checked');
 
             $.ajax({
-                url: '/admin/modify_event',
+                url: "{{url_for('admin.admin_modify_event')}}",
                 type: 'POST',
                 data: {event_id: eventId, new_accept_status: newAcceptStatus, new_result_status: newResultStatus},
                 success: function(response) {
@@ -40,7 +40,7 @@
             $('#user-button').click(function() {
                 $('#events-list').hide();
                 $.ajax({
-                    url:"{{url_for('admin_get_user')}}",
+                    url: "{{url_for('admin.admin_get_user')}}",
                     type: 'POST',
                     data: {
                         regno:$('#regno').val()
@@ -73,7 +73,7 @@
             $('#update-user').click(function(event) {
                 event.preventDefault();
                 $.ajax({
-                    url:"{{url_for('admin_update_user')}}",
+                    url: "{{url_for('admin.admin_update_user')}}",
                     type: 'POST',
                     data: {
                         'name':$('#name').val(),
@@ -168,16 +168,16 @@
                 {%for i in events%}
                     <tr>
                         <td>
-                            <a href="{{url_for('organiser_event', idx=i.event_id)}}"  target="_blank">
+                            <a href="{{url_for('organizer.organiser_event', idx=i.event_id)}}"  target="_blank">
                                 {{i.name}}
                             </a>
 
                         </td>
                         <td>{{i.event_id}}</td>
-                        <td><a href="{{url_for('preview_event', idx=i.event_id)}}" target="_blank" class="text-reset">Preview</a></td>
+                        <td><a href="{{url_for('organizer.preview_event', idx=i.event_id)}}" target="_blank" class="text-reset">Preview</a></td>
                         <td>{{i.category}}</td>
                         <td>{{i.n_registrations}}</td>
-                        <td><a href="{{url_for('organiser_event_download', idx=i.event_id)}}">Download</td>
+                        <td><a href="{{url_for('organizer.organiser_event_download', idx=i.event_id)}}">Download</td>
                         <td id="accept_{{ i.id }}">
                             {%if i.is_event_accepted%}
                                 Accepted

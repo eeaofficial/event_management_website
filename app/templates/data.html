@@ -5,12 +5,12 @@
         $(document).ready(function() {
     $('#refresh').on('click', function(event){
         $.ajax({
+            url: "{{url_for('refresh')}}",
+            type: 'POST',
             data:{
                 "request":"refresh",
                 "event_id":$('#event-name').val()
-            },
-            type: 'POST',
-            url: '/refresh'
+            }
         })
         .done(function(data){
             $('#registrations').html(data.html);

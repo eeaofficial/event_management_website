@@ -5,11 +5,11 @@
         $(document).ready(function() {
     $('#refresh').on('click', function(event){
         $.ajax({
+            url: "{{url_for('certificate_content')}}",
+            type: 'POST',
             data:{
                 "request":"refresh",
-            },
-            type: 'POST',
-            url: '/certificate-content'
+            }
         })
         .done(function(data){
             $('#registrations').html(data.html);

@@ -121,7 +121,7 @@
                 button.text('Processing...');
 
                 $.ajax({
-                    url: '/admin/resend-mail/' + filename,
+                    url: "{{url_for('admin.resend_unsent_mail', filename='')}}" + encodeURIComponent(filename),
                     type: 'POST',
                     success: function(response) {
                         if (response.message === 'success') {
@@ -148,7 +148,7 @@
 
             if (confirm('Are you sure you want to delete this email record?')) {
                 $.ajax({
-                    url: '/admin/delete-unsent-mail/' + filename,
+                    url: "{{url_for('admin.delete_unsent_mail', filename='')}}" + encodeURIComponent(filename),
                     type: 'POST',
                     success: function(response) {
                         if (response.message === 'success') {
@@ -194,7 +194,7 @@
                 button.text('Processing...');
                 
                 $.ajax({
-                    url: '/admin/resend-mail/' + currentFilename,
+                    url: "{{url_for('admin.resend_unsent_mail', filename='')}}" + encodeURIComponent(filename),
                     type: 'POST',
                     success: function(response) {
                         if (response.message === 'success') {

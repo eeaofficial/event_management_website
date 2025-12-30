@@ -39,7 +39,7 @@
             $('#confirm').click(function(event) {
                 event.preventDefault();
                 $.ajax({
-                    url: 'get-user',
+                    url: "{{url_for('get_user')}}",
                     type: 'POST',
                     data: {
                         regno1:$('#user1').val(),

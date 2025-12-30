@@ -63,7 +63,7 @@
     $('#code-btn').click(function(event){
       event.preventDefault();
       $.ajax({
-        url:"{{url_for('verify_code_mit')}}",
+        url: "{{url_for('verify_code_mit')}}",
         type:'POST',
         data:{
           code:$('#code').val()
@@ -195,15 +195,15 @@
 
 <br><br>
   {% if current_user.isAdministrator %}
-  <a style="text-decoration: none;color:inherit;" href="{{url_for('admin_dashboard')}}">Admin Dashboard</a>
+  <a style="text-decoration: none;color:inherit;" href="{{url_for('admin.admin_dashboard')}}">Admin Dashboard</a>
   {%endif%}
   <br><br>
   {% if current_user.isOrganiser %}
-  <a style="text-decoration: none;color:inherit;" href="{{url_for('organiser_dashboard')}}">Organiser Dashboard</a>
+  <a style="text-decoration: none;color:inherit;" href="{{url_for('organizer.organiser_dashboard')}}">Organiser Dashboard</a>
   {%endif%}
   </div>
   <br><br>
   {% if current_user.isVerifier %}
-  <a style="text-decoration: none;color:inherit;" href="{{url_for('verifier_verify')}}">Payment Verifier Dashboard</a>
+  <a style="text-decoration: none;color:inherit;" href="{{url_for('verifier.verifier_verify')}}">Payment Verifier Dashboard</a>
   {%endif%}
 {%endblock body%}

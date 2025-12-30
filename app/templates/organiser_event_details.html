@@ -69,7 +69,7 @@
             var newStatus = $('.status_' + eventId).prop('checked');
             $('.status_' + eventId).prop('checked', newStatus);
             $.ajax({
-                url: '/organiser/update_user_status',
+                url: "{{url_for('organizer.update_user_status')}}",
                 type: 'POST',
                 data: {event_id: eventId, new_status: newStatus},
                 success: function(response) {
@@ -91,7 +91,7 @@
             var newWinnerStatus = $('#winner_user_' + userId).prop('checked');
             var newRunnerStatus = $('#runner_user_' + userId).prop('checked');
             $.ajax({
-                url: "{{url_for('organiser_update_event_result')}}",
+                url: "{{url_for('organizer.organiser_update_event_result')}}",
                 type: 'POST',
                 data: {
                     user_id: userId,
@@ -123,7 +123,7 @@
         function updateAcceptRegistrationStatus() {
             var newStatus = $('#status_accept_registration').prop('checked');
             $.ajax({
-                url: '/organiser/update_event_detail',
+                url: "{{url_for('organizer.update_event_detail')}}",
                 type: 'POST',
                 data: {event_id: "{{event.event_id}}", newAcceptRegistrationStatus: newStatus},
                 success: function(response) {
@@ -154,7 +154,7 @@
 
                 if(confirm('Are you sure to fix winners as {{event.winner}} and runners as {{event.runner}}')) {
                     $.ajax({
-                        url:"{{url_for('organiser_event_result')}}",
+                        url: "{{url_for('organizer.organiser_event_result')}}",
                         type:"POST",
                         data:{
                             event_id:'{{event.event_id}}'
@@ -341,7 +341,7 @@
             $('#send-sample-mail').click(function(event){
                 event.preventDefault();
                 $.ajax({
-                    url:"{{url_for('send_sample_mail')}}",
+                    url: "{{url_for('send_sample_mail')}}",
                     type: 'POST',
                     data:{
                         id:'{{event.event_id}}'
@@ -555,7 +555,7 @@
         <tbody>
             <tr>
                 <td colspan="7" style="align-self: center;">
-                    <a href="{{ url_for('organiser_event_download',idx=event.event_id) }}">Download Participants Details as Excel</a>
+                    <a href="{{ url_for('organizer.organiser_event_download',idx=event.event_id) }}">Download Participants Details as Excel</a>
                 </td>
             </tr>
             {%for i in registered%}

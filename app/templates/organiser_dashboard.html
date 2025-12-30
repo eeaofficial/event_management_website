@@ -6,15 +6,15 @@
     
     {%for event in events%}
         <li>
-            <a style="text-decoration: none;color:inherit;" href="{{url_for('organiser_event', idx=event.event_id)}}">{{event.name}}</a> 
+            <a style="text-decoration: none;color:inherit;" href="{{url_for('organizer.organiser_event', idx=event.event_id)}}">{{event.name}}</a> 
             {% if not event.is_event_accepted %}
                 (To be Accepted)
             {%endif%}
-            (<a href="{{url_for('preview_event', idx=event.event_id)}}" class="text-reset" target="_blank">Preview</a>)
+            (<a href="{{url_for('organizer.preview_event', idx=event.event_id)}}" class="text-reset" target="_blank">Preview</a>)
         </li>
     {%endfor%}
 
     <br/><br/><br/>
-    <a style="text-decoration: none;color:inherit;" href="{{url_for('organiser_create_event')}}">Create a New Event</a>
+    <a style="text-decoration: none;color:inherit;" href="{{url_for('organizer.organiser_create_event')}}">Create a New Event</a>
     
 {%endblock body%}
