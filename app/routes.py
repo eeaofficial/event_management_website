@@ -11,8 +11,8 @@ from flask import  render_template, flash, redirect, url_for, request, jsonify, 
 from flask_login import login_user, current_user, logout_user, login_required
 
 from app.extensions import db, bcrypt
-from app.forms import *
-from app.models import *
+from app.forms import SignUpForm, LoginForm, ResetRequestForm, ResetPasswordForm, UpdateProfileForm
+from app.models import User, EventDetails, Payments, Events
 from app.send_mail_http import send_mail_http as send_mail
 from app.utils import is_code_applicable, save_image, get_upload_dir
 from app.init_data import pass_name
@@ -169,9 +169,9 @@ def reset_password(token):
 @bp.route('/dashboard')
 @login_required
 def dashboard():
-    events = current_user.events.split(',')
+    user_events = current_user.events.split(',')
     events_dict = {}
-    for i in events:
+    for i in user_events:
         events_dict[i] = EventDetails.query.filter_by(event_id=i).first()
 
     p = Payments.query.filter_by(reg_no=current_user.reg_no, is_valid_payment=True).all()
@@ -410,18 +410,18 @@ def callback():
                 err_msg += ret + '\n'
                 try:
                     if 'workshop' in p.pass_type:
-                        _, id = p.pass_type.split('_')
+                        _, idx = p.pass_type.split('_')
                         u = User.query.filter_by(reg_no=p.reg_no).first()
                         if u.events:
-                            u.events += id+','
+                            u.events += idx+','
                         else:
-                            u.events = id+','
+                            u.events = idx+','
 
-                        evt = EventDetails.query.filter_by(event_id=id).first()
+                        evt = EventDetails.query.filter_by(event_id=idx).first()
                         evt.n_registrations += 1
 
                         evt_reg = Events(
-                        event_id=id,
+                        event_id=idx,
                         reg_no = p.reg_no,
                         time=str(datetime.now()),
                         )
@@ -438,18 +438,18 @@ def callback():
 
                     elif p.pass_type not in ['p1','p2','p3','p4','p51','p52','p6','p7']:
                         if 'workshop' in p.pass_type:
-                            _, id = p.pass_type.split('_')
+                            _, idx = p.pass_type.split('_')
                             u = User.query.filter_by(reg_no=p.reg_no).first()
                             if u.events:
-                                u.events += id+','
+                                u.events += idx+','
                             else:
-                                u.events = id+','
+                                u.events = idx+','
 
-                            evt = EventDetails.query.filter_by(event_id=id).first()
+                            evt = EventDetails.query.filter_by(event_id=idx).first()
                             evt.n_registrations += 1
 
                             evt_reg = Events(
-                            event_id=id,
+                            event_id=idx,
                             reg_no = p.reg_no,
                             time=str(datetime.now()),
                             )

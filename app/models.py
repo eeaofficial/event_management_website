@@ -2,13 +2,11 @@
 Models
 """
 
-import os
-
 from flask import current_app
 from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 
-from app.extensions import db, login_manager, bcrypt
+from app.extensions import db, login_manager
 
 @login_manager.user_loader
 def load_user(user_id):

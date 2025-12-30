@@ -5,9 +5,9 @@ Admin Routes
 from io import BytesIO
 from datetime import datetime
 import string
-import json 
+import json
 
-from flask import flash, redirect, url_for, Blueprint, render_template, request, jsonify, abort, send_file
+from flask import Blueprint, render_template, request, jsonify, abort, send_file
 from flask_login import current_user
 import xlsxwriter
 
