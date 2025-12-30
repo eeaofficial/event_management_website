@@ -45,7 +45,7 @@ class User(db.Model, UserMixin):
         s = Serializer(current_app.config['SECRET_KEY'])
         try:
             user_id = s.loads(token)['user_id']
-        except:
+        except Exception as e:
             return None
 
         return User.query.get(user_id)

@@ -13,7 +13,7 @@ import xlsxwriter
 
 from app.models import EventDetails, User, Payments
 from app.extensions import db
-from app.send_mail_http import send_mail_http as send_mail
+from app.mail_utils import send_mail_http as send_mail
 from app.init_data import pass_name
 from app.utils import get_static_dir
 
@@ -269,16 +269,21 @@ def resend_unsent_mail(filename):
             mail_data.get('to'),
             mail_data.get('subject'),
             mail_data.get('body'),
-            format=mail_data.get('format', 'plain'),
+            body_format=mail_data.get('format', 'plain'),
             attachments=mail_data.get('attchments', [])
         )
 
-        if result == 'success':
+        if result['status'] == 'success':
             filepath.unlink() # Delete the file after successful resend
-            return jsonify({'message': 'success', 'details': 'Mail resent successfully and record deleted'})
+            return jsonify({
+                'message': 'success',
+                'details': 'Mail resent successfully and record deleted'
+            })
         else:
-            return jsonify({'message': 'error', 'details': 'Failed to resend mail'})
-
+            return jsonify({
+                'message': 'error',
+                'details': 'Failed to resend mail'
+            })
     except Exception as e:
         return jsonify({'message': 'error', 'details': str(e)})
 

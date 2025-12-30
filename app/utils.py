@@ -17,6 +17,9 @@ def get_upload_dir() -> Path:
 def get_static_dir() -> Path:
     return Path(current_app.static_folder).resolve()
 
+def get_unsent_mail_dir() -> Path:
+    return get_static_dir() / 'unsent_mails'
+
 # access codes for certain institution; can be extended following the idea used
 def is_code_applicable() -> bool:
     """

@@ -13,9 +13,9 @@ from flask_login import login_user, current_user, logout_user, login_required
 from app.extensions import db, bcrypt
 from app.forms import SignUpForm, LoginForm, ResetRequestForm, ResetPasswordForm, UpdateProfileForm
 from app.models import User, EventDetails, Payments, Events
-from app.send_mail_http import send_mail_http as send_mail
 from app.utils import is_code_applicable, save_image, get_upload_dir
 from app.init_data import pass_name
+from app.mail_utils import send_mail_http as send_mail
 
 bp = Blueprint("", __name__)
 
@@ -78,9 +78,9 @@ def signup():
         
         <a href="{url_for('events', _external=True)}">Register for events</a> <br><br><br>
         '''
-        ret = send_mail(to, subject, body, format='html')
+        ret = send_mail(to, subject, body, body_format='html')
         flash(f'Account has been created for { form.name.data } ! You can now log in', 'success')
-        if 'success' not in ret:
+        if ret['status'] != 'success':
             flash('Unable to send welcome Mail; Contact admin for details', 'danger')
         return redirect(url_for('login'))
 
@@ -125,7 +125,7 @@ def send_reset_email(user):
     {url_for('reset_password', token=token, _external=True)}
     '''
     ret = send_mail(to, subject, body)
-    if 'success' not in ret:
+    if ret['status'] != 'success':
         flash('Unable to send mail; Contact admin', 'danger')
     return ret
 
@@ -234,9 +234,9 @@ THIS PASS IS SUBJECT TO VERIFICATION AT REGISTRATION DESK !!!
         ret = send_mail(current_user.email,
             'Code for Getting access to All events | <Symposium-Name> year',
             msg,
-            format='html'
+            body_format='html'
         )
-        if 'success' not in ret:
+        if ret['status'] != 'success':
             flash('Unable to send mail; Contact admin', 'danger')
         else:
             flash('Mail Sent','success')
@@ -407,7 +407,7 @@ def callback():
             if i:
                 u = User.query.filter_by(reg_no=i).first()
                 ret = send_mail(u.email, 'Transaction found in Order | <Symposium-Name>', f'Your Payment with Transaction number {tx_no} is found in order and is accepted')
-                err_msg += ret + '\n'
+                err_msg += ret['details'] + '\n'
                 try:
                     if 'workshop' in p.pass_type:
                         _, idx = p.pass_type.split('_')
@@ -433,8 +433,8 @@ def callback():
                         Successfully Registered for {evt.name} ! <br><br>
                         '''
                         body += evt.on_register_mail_cnt
-                        ret = send_mail(to, subject, body, format='html')
-                        err_msg += f'{ret}\n'
+                        ret = send_mail(to, subject, body, body_format='html')
+                        err_msg += f'{ret["details"]}\n'
 
                     elif p.pass_type not in ['p1','p2','p3','p4','p51','p52','p6','p7']:
                         if 'workshop' in p.pass_type:
@@ -461,8 +461,8 @@ def callback():
                             Successfully Registered for {evt.name} ! <br><br>
                             '''
                             body += evt.on_register_mail_cnt
-                            ret = send_mail(to, subject, body, format='html')
-                            err_msg = f'{ret}\n'
+                            ret = send_mail(to, subject, body, body_format='html')
+                            err_msg = f'{ret["details"]}\n'
                     db.session.commit()
                     msg = 'success (updated as verified) \n'
                     if err_msg:
@@ -484,7 +484,7 @@ Please feel free to contact the organisers in case of discrepencies
                     'Transaction Alert | <Symposium-Name> year',
                     msg
                 )
-                err_msg += f'{ret}\n'
+                err_msg += f'{ret["details"]}\n'
         msg = 'success (updated as NOT verified)\n'
         if err_msg:
             msg +=  f"Mailing Errors: {err_msg}\n"
@@ -663,11 +663,11 @@ def register():
             '''
             body += evt.on_register_mail_cnt
             try:
-                ret = send_mail(to, subject, body, format='html')
+                ret = send_mail(to, subject, body, body_format='html')
             except Exception as e:
                 print(e)
             msg = "registered!\n"
-            if 'success' not in ret:
+            if ret['status'] != 'success':
                 msg += "Unable to send mail; contact admin\n"
         return jsonify({"success":msg})
     except Exception as e:
@@ -755,8 +755,8 @@ def send_sample_mail():
     Team Members : (team members registration numbers will be displayed here) <br><br>
     '''
     body += e.on_register_mail_cnt
-    ret = send_mail(to, subject, body, format='html')
-    if 'success' not in ret:
+    ret = send_mail(to, subject, body, body_format='html')
+    if ret['status'] != 'success':
         return jsonify({'message':'Unable to send Mail; Contact Admin'})
     return jsonify({'message':'Mail sent'})
 
