@@ -15,6 +15,7 @@ import hashlib
 import json
 from smtplib import SMTP
 import base64
+from datetime import datetime
 from typing import Optional
 
 from googleapiclient.discovery import build
@@ -95,7 +96,9 @@ def save_mail_as_json(
 
     unsent_mail_dir = get_unsent_mail_dir()
     unsent_mail_dir.mkdir(parents=True, exist_ok=True)
-    filename = f'{hashlib.sha256(body.encode()).hexdigest()[10:40]}.json'
+    timestamp = f'{datetime.now():%Y_%m_%d__%H_%M_%S}'
+    body_hash = hashlib.sha256(body.encode()).hexdigest()[10:30]
+    filename = f'{timestamp}__{body_hash}.json'
     save_file_path = unsent_mail_dir / filename
     with open(save_file_path, 'w') as file:
         json.dump(unsent_mail, file)
@@ -127,7 +130,7 @@ def send_mail_smtp(to, subject, body, body_format='plain', attachments=None):
         print(f"Error while sending mail: {e}")
         save_mail_as_json(to, subject, body, body_format, attachments)
 
-        return {'status': 'error', 'details': e}
+        return {'status': 'error', 'details': str(e)}
 
     return {'status': 'success', 'details': 'ok'}
 
@@ -136,7 +139,7 @@ def send_mail_http(to, subject, body, body_format='plain', attachments=None):
     try:
         # `me` - special alias for from email in gmail
         mime_message = create_email(to, subject, body,
-            'me', body_format, attachments)
+            'me', body_format, attachments, DEFAULT_SIGNATURE)
         raw_string = base64.urlsafe_b64encode(mime_message.as_bytes()).decode()
         creds = None
         scopes = ['https://mail.google.com/']
@@ -150,6 +153,6 @@ def send_mail_http(to, subject, body, body_format='plain', attachments=None):
         print(f"Error while sending mail: {e}")
         save_mail_as_json(to, subject, body, body_format, attachments)
 
-        return {'status': 'error', 'details': e}
+        return {'status': 'error', 'details': str(e)}
 
     return {'status': 'success', 'details': 'ok'}

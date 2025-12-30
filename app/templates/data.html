@@ -5,7 +5,7 @@
         $(document).ready(function() {
     $('#refresh').on('click', function(event){
         $.ajax({
-            url: "{{url_for('refresh')}}",
+            url: "{{url_for('admin.refresh')}}",
             type: 'POST',
             data:{
                 "request":"refresh",

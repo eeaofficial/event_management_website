@@ -11,13 +11,33 @@ from flask import Blueprint, render_template, request, jsonify, abort, send_file
 from flask_login import current_user
 import xlsxwriter
 
-from app.models import EventDetails, User, Payments
+from app.models import EventDetails, User, Payments, Events
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
 from app.init_data import pass_name
 from app.utils import get_static_dir
 
 bp = Blueprint("admin", __name__)
+
+# ******************* Utils ******************
+def get_data(event_id):
+    data = []
+    if event_id == 'all':
+        evts = Events.query.order_by(Events.event_id).all()
+    else:
+        evts = Events.query.filter_by(event_id=event_id).all()
+
+    for i in evts:
+        name = EventDetails.query.filter_by(event_id=i.event_id).first().name
+        us = []
+        for i in i.reg_no.split(','):
+            if i:
+                u = User.query.filter_by(reg_no=i).first()
+                us.append((u.name, u.reg_no, u.mobile, u.email))
+        data.append((name, us))
+
+    return data
+# ******************* End Utils ******************
 
 @bp.route('/dashboard')
 def admin_dashboard():
@@ -108,6 +128,47 @@ def admin_update_user():
     return jsonify({'message':'success'})
 
 
+@bp.route('/see/data', methods=["GET", "POST"])
+def admin_see_data():
+    if not current_user.is_authenticated or not current_user.isAdministrator:
+        if request.method == "POST":
+            return jsonify({'error':'unknown page'})
+        else:
+            abort(404)
+
+    if not current_user.isAdministrator:
+        send_mail('super_admin@domain.com', 'Admin Login Detected', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
+
+    data = []
+    evts = Events.query.order_by(Events.event_id).all()
+
+    all_events = EventDetails.query.with_entities(EventDetails.event_id, EventDetails.name).all()
+
+    for i in evts:
+        name = EventDetails.query.filter_by(event_id=i.event_id).first().name
+        us = []
+        for i in i.reg_no.split(','):
+            if i:
+                u = User.query.filter_by(reg_no=i).first()
+                us.append((u.name, u.reg_no, u.mobile, u.email))
+        data.append((name, us))
+    return render_template('data.html', data=data, events=all_events)
+
+
+@bp.route('/refresh', methods=["POST"])
+def refresh():
+    if not current_user.is_authenticated or not current_user.isAdministrator:
+        return jsonify({'error':'unknown page'})
+
+    req = dict(request.form)
+    if req['request'] == 'refresh':
+        data = get_data(req['event_id'])
+        return jsonify({
+            "html": render_template('admin_data_content.html', data=data),
+            "time": str(datetime.now())
+        })
+    return jsonify({"html":"error"})
+
 @bp.route('/modify_event', methods=["POST"])
 def admin_modify_event():
     if not current_user.is_authenticated or not current_user.isAdministrator:
@@ -138,7 +199,6 @@ def admin_all_payments():
         abort(404)
 
     if not current_user.isAdministrator:
-        # to monitor admin logins - super admin
         send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
 
     payments = Payments.query.order_by(Payments.pass_type.asc()).all()
@@ -154,7 +214,6 @@ def all_payments_download():
         abort(404)
 
     if not current_user.isAdministrator:
-        # to monitor admin logins - super admin
         send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
 
     payments = Payments.query.order_by(Payments.pass_type.asc()).all()

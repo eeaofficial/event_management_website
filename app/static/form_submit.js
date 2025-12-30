@@ -3,7 +3,7 @@ $(document).ready(function() {
         event.preventDefault();
         $('#msg').html('Please Wait!!!');
         $.ajax({
-            url: "{{url_for('register')}}",
+            url: REGISTER_URL,
             type: 'POST',
             data:{
                 "id":$('#event-id').html(),

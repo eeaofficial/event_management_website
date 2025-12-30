@@ -14,6 +14,7 @@ import xlsxwriter
 from app.models import EventDetails, User, Events
 from app.utils import save_image
 from app.extensions import db
+from app.mail_utils import send_mail_http as send_mail
 
 bp = Blueprint("organizer", __name__)
 
@@ -117,6 +118,34 @@ def organiser_create_event():
         return redirect(url_for('organizer.organiser_dashboard'))
 
     return render_template('organiser_create_event.html')
+
+@bp.route('/send-sample-mail', methods=['POST'])
+@login_required
+def send_sample_mail():
+    data = dict(request.form)
+    idx = data['id']
+    if not current_user.isOrganiser:
+        return jsonify({'message':'Not an organiser'})
+    e = EventDetails.query.filter_by(event_id=idx).first()
+    if not e:
+        return jsonify({'message':'No such event'})
+    organiser_reg_nos = [e.primary_organiser]
+    organiser_reg_nos.extend(e.other_organisers.split(','))
+    if not current_user.isAdministrator:
+        if current_user.reg_no not in organiser_reg_nos and not current_user.isOrganiser:
+            return jsonify({'message':f'You are not the organiser of Event {e.name}!'})
+
+    subject = 'Registation Successful | <Symposium-Name> year <Sample ; for Organiser>'
+    to = current_user.email
+    body = f'''<br>
+    Successfully Registered for {e.name} ! <br><br>
+    Team Members : (team members registration numbers will be displayed here) <br><br>
+    '''
+    body += e.on_register_mail_cnt
+    ret = send_mail(to, subject, body, body_format='html')
+    if ret['status'] != 'success':
+        return jsonify({'message':'Unable to send Mail; Contact Admin'})
+    return jsonify({'message':'Mail sent'})
 
 
 @bp.route('/event/<idx>', methods=['GET', 'POST'])

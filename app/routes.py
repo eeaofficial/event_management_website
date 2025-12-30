@@ -673,92 +673,7 @@ def register():
     except Exception as e:
         return jsonify({"error":f'{e}'})
 
-@bp.route('/sympo/admin/see/data', methods=["GET", "POST"])
-@login_required
-def admin_login():
-    # allow certain user to see data like "current_user.id == 66"
-    # when you don't want to give them admin access
-    # if not (current_user.isAdministrator or current_user.id == 66):
-    #     flash('Invalid Route','danger')
-    #     return redirect(url_for('dashboard'))
-
-    if not current_user.isAdministrator:
-        # to monitor admin logins - super admin
-        send_mail('super_admin@domain.com', 'Admin Login Detected', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
-
-    data = []
-    evts = Events.query.order_by(Events.event_id).all()
-
-    all_events = EventDetails.query.with_entities(EventDetails.event_id, EventDetails.name).all()
-
-    for i in evts:
-        name = EventDetails.query.filter_by(event_id=i.event_id).first().name
-        us = []
-        for i in i.reg_no.split(','):
-            if i:
-                u = User.query.filter_by(reg_no=i).first()
-                us.append((u.name, u.reg_no, u.mobile, u.email))
-        data.append((name, us))
-    return render_template('data.html', data=data, events=all_events)
-
-def get_data(event_id):
-    data = []
-    if event_id == 'all':
-        evts = Events.query.order_by(Events.event_id).all()
-    else:
-        evts = Events.query.filter_by(event_id=event_id).all()
-
-    for i in evts:
-        name = EventDetails.query.filter_by(event_id=i.event_id).first().name
-        us = []
-        for i in i.reg_no.split(','):
-            if i:
-                u = User.query.filter_by(reg_no=i).first()
-                us.append((u.name, u.reg_no, u.mobile, u.email))
-        data.append((name, us))
-
-    return data
-
-@bp.route('/refresh', methods=["POST"])
-@login_required
-def refresh():
-    if not current_user.isAdministrator:
-        return jsonify({'html':'error'})
-
-    req = dict(request.form)
-    # print(data)
-    if req['request'] == 'refresh':
-        data = get_data(req['event_id'])
-        return jsonify({"html":render_template('admin_data_content.html', data=data), "time":str(datetime.now())})
-    return jsonify({"html":"error"})
-
-@bp.route('/send-sample-mail', methods=['POST'])
-@login_required
-def send_sample_mail():
-    data = dict(request.form)
-    idx = data['id']
-    if not current_user.isOrganiser:
-        return jsonify({'message':'Not an organiser'})
-    e = EventDetails.query.filter_by(event_id=idx).first()
-    if not e:
-        return jsonify({'message':'No such event'})
-    organiser_reg_nos = [e.primary_organiser]
-    organiser_reg_nos.extend(e.other_organisers.split(','))
-    if not current_user.isAdministrator:
-        if current_user.reg_no not in organiser_reg_nos and not current_user.isOrganiser:
-            return jsonify({'message':f'You are not the organiser of Event {e.name}!'})
-
-    subject = 'Registation Successful | <Symposium-Name> year <Sample ; for Organiser>'
-    to = current_user.email
-    body = f'''<br>
-    Successfully Registered for {e.name} ! <br><br>
-    Team Members : (team members registration numbers will be displayed here) <br><br>
-    '''
-    body += e.on_register_mail_cnt
-    ret = send_mail(to, subject, body, body_format='html')
-    if ret['status'] != 'success':
-        return jsonify({'message':'Unable to send Mail; Contact Admin'})
-    return jsonify({'message':'Mail sent'})
+# ******************* Other routes *********************
 
 @bp.route('/bg/certificate')
 @login_required
@@ -787,6 +702,8 @@ def certificate_content():
                 data.append([e, u])
 
     return jsonify({"html":render_template('certificate_content.html', data=data), "time":str(datetime.now())})
+
+# ****************************************
 
 # ******** remove after testing ***********
 @bp.route('/beta/send_message/<msg>/to/<idx>')

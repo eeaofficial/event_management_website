@@ -190,7 +190,7 @@
                 var $descriptionBox = $('<div>').attr('class', 'roundDescription');
                 $descriptionBox.append($("<textarea>").attr("class","for_nam").attr("placeholder", "Round Description").attr('name', 'rd_description_'+randomString).prop('required', true).val(event_rounds[i].description));
 
-                var $timeBox = $('<div>').append($('<input>').attr('type', 'time').attr("class","for_nam").attr('name', 'rd_time_'+randomString).prop('required', true).val(event_rounds[i].time));
+                var $timeBox = $('<div>').append($('<input>').attr('type', 'time').attr("class","for_nam").attr('name', 'rd_time_'+randomString).val(event_rounds[i].time));
                 
                 var $dateBox = $('<div>').append($('<input>').attr('type', 'date').attr("class","for_nam").attr('name', 'rd_date_'+randomString).prop('required', true).val(event_rounds[i].date));
 
@@ -341,7 +341,7 @@
             $('#send-sample-mail').click(function(event){
                 event.preventDefault();
                 $.ajax({
-                    url: "{{url_for('send_sample_mail')}}",
+                    url: "{{url_for('organizer.send_sample_mail')}}",
                     type: 'POST',
                     data:{
                         id:'{{event.event_id}}'
