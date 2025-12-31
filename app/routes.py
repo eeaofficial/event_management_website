@@ -318,7 +318,7 @@ def payment():
 
         pa = Payments.query.filter_by(tx_no=data['tx-id']).first()
         if pa:
-            flash('A proof with this is already submitted', 'danger')
+            flash('A proof with this transaction id is already submitted', 'danger')
             return redirect(url_for('dashboard'))
 
         if not 'screenshot' in request.files:
@@ -475,9 +475,12 @@ def event_details(idx):
                     'mobile' : i.mobile
             })
 
+    registered_events = current_user.registered_events()
+    reg_event_ids = ','.join(e.event_id for e in registered_events)
+
     if not event.is_result_accepted:
         return render_template('event_details.html', event=event, id=idx,
-            organiser_details=organiser_details, is_eligible=is_eligible)
+            organiser_details=organiser_details, is_eligible=is_eligible, reg_event_ids=reg_event_ids)
 
     winners = []
     runners = []
@@ -522,7 +525,7 @@ def register():
     users = set(users)
 
     for user in users:
-        if check_user_event_eligibility(user, event):
+        if not check_user_event_eligibility(user, event):
             return jsonify({'error':'No pass!'})
 
     register_participants(event, current_user, users)

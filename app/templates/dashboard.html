@@ -155,7 +155,7 @@
               <!-- user-event -->
               {% for i in current_user.registered_events() %} 
                 <div class="col-12"><a style="text-decoration: none;color:inherit;"
-                    href="{{url_for('event_details', idx=i)}}">{{i.name}}</a>
+                    href="{{url_for('event_details', idx=i.event_id)}}">{{i.name}}</a>
                 </div>
               {%endfor%}
               <div class="col-12">*Click on the events to check if there's any update</div>

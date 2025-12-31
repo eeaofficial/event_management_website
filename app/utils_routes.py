@@ -78,7 +78,7 @@ def eligible_events(user: Users) -> list[str]:
 
 def check_user_event_eligibility(user: Users, event: EventDetails) -> bool:
     allowed_catagories = eligible_events(user)
-    if event.catagory in allowed_catagories:
+    if event.category in allowed_catagories:
         return True
 
     return False
@@ -95,7 +95,7 @@ def register_participants(
     )
     db.session.add(team)
 
-    users = list[registration_by]
+    users = [registration_by]
     if team_members:
         users += team_members
     users = set(users)

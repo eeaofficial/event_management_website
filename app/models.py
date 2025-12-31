@@ -80,18 +80,18 @@ class EventRegistrations(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     event_key = db.Column(db.Integer, db.ForeignKey('event_details.id'), nullable=False)
     team_key = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
-    registered_by_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    registration_by_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     # sqlite's NOW is UTC time with
     # note timezone info not stored
     # ensure every write to timestamp is in UTC
-    timestamp = db.Column(db.DateTime, nullable=False,
+    registration_at = db.Column(db.DateTime, nullable=False,
         server_default=db.func.now()
     )
 
     event = db.relationship('EventDetails', lazy=True)
     team = db.relationship('Teams', lazy=True)
-    registered_by = db.relationship('Users', lazy=True)
+    registration_by = db.relationship('Users', lazy=True)
 
     def __repr__(self):
         return f"EventRegistrations('{self.event_key}', '{self.registered_by_key}', '{self.team_key}', '{self.timestamp}')"
