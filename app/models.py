@@ -38,7 +38,17 @@ class Users(db.Model, UserMixin):
     # while join, sqlalchemy will figure out the FK column, if not InvalidRequestError is raised
     # we can join by giving any column as we need
     def registered_events(self):
-        return []
+        return (
+            db.session.query(EventDetails)
+            .join(EventRegistrations)
+            .outerjoin(Teams)
+            .outerjoin(TeamMembers)
+            .filter(
+                TeamMembers.user_key == self.id
+            )
+            .distinct()
+            .all()
+        )
 
     def organizing_events(self):
         return []
@@ -60,17 +70,69 @@ class Users(db.Model, UserMixin):
     def __repr__(self):
         return f"Users('{self.name}', '{self.email}', '{self.reg_no}', '{self.dept}', '{self.college}', '{self.mobile}')"
 
-class Events(db.Model):
-    __tablename__ = 'events'
-    id = db.Column(db.Integer, primary_key=True)
-    event_id = db.Column(db.String(5), nullable=False)
-    reg_no = db.Column(db.String(10*30+4), nullable=False)
-    time = db.Column(db.String(20), nullable=False) # "YYYY-MM-DD HH:MM:SS" (19 characters long)
-    event_attended = db.Column(db.Boolean, default=False, nullable=False)
-    # payment_order_id = db.Column(db.String(30), nullable=False)
-    def __repr__(self):
-        return f"Events('{self.event_id}', '[{self.reg_no}]', '{self.time}')"
 
+class EventRegistrations(db.Model):
+    __tablename__ = 'event_registrations'
+    __table_args__ = (
+        db.UniqueConstraint('event_key', 'team_key'),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_key = db.Column(db.Integer, db.ForeignKey('event_details.id'), nullable=False)
+    team_key = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
+    registered_by_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    # sqlite's NOW is UTC time with
+    # note timezone info not stored
+    # ensure every write to timestamp is in UTC
+    timestamp = db.Column(db.DateTime, nullable=False,
+        server_default=db.func.now()
+    )
+
+    event = db.relationship('EventDetails', lazy=True)
+    team = db.relationship('Teams', lazy=True)
+    registered_by = db.relationship('Users', lazy=True)
+
+    def __repr__(self):
+        return f"EventRegistrations('{self.event_key}', '{self.registered_by_key}', '{self.team_key}', '{self.timestamp}')"
+
+
+class Teams(db.Model):
+    __tablename__ = 'teams'
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_key = db.Column(db.Integer, db.ForeignKey('event_details.id'), nullable=False)
+
+    team_id = db.Column(db.String(30), nullable=False, unique=True)
+    # some dummy name
+    team_name = db.Column(db.String(30), default='')
+
+    event = db.relationship('EventDetails', lazy=True)
+
+    members = db.relationship(
+        'Users',
+        secondary='team_members',
+        lazy=True
+    )
+
+    def __repr__(self):
+        return f"Teams('{self.team_id}', '{self.event_key}', '{self.team_name}')"
+
+class TeamMembers(db.Model):
+    __tablename__ = 'team_members'
+    __table_args__ = (
+        db.UniqueConstraint('team_key', 'user_key'), # user team pair should be unique
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    team_key = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
+    user_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    team = db.relationship('Teams', lazy=True)
+    user = db.relationship('Users', lazy=True)
+
+    def __repr__(self):
+        return f"TeamMembers('{self.team_key}', '{self.user_key}')"
 
 class EventDetails(db.Model):
     __tablename__ = 'event_details'

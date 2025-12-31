@@ -1,12 +1,51 @@
 """
 utils for routes.py
 """
+
 from datetime import datetime, timezone
 from typing import Optional
 
-from app.models import EventDetails, Users, Events, Payments
+from flask import url_for
+
+from app.models import EventDetails, Users, Payments, Teams, TeamMembers, EventRegistrations
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
+from app.utils import random_string
+
+
+def send_welcome_mail(user: Users) -> dict[str, str]:
+    if not isinstance(user, Users):
+        return {'status': 'error', 'message': 'Not valid user'}
+
+    subject = 'Welcome to <Symposium-Name> \'23'
+    to = user.email
+    body = f'''
+    Reserve the dates ... for taking part in interesting events!!!
+    Take a look at the events {url_for('events', _external=True)}<br><br>
+
+    Don't forget <b> some event <b> is waiting for you !!!! <br><br>
+    
+    <a href="{url_for('events', _external=True)}">Register for events</a> <br><br><br>
+    '''
+
+    ret = send_mail(to, subject, body, body_format='html')
+    return ret
+
+def send_reset_email(user: Users) -> dict[str, str]:
+    if not isinstance(user, Users):
+        return {'status': 'error', 'message': 'Not valid user'}
+
+    m = 5
+    token = user.get_reset_token(m*60) #120 sec valid token
+    subject = 'Password Reset Request | <Symposium-Name> year'
+    to = user.email
+    body = f'''
+    To reset Password, Click on the following link (expires in {m} mins)
+    {url_for('reset_password', token=token, _external=True)}
+    '''
+    ret = send_mail(to, subject, body)
+    return ret
+
 
 def eligible_events(user: Users) -> list[str]:
     if not isinstance(user, Users):
@@ -37,22 +76,44 @@ def eligible_events(user: Users) -> list[str]:
 
     return allowed_catagories
 
-def check_user_event_eligibility(user: Users, event: Events) -> bool:
+def check_user_event_eligibility(user: Users, event: EventDetails) -> bool:
     allowed_catagories = eligible_events(user)
     if event.catagory in allowed_catagories:
         return True
 
     return False
 
-def register_participants(users: list[Users], event: EventDetails) -> None:
-    event.n_registrations += 1
-    regnos = [user.reg_no for user in users]
-    evt_reg = Events(
-        event_id=event.event_id,
-        reg_no = ','.join(regnos),
-        time=str(datetime.now(timezone.utc)),
+def register_participants(
+        event: EventDetails,
+        registration_by: Users,
+        team_members: Optional[list[Users]]=None
+    ) -> None:
+    team_id = random_string(20)
+    team = Teams(
+        team_id=team_id,
+        event=event
     )
-    db.session.add(evt_reg)
+    db.session.add(team)
+
+    users = list[registration_by]
+    if team_members:
+        users += team_members
+    users = set(users)
+
+    for user in users:
+        member = TeamMembers(
+            user=user,
+            team=team
+        )
+        db.session.add(member)
+
+    registration_entry = EventRegistrations(
+        event=event,
+        team=team,
+        registration_by=registration_by
+    )
+    db.session.add(registration_entry)
+
     db.session.commit()
 
 def send_registration_mail(

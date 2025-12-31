@@ -11,7 +11,7 @@ from flask import Blueprint, render_template, request, jsonify, abort, send_file
 from flask_login import current_user
 import xlsxwriter
 
-from app.models import EventDetails, Users, Payments, Events
+from app.models import EventDetails, Users, Payments, EventRegistrations
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
 from app.init_data import pass_name
@@ -23,17 +23,25 @@ bp = Blueprint("admin", __name__)
 def get_data(event_id):
     data = []
     if event_id == 'all':
-        evts = Events.query.order_by(Events.event_id).all()
+        entries = EventRegistrations.query.join(EventDetails).order_by(EventDetails.event_id).all()
     else:
-        evts = Events.query.filter_by(event_id=event_id).all()
+        entries = (
+            EventRegistrations.query
+            .join(EventDetails)
+            .filter(EventDetails.event_id==event_id)
+            .all()
+        )
 
-    for i in evts:
-        name = EventDetails.query.filter_by(event_id=i.event_id).first().name
+    for i in entries:
+        name = i.event.name
         us = []
-        for i in i.reg_no.split(','):
-            if i:
-                u = Users.query.filter_by(reg_no=i).first()
-                us.append((u.name, u.reg_no, u.mobile, u.email))
+        for participant in i.team.members:
+            us.append((
+                participant.name,
+                participant.reg_no,
+                participant.mobile,
+                participant.email
+            ))
         data.append((name, us))
 
     return data
@@ -131,19 +139,10 @@ def admin_see_data():
     if not current_user.isAdministrator:
         send_mail('super_admin@domain.com', 'Admin Login Detected', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
 
-    data = []
-    evts = Events.query.order_by(Events.event_id).all()
+    data = get_data('all')
 
     all_events = EventDetails.query.with_entities(EventDetails.event_id, EventDetails.name).all()
 
-    for i in evts:
-        name = EventDetails.query.filter_by(event_id=i.event_id).first().name
-        us = []
-        for i in i.reg_no.split(','):
-            if i:
-                u = Users.query.filter_by(reg_no=i).first()
-                us.append((u.name, u.reg_no, u.mobile, u.email))
-        data.append((name, us))
     return render_template('data.html', data=data, events=all_events)
 
 

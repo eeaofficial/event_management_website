@@ -12,11 +12,12 @@ from flask_login import login_user, current_user, logout_user, login_required
 
 from app.extensions import db, bcrypt
 from app.forms import SignUpForm, LoginForm, ResetRequestForm, ResetPasswordForm, UpdateProfileForm
-from app.models import Users, EventDetails, Payments, Events
+from app.models import Users, EventDetails, Payments
 from app.utils import is_code_applicable, save_image, get_upload_dir
 from app.init_data import pass_name
 from app.mail_utils import send_mail_http as send_mail
-from app.utils_routes import eligible_events, check_user_event_eligibility, register_participants, send_registration_mail
+from app.utils_routes import eligible_events, check_user_event_eligibility, register_participants, \
+    send_registration_mail, send_welcome_mail, send_reset_email
 
 bp = Blueprint("", __name__)
 
@@ -61,25 +62,13 @@ def signup():
             reg_no=form.reg_no.data,
             dept = dept,
             college = clg,
-            events='',
             password=hashed_password,
             mobile=form.mobile.data,
-            )
+        )
         db.session.add(user)
         db.session.commit()
 
-        subject = 'Welcome to <Symposium-Name> \'23'
-        to = user.email
-        # sample body template while; mail sent when a user creates an account in the website
-        body = f'''
-        Reserve the dates ... for taking part in interesting events!!!
-        Take a look at the events {url_for('events', _external=True)}<br><br>
-
-        Don't forget <b> some event <b> is waiting for you !!!! <br><br>
-        
-        <a href="{url_for('events', _external=True)}">Register for events</a> <br><br><br>
-        '''
-        ret = send_mail(to, subject, body, body_format='html')
+        ret = send_welcome_mail(user)
         flash(f'Account has been created for { form.name.data } ! You can now log in', 'success')
         if ret['status'] != 'success':
             flash('Unable to send welcome Mail; Contact admin for details', 'danger')
@@ -116,20 +105,6 @@ def logout():
 
     return redirect(url_for('home'))
 
-def send_reset_email(user):
-    m = 5
-    token = user.get_reset_token(m*60) #120 sec valid token
-    subject = 'Password Reset Request | <Symposium-Name> year'
-    to = user.email
-    body = f'''
-    To reset Password, Click on the following link (expires in {m} mins)
-    {url_for('reset_password', token=token, _external=True)}
-    '''
-    ret = send_mail(to, subject, body)
-    if ret['status'] != 'success':
-        flash('Unable to send mail; Contact admin', 'danger')
-    return ret
-
 @bp.route('/forgot-password', methods=["GET", "POST"])
 def forgot_password():
     if current_user.is_authenticated:
@@ -139,8 +114,10 @@ def forgot_password():
     if form.validate_on_submit():
         user = Users.query.filter_by(email=form.email.data, reg_no=form.reg_no.data).first()
         ret = send_reset_email(user)
-        if 'success' in ret:
+        if ret['status'] == 'success':
             flash('Please check your mail for reset !', 'info')
+        else:
+            flash('Could not send mail, contact admin', 'info')
         return redirect(url_for('login'))
 
     return render_template('forgot_password.html', title='Forgot Password', form=form)
@@ -213,8 +190,6 @@ def verify_code_mit():
         return jsonify({'message':'Success ! You can attend all events'})
 
     return jsonify({'message':'Failed to get pass ; invalid code or invaid user'})
-
-# based on institution previlegde
 
 @bp.route('/send-code-mit')
 @login_required
@@ -409,7 +384,7 @@ def callback():
                 if 'workshop' in p.pass_type:
                     _, idx = p.pass_type.split('_')
                     evt = EventDetails.query.filter_by(event_id=idx).first()
-                    register_participants(list(u), evt)
+                    register_participants(evt, u)
                     ret = send_registration_mail(u, evt)
                     err_msg += f'{ret["details"]}\n'
 
@@ -550,7 +525,7 @@ def register():
         if check_user_event_eligibility(user, event):
             return jsonify({'error':'No pass!'})
 
-    register_participants(users, event)
+    register_participants(event, current_user, users)
 
     for user in users:
         ret = send_registration_mail(user, event, team_members=users)
@@ -558,38 +533,6 @@ def register():
         if ret['status'] != 'success':
             msg += "Unable to send mail; contact admin\n"
     return jsonify({"success":msg})
-
-# ******************* Other routes *********************
-
-@bp.route('/bg/certificate')
-@login_required
-def certificate():
-    return 'contact admin' # CHANGE: remove when required
-    try:
-        if not current_user.isAdministrator:
-            # to monitor admin logins - super admin
-            send_mail('super_admin@domain.com', 'Certificate Writing Login Detected | <Symposium-Name> year', f'Certificate Login by : {current_user.name}, {current_user.reg_no}, {current_user.mobile}')
-    except:
-        pass
-    return render_template('certificate_data.html')
-
-
-@bp.route('/certificate-content', methods=['POST'])
-@login_required
-def certificate_content():
-    return jsonify({'html':'contact admin'})
-    data = []
-    evts = Events.query.filter_by(event_attended=True).order_by(Events.time.asc()).all()
-    for i in evts:
-        e = EventDetails.query.filter_by(event_id=i.event_id).first()
-        for i in i.reg_no.split(','):
-            if i:
-                u = Users.query.filter_by(reg_no=i).first()
-                data.append([e, u])
-
-    return jsonify({"html":render_template('certificate_content.html', data=data), "time":str(datetime.now())})
-
-# ****************************************
 
 # ******** remove after testing ***********
 @bp.route('/beta/send_message/<msg>/to/<idx>')

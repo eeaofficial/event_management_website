@@ -11,10 +11,11 @@ from flask import redirect, render_template, flash, url_for, request, Blueprint,
 from flask_login import login_required, current_user
 import xlsxwriter
 
-from app.models import EventDetails, Users, Events
+from app.models import EventDetails, Users, EventRegistrations
 from app.utils import save_image
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
+from app.utils_organizer import get_registered_teams
 
 bp = Blueprint("organizer", __name__)
 
@@ -145,16 +146,17 @@ def organiser_event(idx):
         flash('Invalid Route!', 'danger')
         return redirect(url_for('dashboard'))
 
+    evt = EventDetails.query.filter_by(event_id=idx).first()
+    if not evt:
+        flash('No Such Event Exists', 'danger')
+        return redirect(url_for('organizer.organiser_dashboard'))
+
     if request.method == 'POST':
-        evt = EventDetails.query.filter_by(event_id=idx).first()
-        if not evt:
-            flash('Unable to find event !', 'danger')
-            return redirect(url_for('organizer.organiser_dashboard'))
+        details = dict(request.form)
+
         orgs = [evt.primary_organiser]
         orgs.extend(evt.other_organisers.split(','))
 
-        details = dict(request.form)
-        # print(details)
         rounds = {}
         ids = []
         for i in details.keys():
@@ -213,12 +215,6 @@ def organiser_event(idx):
         flash('Event Updated Successfully', 'success')
         return redirect(url_for('organizer.organiser_dashboard'))
 
-    evt = EventDetails.query.filter_by(event_id=idx).first()
-
-    if not evt:
-        flash('No Such Event Exists', 'danger')
-        return redirect(url_for('organizer.organiser_dashboard'))
-
     organiser_reg_nos = [evt.primary_organiser]
     organiser_reg_nos.extend(evt.other_organisers.split(','))
 
@@ -239,25 +235,15 @@ def organiser_event(idx):
             pass
             #event_organisers.remove(i)
 
-    evts = Events.query.filter_by(event_id=idx).all()
+    # us.append((u.name, u.reg_no, u.mobile, u.email, u.id, is_winner, is_runner))
+    # data.append([us]+[event.event_attended, event.id])
     data = []
-    for event in evts:
-        us = []
-        e = EventDetails.query.filter_by(event_id=idx).first()
-        for i in event.reg_no.split(','):
-            if i:
-                u = Users.query.filter_by(reg_no=i).first()
-                is_winner = False
-                is_runner = False
-                if e.winner:
-                    if u.reg_no in e.winner.split(','):
-                        is_winner = True
-                if e.runner:
-                    if u.reg_no in e.runner.split(','):
-                        is_runner = True
-
-                us.append((u.name, u.reg_no, u.mobile, u.email, u.id, is_winner, is_runner))
-        data.append([us]+[event.event_attended, event.id])
+    teams = get_registered_teams(evt)
+    for team in teams:
+        x = []
+        for member in team:
+            x.append([member.name, member.reg_no, member.email, member.id, False, False])
+        data.append([x]+[False, evt.id])
 
     return render_template('organiser_event_details.html', event=evt,
         registered=data, event_rounds=event_rounds,
@@ -285,18 +271,18 @@ def organiser_event_download(idx):
             flash(f'You are not the organiser of Event {evt.name}!', 'danger')
             return redirect(url_for('dashboard'))
 
-    evts = Events.query.filter_by(event_id=idx).all()
+    teams = get_registered_teams(idx)
     data = []
     n = 5
     start_row = []
     sno = 1
-    for event in evts:
+    for team in teams:
         start_row.append(n)
-        for i in event.reg_no.split(','):
-            if i:
-                u = Users.query.filter_by(reg_no=i).first()
-                data.append([sno, u.name, u.reg_no, u.mobile, u.email, event.event_attended])
-                n += 1
+        for i in team.members:
+            u = Users.query.filter_by(reg_no=i).first()
+            # data.append([sno, u.name, u.reg_no, u.mobile, u.email, event.event_attended])
+            data.append([sno, u.name, u.reg_no, u.mobile, u.email, False])
+            n += 1
         sno += 1
     start_row.append(n)
 
@@ -386,8 +372,9 @@ def preview_event(idx):
 def update_user_status():
     event_id = request.form['event_id']
     new_status = request.form['new_status'] == 'true'
-    evt = Events.query.get(event_id)
-    evt.event_attended = new_status
+    evt = EventRegistrations.query.get(event_id)
+    # evt.event_attended = new_status
+    # Events-event_attended
     evt.time = str(datetime.now())
     db.session.commit()
     return jsonify(success=True)
@@ -415,12 +402,15 @@ def organiser_update_event_result():
     if not u:
         return jsonify({'message':'No such Participant'})
 
-    e = Events.query.filter_by(event_id=evt.event_id).all()
-    for i in e:
-        if u.reg_no in i.reg_no:
-            break
+    # check if user attended event
+    # teams = get_registered_teams(event_id)
+    # for team in teams:
+    #     for u in team.members:
+    #         if u.reg_no in i.reg_no:
+    #             break
 
-    if not i.event_attended:
+    # if not i.event_attended:
+    if "Not implemnted": #Events-event_attended
         return jsonify({'message':'Participant not attended event'})
     if not evt:
         return jsonify({'message':'No such Event'})

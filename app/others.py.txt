@@ -1,0 +1,29 @@
+# ******************* Other routes *********************
+
+@bp.route('/bg/certificate')
+@login_required
+def certificate():
+    return 'contact admin' # CHANGE: remove when required
+    try:
+        if not current_user.isAdministrator:
+            # to monitor admin logins - super admin
+            send_mail('super_admin@domain.com', 'Certificate Writing Login Detected | <Symposium-Name> year', f'Certificate Login by : {current_user.name}, {current_user.reg_no}, {current_user.mobile}')
+    except:
+        pass
+    return render_template('certificate_data.html')
+
+
+@bp.route('/certificate-content', methods=['POST'])
+@login_required
+def certificate_content():
+    return jsonify({'html':'contact admin'})
+    data = []
+    evts = Events.query.filter_by(event_attended=True).order_by(Events.time.asc()).all()
+    for i in evts:
+        e = EventDetails.query.filter_by(event_id=i.event_id).first()
+        for i in i.reg_no.split(','):
+            if i:
+                u = Users.query.filter_by(reg_no=i).first()
+                data.append([e, u])
+
+    return jsonify({"html":render_template('certificate_content.html', data=data), "time":str(datetime.now())})
