@@ -97,20 +97,10 @@ def organiser_create_event():
             on_register_mail_cnt = details['mail_cnt']
         )
 
-        if current_user.org_events:
-            current_user.org_events += event_id + ','
-        else:
-            current_user.org_events = event_id + ','
-
         for i in organisers:
             user = Users.query.filter_by(reg_no=i).first()
             if not user:
-                flash('Some organiser doesn\'t seem to have an account', 'warning')
-            else:
-                if user.org_events:
-                    user.org_events += event_id + ','
-                else:
-                    user.org_events = event_id + ','
+                flash(f'Organizer doesn\'t seem to have an account - {i}', 'warning')
         db.session.add(evt)
         db.session.commit()
 
@@ -162,12 +152,6 @@ def organiser_event(idx):
             return redirect(url_for('organizer.organiser_dashboard'))
         orgs = [evt.primary_organiser]
         orgs.extend(evt.other_organisers.split(','))
-        for i in orgs:
-            u = Users.query.filter_by(reg_no=i).first()
-            if u:
-                if u.org_events:
-                    u.org_events = u.org_events.replace(evt.event_id+',', '')
-        db.session.commit()
 
         details = dict(request.form)
         # print(details)
@@ -222,12 +206,7 @@ def organiser_event(idx):
         for i in organisers:
             user = Users.query.filter_by(reg_no=i).first()
             if not user:
-                flash('Some organiser doesn\'t seem to have an account', 'warning')
-            else:
-                if user.org_events:
-                    user.org_events += idx + ','
-                else:
-                    user.org_events = idx + ','
+                flash(f'Organizer doesn\'t seem to have an account - {i}', 'warning')
 
         db.session.commit()
 

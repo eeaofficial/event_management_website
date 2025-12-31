@@ -78,8 +78,8 @@ def admin_get_user():
                 'college':user.college,
                 'dept':user.dept,
                 'mobile':user.mobile,
-                'events':user.events,
-                'org_events':user.org_events,
+                'events':user.registered_events(),
+                'org_events':user.organizing_events(),
                 'isOrganiser':user.isOrganiser,
                 'isParticipant':user.isParticipant,
                 'isVerifier':user.isVerifier
@@ -110,14 +110,6 @@ def admin_update_user():
         user.dept = data['dept']
     if data.get('mobile'):
         user.mobile = data['mobile']
-    if data.get('events'):
-        user.events = data['events']
-    else:
-        user.events = ''
-    if data.get('org_events'):
-        user.org_events = data['org_events']
-    else:
-        user.org_events = ''
 
     user.isOrganiser = data['isOrganiser'] == 'true'
     user.isParticipant = data['isParticipant'] == 'true'

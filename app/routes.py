@@ -16,6 +16,7 @@ from app.models import Users, EventDetails, Payments, Events
 from app.utils import is_code_applicable, save_image, get_upload_dir
 from app.init_data import pass_name
 from app.mail_utils import send_mail_http as send_mail
+from app.utils_routes import eligible_events, check_user_event_eligibility, register_participants, send_registration_mail
 
 bp = Blueprint("", __name__)
 
@@ -169,10 +170,7 @@ def reset_password(token):
 @bp.route('/dashboard')
 @login_required
 def dashboard():
-    user_events = current_user.events.split(',')
-    events_dict = {}
-    for i in user_events:
-        events_dict[i] = EventDetails.query.filter_by(event_id=i).first()
+    events_dict = {} #user-event
 
     p = Payments.query.filter_by(reg_no=current_user.reg_no, is_valid_payment=True).all()
     types = [i.pass_type for i in p]
@@ -279,14 +277,14 @@ def update_profile():
 @login_required
 def buy_pass():
     not_eligible = []
-    is_eligible = eligible_events()
-    if 'premium ' in is_eligible:
+    is_eligible = eligible_events(current_user)
+    if 'premium' in is_eligible:
         not_eligible.extend(['p1','p4','p51','p52','p7'])
     if 'non_tech' in is_eligible:
         not_eligible.extend(['p3','p4','p51','p7'])
     if 'tech' in is_eligible:
         not_eligible.extend(['p2','p4','p52','p7'])
-    # print(eligible_events())
+
     return render_template('buy_pass.html', not_eligible=not_eligible)
 
 @bp.route('/get-user', methods=['POST'])
@@ -408,68 +406,17 @@ def callback():
                 u = Users.query.filter_by(reg_no=i).first()
                 ret = send_mail(u.email, 'Transaction found in Order | <Symposium-Name>', f'Your Payment with Transaction number {tx_no} is found in order and is accepted')
                 err_msg += ret['details'] + '\n'
-                try:
-                    if 'workshop' in p.pass_type:
-                        _, idx = p.pass_type.split('_')
-                        u = Users.query.filter_by(reg_no=p.reg_no).first()
-                        if u.events:
-                            u.events += idx+','
-                        else:
-                            u.events = idx+','
+                if 'workshop' in p.pass_type:
+                    _, idx = p.pass_type.split('_')
+                    evt = EventDetails.query.filter_by(event_id=idx).first()
+                    register_participants(list(u), evt)
+                    ret = send_registration_mail(u, evt)
+                    err_msg += f'{ret["details"]}\n'
 
-                        evt = EventDetails.query.filter_by(event_id=idx).first()
-                        evt.n_registrations += 1
-
-                        evt_reg = Events(
-                        event_id=idx,
-                        reg_no = p.reg_no,
-                        time=str(datetime.now()),
-                        )
-                        db.session.add(evt_reg)
-
-                        subject = 'Registation Successful | <Symposium-Name> year'
-                        to = u.email
-                        body = f'''<br>
-                        Successfully Registered for {evt.name} ! <br><br>
-                        '''
-                        body += evt.on_register_mail_cnt
-                        ret = send_mail(to, subject, body, body_format='html')
-                        err_msg += f'{ret["details"]}\n'
-
-                    elif p.pass_type not in ['p1','p2','p3','p4','p51','p52','p6','p7']:
-                        if 'workshop' in p.pass_type:
-                            _, idx = p.pass_type.split('_')
-                            u = Users.query.filter_by(reg_no=p.reg_no).first()
-                            if u.events:
-                                u.events += idx+','
-                            else:
-                                u.events = idx+','
-
-                            evt = EventDetails.query.filter_by(event_id=idx).first()
-                            evt.n_registrations += 1
-
-                            evt_reg = Events(
-                            event_id=idx,
-                            reg_no = p.reg_no,
-                            time=str(datetime.now()),
-                            )
-                            db.session.add(evt_reg)
-
-                            subject = 'Registation Successful | <Symposium-Name> year'
-                            to = u.email
-                            body = f'''<br>
-                            Successfully Registered for {evt.name} ! <br><br>
-                            '''
-                            body += evt.on_register_mail_cnt
-                            ret = send_mail(to, subject, body, body_format='html')
-                            err_msg = f'{ret["details"]}\n'
-                    db.session.commit()
-                    msg = 'success (updated as verified) \n'
-                    if err_msg:
-                        msg +=  f"Mailing Errors: {err_msg}\n"
-                    return jsonify({'success':msg})
-                except Exception as e:
-                    return jsonify({'message':str(e)})
+                msg = 'success (updated as verified) \n'
+                if err_msg:
+                    msg +=  f"Mailing Errors: {err_msg}\n"
+                return jsonify({'success':msg})
     else:
         err_msg = ""
         for i in p.reg_no.split(','):
@@ -516,30 +463,6 @@ def workshops():
     all_events = EventDetails.query.filter_by(category='workshop', is_event_accepted=True).all()
     return render_template('events_list.html', title='Workshops', active_page='events', events=all_events, header='Workshops')
 
-# define your own eligibility criteria
-def eligible_events():
-    p = Payments.query.filter_by(reg_no=current_user.reg_no, is_valid_payment=True).all()
-    types = [i.pass_type for i in p]
-    is_eligible = []
-    if 'p1' in types or 'Premium Pass (All Premium Events)' in types:
-        is_eligible.extend(['premium'])
-    if 'p2' in types or 'Tech Pass (All Tech Events)' in types:
-        is_eligible.extend(['tech'])
-    if 'p3' in types or 'Non Tech Pass (All Non-Tech Events)' in types:
-        is_eligible.extend(['non_tech'])
-    if 'p4' in types or 'Diamond Pass (All Events)' in types:
-        is_eligible.extend(['tech','non_tech','premium'])
-    if 'p51' in types or 'Platinum Pass (All Premium and Non-Tech Events)' in types:
-        is_eligible.extend(['non_tech', 'premium'])
-    if 'p52' in types or 'Platinum Pass (All Premium and Tech Events)' in types:
-        is_eligible.extend(['tech','premium'])
-    if 'p6' in types or 'Gold Pass (All Tech and Non-Tech Events)' in types:
-        is_eligible.extend(['tech','non_tech'])
-    if 'p7' in types or 'Combo Pass (All Events ; 3 Participants)' in types:
-        is_eligible.extend(['tech','non_tech','premium'])
-
-    return is_eligible
-
 @bp.route('/event-details/<idx>')
 def event_details(idx):
     event = EventDetails.query.filter_by(event_id=idx).first()
@@ -558,10 +481,7 @@ def event_details(idx):
         flash('This event is only for MIT Students', 'danger')
         return redirect(url_for('home'))
 
-    is_eligible = []
-    if current_user.is_authenticated:
-        is_eligible.append('workshop')
-        is_eligible.extend(eligible_events())
+    is_eligible = eligible_events(current_user)
 
     organiser_details = []
     o1 = Users.query.filter_by(reg_no=event.primary_organiser).first()
@@ -601,77 +521,43 @@ def event_details(idx):
 @login_required
 def register():
     data = dict(request.form)
+
+    event = EventDetails.query.filter_by(event_id=data['id']).first()
+
+    if not event.is_accepting_registration:
+        raise Exception("This event is no loonger accepting registrations")
+        # return jsonify({"error":"This event is no loonger accepting registrations"})
+
     users = []
-    try:
-        for key, value in data.items():
-            if 'reg' not in key:
-                continue
-            try:
-                x = Users.query.filter_by(reg_no=value).first()
-                if x:
-                    if data['id'] in x.events.split(','):
-                        return jsonify({"error": f'{x.reg_no} Already registered!'})
+    for key, value in data.items():
+        if 'reg' not in key:
+            continue
 
-                    users.append(x)
-                else:
-                    return jsonify({"error":f'{value} does not have an account !'})
+        x = Users.query.filter_by(reg_no=value).first()
+        if x:
+            #user-event
+            event_registered = x.registered_events()
+            if data['id'] in event_registered:
+                return jsonify({"error": f'{x.reg_no} Already registered!'})
 
-            except Exception as e:
-                return jsonify({"error":str(e)})
+            users.append(x)
+        else:
+            return jsonify({"error":f'{value} does not have an account !'})
 
-        r = ''
-        users = set(users)
+    users = set(users)
 
-        for i in users:
-            p = Payments.query.filter_by(reg_no=i.reg_no).all()
-            if not p:
-                return jsonify({'error':'No pass!'})
+    for user in users:
+        if check_user_event_eligibility(user, event):
+            return jsonify({'error':'No pass!'})
 
-            evt = EventDetails.query.filter_by(event_id=data['id']).first()
-            is_eligible = eligible_events()
-            if evt.category not in is_eligible:
-                return jsonify({'error':'No pass!'})
+    register_participants(users, event)
 
-        for i in users:
-            r+=(str(i.reg_no)+',')
-            i.events += data['id']+','
-
-        evt = EventDetails.query.filter_by(event_id=data['id']).first()
-
-        if not evt.is_accepting_registration:
-            raise Exception("This event is no loonger accepting registrations")
-            # return jsonify({"error":"This event is no loonger accepting registrations"})
-
-        evt_reg = Events(
-            event_id=data['id'],
-            reg_no = r[:-1],
-            time=str(datetime.now()),
-            )
-
-        evt.n_registrations += 1
-
-        db.session.add(evt_reg)
-        db.session.commit()
-
-        people = evt_reg.reg_no.split(',')
-        for i in users:
-            subject = 'Registation Successful | <Symposium-Name> year'
-            to = i.email
-            body = f'''<br>
-            Successfully Registered for {EventDetails.query.filter_by(event_id=data['id']).first().name} ! <br><br>
-            Team Members : {', '.join(people)} <br>
-            '''
-            body += evt.on_register_mail_cnt
-            try:
-                ret = send_mail(to, subject, body, body_format='html')
-            except Exception as e:
-                print(e)
-            msg = "registered!\n"
-            if ret['status'] != 'success':
-                msg += "Unable to send mail; contact admin\n"
-        return jsonify({"success":msg})
-    except Exception as e:
-        return jsonify({"error":f'{e}'})
+    for user in users:
+        ret = send_registration_mail(user, event, team_members=users)
+        msg = "registered!\n"
+        if ret['status'] != 'success':
+            msg += "Unable to send mail; contact admin\n"
+    return jsonify({"success":msg})
 
 # ******************* Other routes *********************
 

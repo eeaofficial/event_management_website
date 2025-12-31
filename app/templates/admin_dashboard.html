@@ -82,21 +82,9 @@
                         'college':$('#college').val(),
                         'dept':$('#dept').val(),
                         'mobile':$('#mobile').val(),
-                        'events':$('#events').val(),
-                        'org_events':$('#org_events').val(),
-                        // 'college':user.college,
-                        // 'dept':user.dept,
-                        // 'mobile':user.mobile,
-                        // 'events':user.events,
-                        // 'org_events':user.org_events,
                         'isOrganiser':$('#isOrganiser').prop('checked'),
                         'isParticipant':$('#isParticipant').prop('checked'),
                         'isVerifier':$('#isVerifier').prop('checked')
-                        // # 'isAdministrator':user.isAdministrator,
-                        // 'eligible_attending':user.eligible_attending,
-                        // 'payment_session_id':user.payment_session_id,
-                        // 'payment_order_id':user.payment_order_id,
-                        // 'is_valid_payment':user.is_valid_payment
                     },
                     success: function(response) {
                         alert(response.message)
@@ -258,11 +246,11 @@
                 </tr>
                 <tr>
                     <th>Events</th>
-                    <td><input type="text" id="events"></td>
+                    <td><input type="text" id="events" disabled></td>
                 </tr>
                 <tr>
                     <th>Organising Events</th>
-                    <td><input type="text" id="org_events"></td>
+                    <td><input type="text" id="org_events" disabled></td>
                 </tr>
                 <tr>
                     <th>isOrganiser</th>

@@ -2,6 +2,8 @@
 Models
 """
 
+from datetime import datetime, timezone
+
 from flask import current_app
 from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -15,6 +17,7 @@ def load_user(user_id):
 class Users(db.Model, UserMixin):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
+
     name = db.Column(db.String(30), nullable=False)
     email = db.Column(db.String(100), nullable=False)
     reg_no = db.Column(db.String(30), unique=True, nullable=False)
@@ -23,19 +26,22 @@ class Users(db.Model, UserMixin):
     password = db.Column(db.String(128), nullable=False)
     mobile = db.Column(db.String(10), nullable=False)
 
-    #comma seperated event ids
-    events = db.Column(db.String(500))
-
-    #for organisers
-    org_events = db.Column(db.String(500))
-
     # same account can be used for both organising and participating
     isOrganiser = db.Column(db.Boolean, default=False, nullable=False) # subject to approval from an admin
     isParticipant  = db.Column(db.Boolean, default=True, nullable=False)
 
-    isAdministrator = db.Column(db.Boolean, default=False, nullable=False) # not created as other accounts; hard coded in db
+    # not created as other accounts; hard coded in db
+    isAdministrator = db.Column(db.Boolean, default=False, nullable=False)
 
     isVerifier = db.Column(db.Boolean, default=False, nullable=False)
+
+    # while join, sqlalchemy will figure out the FK column, if not InvalidRequestError is raised
+    # we can join by giving any column as we need
+    def registered_events(self):
+        return []
+
+    def organizing_events(self):
+        return []
 
     def get_reset_token(self, expiry_sec=1800):
         s = Serializer(current_app.config['SECRET_KEY'], expiry_sec)
@@ -52,8 +58,7 @@ class Users(db.Model, UserMixin):
         return Users.query.get(user_id)
 
     def __repr__(self):
-        return f"Users('{self.name}', '{self.email}', '{self.reg_no}', '{self.dept}', '{self.college}', '{self.mobile}', [{self.events}])"
-
+        return f"Users('{self.name}', '{self.email}', '{self.reg_no}', '{self.dept}', '{self.college}', '{self.mobile}')"
 
 class Events(db.Model):
     __tablename__ = 'events'
