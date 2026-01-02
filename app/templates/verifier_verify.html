@@ -14,27 +14,26 @@
             modal.style.display = "none";
         }
 
-        function updateVerificationStatus(tx_no) {
-            var newStatus = $('#status_' + tx_no).prop('checked');
+        function updateVerificationStatus(purchase_id) {
+            var newStatus = $('#status_' + purchase_id + ' option:selected').val();
+            var reason = $('#reason_' + purchase_id).val();
+            console.log(purchase_id, newStatus, reason);
             $.ajax({
-                url: "{{url_for('callback')}}",
+                url: "{{url_for('verifier.callback')}}",
                 type: 'POST',
                 data: {
-                  tx_no: tx_no, 
-                  new_status: newStatus
+                  'purchase_id': purchase_id,
+                  'new_status': newStatus,
+                  'reason': reason
                 },
                 success: function(response) {
-                if (response.success) {
-                    if(newStatus) {
-                        $('#disp_' + tx_no).text('Verified');
+                    if (response.status == 'success') {
+                        $('#disp_' + purchase_id).text(response.newStatus);
+                        alert('Payment status updated successfully.' + response.message);
                     } else {
-                        $('#disp_' + tx_no).text('Not yet Verified');
+                        alert(response.message);
+                        alert('Failed to update Payment status.');
                     }
-                    alert('Payment status updated successfully.'+response.success);
-                } else {
-                    alert(response.message);
-                    alert('Failed to update Payment status.');
-                }
                 }
             });
         }
@@ -70,29 +69,35 @@
       <tr>
         <th>S.No.</th>
         <th>User</th>
-        <th>Transaction ID</th>
+        <th>Purchase ID</th>
         <th>Pass Type</th>
         <th>Screenshot</th>
-        <th>Status</th>
-        <th>Validity</th>
+        <th>Current Status</th>
+        <th>New Status</th>
       </tr>
     </thead>
     <tbody>
-      {% for item,user in payments %}
+      {% for item in purchases %}
       <tr>
         <td>{{loop.index}}</td>
-        <td>{{user}}</td>
-        <td>{{ item.tx_no }}</td>
-        <td>{{item.pass_type}}</td>
-        <td><img src="{{ url_for('uploaded_file', filename='payment_screenshots/' + item.screenshot) }}" alt="{{ item.image_alt }}"></td>
-        <td id="disp_{{item.tx_no}}">
-          {%if item.is_valid_payment%}
-            Verified
-          {%else%}
-            Yet to be Verified
-          {%endif%}
+        <td>{{item.purchased_by}}</td>
+        <td>{{item.purchase_id[:10]}}...</td>
+        <td>{{item.event_pass.pass_name}}</td>
+        <td id="disp_{{item.purchase_id}}">{{item.payment_status}}</td>
+        <td><img src="{{ url_for('uploaded_file', filename='payment_screenshots/' + item.payment_proof) }}" alt="Missing Image Proof"></td>
+        <td>
+            <select id="status_{{item.purchase_id}}">
+                <option value="rejected">Reject</option>
+                <option value="accepted">Accept</option>
+                <option value="cancelled">Cancel</option>
+            </select>
         </td>
-        <td><input type="checkbox" name="{{ item.is_valid_payment }}" id="status_{{item.tx_no}}" {% if item.is_valid_payment%}checked{% endif %} onclick="updateVerificationStatus('{{ item.tx_no }}')"></td>
+        <td>
+            <input type="text" id="reason_{{item.purchase_id}}" required/>
+        </td>
+        <td>
+            <button class="btn" onclick="updateVerificationStatus('{{ item.purchase_id }}')">Update</button>
+        </td>
       </tr>
       {% endfor %}
     </tbody>

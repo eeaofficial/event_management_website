@@ -84,7 +84,8 @@ def save_mail_as_json(
         subject: str,
         body: str,
         body_format: str,
-        attachments: Optional[list[str]]
+        attachments: Optional[list[str]]=None,
+        exception: Optional[Exception]=None
     ) -> None:
 
     unsent_mail = {}
@@ -93,6 +94,7 @@ def save_mail_as_json(
     unsent_mail['body'] = body
     unsent_mail['body_format'] = body_format
     unsent_mail['attchments'] = attachments
+    unsent_mail['exception'] = exception
 
     unsent_mail_dir = get_unsent_mail_dir()
     unsent_mail_dir.mkdir(parents=True, exist_ok=True)
@@ -137,6 +139,7 @@ def send_mail_smtp(to, subject, body, body_format='plain', attachments=None):
 # using gmail API
 def send_mail_http(to, subject, body, body_format='plain', attachments=None):
     try:
+        raise Exception("Development & Testing")
         # `me` - special alias for from email in gmail
         mime_message = create_email(to, subject, body,
             'me', body_format, attachments, DEFAULT_SIGNATURE)
@@ -151,7 +154,7 @@ def send_mail_http(to, subject, body, body_format='plain', attachments=None):
         ).execute()
     except Exception as e:
         print(f"Error while sending mail: {e}")
-        save_mail_as_json(to, subject, body, body_format, attachments)
+        save_mail_as_json(to, subject, body, body_format, attachments, str(e))
 
         return {'status': 'error', 'details': str(e)}
 

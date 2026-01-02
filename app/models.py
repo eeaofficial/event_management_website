@@ -50,6 +50,14 @@ class Users(db.Model, UserMixin):
             .all()
         )
 
+    def event_passes(self):
+        return (
+            db.session.query(Passes)
+            .join(Purchases)
+            .distinct()
+            .all()
+        )
+
     def organizing_events(self):
         return []
 
@@ -178,3 +186,75 @@ class Payments(db.Model):
     screenshot = db.Column(db.String(50), nullable=False)
     tx_no = db.Column(db.String(50), unique=True, nullable=False)
     is_valid_payment = db.Column(db.Boolean, default=False, nullable=False)
+
+# Passes and Passes accesses are not yet robust enough
+# while creating events, admin must ensure to add all respective events to passes
+# while displaying to users, currently, it says Pass for ALL Tech Events etc
+class Passes(db.Model):
+    __tablename__ = 'passes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    created_by_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    pass_id = db.Column(db.String(20), unique=True)
+    pass_type = db.Column(db.String(20)) # event or workshop
+    pass_name = db.Column(db.String(20))
+    pass_description = db.Column(db.String(100))
+    price = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, nullable=False,
+        server_default=db.func.now()
+    )
+    is_active = db.Column(db.Boolean, default=True)
+
+    created_by = db.relationship('Users', lazy=True)
+
+    events = db.relationship(
+        'EventDetails',
+        secondary='pass_accesses',
+        lazy=True
+    )
+
+
+class PassAccesses(db.Model):
+    __tablename__ = 'pass_accesses'
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_key = db.Column(db.Integer, db.ForeignKey('event_details.id'), nullable=False)
+    pass_key = db.Column(db.Integer, db.ForeignKey('passes.id'), nullable=False)
+
+    event = db.relationship('EventDetails', lazy=True)
+    event_pass = db.relationship('Passes', lazy=True)
+
+class Purchases(db.Model):
+    __tablename__ = 'purchases'
+
+    id = db.Column(db.Integer, primary_key=True)
+    pass_key = db.Column(db.Integer, db.ForeignKey('passes.id'), nullable=False)
+    purchased_by_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    purchase_id = db.Column(db.String(40), nullable=False, unique=True)
+    payment_proof = db.Column(db.String(40), nullable=False, unique=True) # screenshot file name
+    transaction_id = db.Column(db.String(40)) # nullable
+    purchased_at = db.Column(db.DateTime, nullable=False,
+        server_default=db.func.now()
+    )
+    purchase_price = db.Column(db.Integer)
+    payment_status = db.Column(db.String(20), default='submitted') # submitted, accepted, rejected, cancelled
+
+    event_pass = db.relationship('Passes', lazy=True)
+    purchased_by = db.relationship('Users', lazy=True)
+
+class PurchaseStatusLogs(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    purchase_key = db.Column(db.Integer, db.ForeignKey('purchases.id'), nullable=False)
+    changed_by_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    old_status = db.Column(db.String(20))
+    new_status =  db.Column(db.String(20))
+    reason = db.Column(db.String(30))
+    changed_at = db.Column(db.DateTime, nullable=False,
+        server_default=db.func.now()
+    )
+
+    changed_by = db.relationship('Users', lazy=True)
+    purchase = db.relationship('Purchases', lazy=True)

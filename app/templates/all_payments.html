@@ -30,27 +30,31 @@
         <thead>
             <tr>
                 <th>S.No.</th>
+                <th>Purchase ID</th>
+                <th>Tranaction ID</th>
+                <th>Purchased at</th>
                 <th>Registration Number</th>
                 <th>Name</th>
                 <th>Dept, College</th>
                 <th>Pass Type</th>
                 <th>Amount</th>
-                <th>Transaction Number</th>
-                <th>Is valid Payment</th>
+                <th>Payment Status</th>
             </tr>
         </thead>
         <tbody>
-            {%for i in payments%}
-            <tr>
-                <td>{{loop.index}}</td>
-                <td>{{i[0].reg_no}}</td>
-                <td>{{i[1].name}}</td>
-                <td>{{i[1].dept}},{{i[1].college}}</td>
-                <td>{{pass_name[i[0].pass_type]}}</td>
-                <td>{{i[0].amount}}</td>
-                <td>{{i[0].tx_no}}</td>
-                <td>{{i[0].is_valid_payment}}</td>
-            </tr>
+            {%for i in purchases%}
+                <tr>
+                    <td>{{loop.index}}</td>
+                    <td>{{i.purchase_id}}</td>
+                    <td>{{i.tranaction_id}}</td>
+                    <td>{{i.purchased_at}}</td>
+                    <td>{{i.purchased_by.reg_no}}</td>
+                    <td>{{i.purchased_by.name}}</td>
+                    <td>{{i.purchased_by.dept}},{{i.purchased_by.college}}</td>
+                    <td>{{i.event_pass.pass_name}}</td>
+                    <td>{{i.purchase_price}}</td>
+                    <td>{{i.payment_status}}</td>
+                </tr>
             {%endfor%}
         </tbody>
     </table>

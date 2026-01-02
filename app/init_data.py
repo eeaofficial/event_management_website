@@ -2,8 +2,9 @@
 init
 """
 
-from app.models import Users
+from app.models import Users, Passes
 from app.extensions import db, bcrypt
+from app.utils import random_string
 
 # modify the pass names as per the sympo
 pass_name = {
@@ -14,7 +15,7 @@ pass_name = {
     'p51' : 'Platinum Pass (All Premium and Non-Tech Events)',
     'p52' : 'Platinum Pass (All Premium and Tech Events)',
     'p6' : 'Gold Pass (All Tech and Non-Tech Events)',
-    'p7' : 'Combo Pass (All Events ; 3 Participants)',
+    # 'p7' : 'Combo Pass (All Events ; 3 Participants)',
     'workshop_hIvTL':'Empowering Chip Design Innovators: RISC-V Workshop with Skywater 130nm Chips',
     'workshop_TRawK':'Data analysis on different domain Model training and advancements',
     'workshop_mOXHL':'Deep Learning using Python',
@@ -70,3 +71,25 @@ def ensure_super_admin():
         db.session.add(u2)
 
     db.session.commit()
+
+
+def create_passes():
+    exists = db.session.query(Passes.id).first() is not None
+    if not exists:
+        admin = Users.query.get(1)
+        all_pass = []
+        for i, j in pass_name.items():
+            pass_id = random_string(10)
+            pass_type = 'workshop' if 'workshop' in i else 'event'
+            name, desc, *_ = j.split('(') + [j, j]
+            each = Passes(
+                pass_id= pass_id,
+                created_by=admin,
+                pass_type=pass_type,
+                pass_name=name,
+                pass_description=desc[:-1],
+                price=200,
+            )
+            all_pass.append(each)
+        db.session.add_all(all_pass)
+        db.session.commit()

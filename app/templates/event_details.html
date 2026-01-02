@@ -89,8 +89,8 @@
                 event.preventDefault();
                 amt = '{{event.event_cost}}';
                 reg_no="{{current_user.reg_no}}"
-                pass_type = 'workshop_'+'{{event.event_id}}'
-                var url = "{{url_for('payment')}}?amount="+amt+'&reg_no='+reg_no+'&pass_type='+pass_type;
+                pass_type = '{{pass_id}}'
+                var url = "{{url_for('payment')}}?"+'&pass_id='+pass_type;
                 console.log(url);
                 window.location.href = url;
             });
@@ -138,18 +138,18 @@
             </div>
             
             {% if current_user.is_authenticated %}
-                {% if id in reg_event_ids %}
+                {% if event.id in reg_event_ids %}
                     <button type="button" class="btn btn-info btn-lg success">Registered!</button>
                 {% else %}
                     {% if event.is_accepting_registration %}
-                        {%if event.category not in is_eligible%}
+                        {%if not is_eligible %}
                             <button type="button" class="btn btn-info btn-lg success" disabled>No Eligible Pass Available</button>
                         {%else%}
                             {%if event.category == 'workshop'%}
                                     <button type="button" class="btn btn-info btn-lg" id="register-workshop">Pay INR {{event.event_cost}} & Register</button>
                             {%else%}
                                 <button type="button" class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#register-modal">Register</button>
-                            {%endif%}    
+                            {%endif%}
                         {%endif%}
                     {% else %}
                         <button type="button" class="btn btn-info btn-lg" disabled>Registration Closed</button>

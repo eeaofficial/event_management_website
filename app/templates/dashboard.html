@@ -125,9 +125,9 @@
               <hr class="mt-0 mb-4">
               <div class="card-body text-center">
                 <div class="row">
-                  {%if passes%}
-                    {%for i in passes%}
-                      <div class="col-12">{{i}}</div>
+                  {%if current_user.event_passes()%}
+                    {%for i in current_user.event_passes()%}
+                      <div class="col-12">{{i.pass_name}}</div>
                     {%endfor%}
                   {%else%}
                     <div class="col-12">Buy passes to attend events from the below link !</div>

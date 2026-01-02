@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from flask import Flask
 
 from app.extensions import db, bcrypt, login_manager
-from app.init_data import ensure_super_admin
+from app.init_data import ensure_super_admin, create_passes
 from app.error_handlers import register_error_handlers
 from app.routes import bp
 from app.verifier_routes import bp as verifier_bp
@@ -45,3 +45,4 @@ register_error_handlers(app)
 with app.app_context():
     db.create_all()
     ensure_super_admin()
+    create_passes()

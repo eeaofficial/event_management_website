@@ -22,7 +22,7 @@
 
                 <div class="formGroup">
                     <div>
-                        Please scan the above QR to Pay <br>
+                        Please scan the above QR and Pay <br>
                         INR <input type="text" class="for_nam" value="{{amount}}" name="amount" readonly/> <br>
                         and enter transaction details below
                     </div>
@@ -30,36 +30,33 @@
                 <br>
                 <div class="formGroup">
                     <div>
-                        For :
-                        <input type="text" class="for_nam" value="{{reg_no}}" name="reg_no" readonly/><br>
+                        For user:
+                        <input type="text" class="for_nam" value="{{current_user.reg_no}}" name="reg_no" readonly/><br>
                         (please confirm your registeration number)
                     </div>
                 </div>
                 <br><br>
                 <div class="formGroup">
                     <div>
-                        <input type="text" class="for_nam" value="{{pass_type}}" name="pass_type" readonly hidden/>
-                        {% if not workshop_name %}
-                        Pass Type : 
-                            <input type="text" class="for_nam" value="{{pass_name[pass_type]}}" name="pass_name" readonly/>
-                        {%else%}
-                        For Workshop :
-                            <input type="text" class="for_nam" value="{{workshop_name}}" name="pass_name" readonly/>
-                        {%endif%}
+                        For Event/Workshop:
+                        <input type="text" class="for_nam" value="{{pass_obj.pass_id}}" name="pass_id" readonly hidden/>
+
+                        <input type="text" class="for_nam" value="{{pass_obj.pass_name}}" name="pass_name" readonly/>
                     </div>
                 </div>
                 <br><br>
 
                 <div class="formGroup">
                     <div>
-                        <input type="text" class="for_nam" placeholder="Transaction ID" name="tx-id" id="tx-id" required/>
+                        <input type="text" class="for_nam" placeholder="Transaction ID" name="tx-id" id="tx-id"/>
+                        * Optional, please fill this for faster approvals
                     </div>
                 </div>
                 <br><br>
                 
                 <div class="formGroup">
                     <div>
-                        <input type="file" class="for_nam" name="screenshot" id="screenshot"/> <br>
+                        <input type="file" class="for_nam" name="screenshot" id="screenshot" required/> <br>
                         Proof of payment (Screenshot)
                     </div>
                 </div>

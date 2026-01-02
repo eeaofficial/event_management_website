@@ -11,41 +11,14 @@ from flask import Blueprint, render_template, request, jsonify, abort, send_file
 from flask_login import current_user
 import xlsxwriter
 
-from app.models import EventDetails, Users, Payments, EventRegistrations
+from app.models import EventDetails, Users, Purchases
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
 from app.init_data import pass_name
 from app.utils import get_static_dir
+from app.utils_admin import get_data
 
 bp = Blueprint("admin", __name__)
-
-# ******************* Utils ******************
-def get_data(event_id):
-    data = []
-    if event_id == 'all':
-        entries = EventRegistrations.query.join(EventDetails).order_by(EventDetails.event_id).all()
-    else:
-        entries = (
-            EventRegistrations.query
-            .join(EventDetails)
-            .filter(EventDetails.event_id==event_id)
-            .all()
-        )
-
-    for i in entries:
-        name = i.event.name
-        us = []
-        for participant in i.team.members:
-            us.append((
-                participant.name,
-                participant.reg_no,
-                participant.mobile,
-                participant.email
-            ))
-        data.append((name, us))
-
-    return data
-# ******************* End Utils ******************
 
 @bp.route('/dashboard')
 def admin_dashboard():
@@ -57,7 +30,7 @@ def admin_dashboard():
     return render_template('admin_dashboard.html', events=all_events)
 
 
-@bp.route('/modify_user', methods=['GET', 'POST'])
+@bp.route('/modify-user', methods=['GET', 'POST'])
 def admin_modify_user():
     if not current_user.is_authenticated or not current_user.isAdministrator:
         abort(404)
@@ -68,7 +41,7 @@ def admin_modify_user():
     return render_template('admin_modify_user.html')
 
 
-@bp.route('/get_user', methods=['POST'])
+@bp.route('/get-user', methods=['POST'])
 def admin_get_user():
     if not current_user.is_authenticated or not current_user.isAdministrator:
         return jsonify({'error':'unknown page'})
@@ -78,6 +51,10 @@ def admin_get_user():
     regno = data['regno']
     user = Users.query.filter_by(reg_no=regno).first()
     if user:
+        x = user.registered_events()
+        user_events = [i.event_id for i in x]
+        y = user.organizing_events()
+        user_org_events = [i.event_id for i in y]
         return jsonify({
                 'userid':user.id,
                 'name':user.name,
@@ -86,8 +63,8 @@ def admin_get_user():
                 'college':user.college,
                 'dept':user.dept,
                 'mobile':user.mobile,
-                'events':user.registered_events(),
-                'org_events':user.organizing_events(),
+                'events':user_events,
+                'org_events':user_org_events,
                 'isOrganiser':user.isOrganiser,
                 'isParticipant':user.isParticipant,
                 'isVerifier':user.isVerifier
@@ -97,7 +74,7 @@ def admin_get_user():
         return jsonify({'error':'No Such Participant!'})
 
 
-@bp.route('/update_user', methods=['POST'])
+@bp.route('/update-user', methods=['POST'])
 def admin_update_user():
     if not current_user.is_authenticated or not current_user.isAdministrator:
         return jsonify({'error':'unknown page'})
@@ -192,12 +169,9 @@ def admin_all_payments():
     if not current_user.isAdministrator:
         send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
 
-    payments = Payments.query.order_by(Payments.pass_type.asc()).all()
-    data = []
-    for i in payments:
-        u = Users.query.filter_by(reg_no=i.reg_no).first()
-        data.append([i, u])
-    return render_template('all_payments.html', payments=data, pass_name=pass_name)
+    purchases = Purchases.query.order_by(Purchases.purchased_at.asc()).all()
+
+    return render_template('all_payments.html', purchases=purchases)
 
 @bp.route('/all-payments/download')
 def all_payments_download():
@@ -207,37 +181,35 @@ def all_payments_download():
     if not current_user.isAdministrator:
         send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
 
-    payments = Payments.query.order_by(Payments.pass_type.asc()).all()
+    payments = Purchases.query.order_by(Purchases.purchased_at.asc()).all()
     data = []
     sno = 1
     for i in payments:
-        u = Users.query.filter_by(reg_no=i.reg_no).first()
-        try:
-            p = pass_name[i.pass_type]
-        except Exception as e:
-            print("Error in pass type name:", e)
-            p = i.pass_type
+        u = i.purchased_by
+        p = i.event_pass
         data.append([
             sno,
-            i.reg_no,
+            i.purchase_id,
+            i.transaction_id,
+            i.purchased_at,
+            u.reg_no,
             u.name,
             f'{u.dept}, {u.college}',
-            p,
-            i.amount,
-            i.tx_no,
-            i.is_valid_payment
+            i.purchase_price,
+            i.payment_staus,
+            p.pass_name,
         ])
         sno += 1
 
     output = BytesIO()
     workbook = xlsxwriter.Workbook(output)
-    worksheet = workbook.add_worksheet('All Payments')
+    worksheet = workbook.add_worksheet('All Purchases')
     header_format = workbook.add_format({'bold': True})
-    headers = ['S.No.', 'Registration Number', 'Name',
-        'Dept & College', 'Pass Type', 'Amount',
-        'Transaction Number', 'Is Valid Payment'
+    headers = ['S.No.', 'Purchase ID', 'Tranaction ID', 'Purchased At'
+        'Registration Number', 'Name', 'Dept & College',
+        'Amount Paid', 'Payment Status', 'Pass Name'
     ]
-    worksheet.write(0, 0, 'All Payments', header_format)
+    worksheet.write(0, 0, 'All Purchases', header_format)
     worksheet.write(1, 0, 'Data as of', header_format)
     worksheet.write(1, 1, datetime.now().strftime('%Y-%m-%d %I:%M %p'),header_format)
     for i, header in enumerate(headers):
@@ -250,7 +222,7 @@ def all_payments_download():
     workbook.close()
 
     output.seek(0)
-    name = 'All Payments'
+    name = 'All Purchases'
     valid = string.ascii_letters+string.digits
     replacement = '_'
     name = ''.join(c if c in valid else replacement for c in name)

@@ -2,12 +2,12 @@
 utils for routes.py
 """
 
-from datetime import datetime, timezone
 from typing import Optional
 
 from flask import url_for
 
-from app.models import EventDetails, Users, Payments, Teams, TeamMembers, EventRegistrations
+from app.models import EventDetails, Users, Purchases, \
+    Teams, TeamMembers, EventRegistrations, Passes, PassAccesses
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
 from app.utils import random_string
@@ -51,34 +51,25 @@ def eligible_events(user: Users) -> list[str]:
     if not isinstance(user, Users):
         return []
 
-    p = Payments.query.filter_by(reg_no=user.reg_no, is_valid_payment=True).all()
-    types = [i.pass_type for i in p]
+    p = Purchases.query.filter_by(purchased_by_key=user.id, payment_status='accepted').all()
+    passes = [i.event_pass for i in p]
+    allowed_events = []
+    for i in passes:
+        events = (EventDetails.query
+            .join(PassAccesses, PassAccesses.event_key == EventDetails.id)
+            .filter(PassAccesses.pass_key == i.id)
+            .all()
+        )
+        for event in events:
+            allowed_events.append(event.event_id)
 
-    allowed_catagories = []
-    # any vaid user can register to workshop
-    allowed_catagories.append('workshop')
-    if 'p1' in types or 'Premium Pass (All Premium Events)' in types:
-        allowed_catagories.extend(['premium'])
-    if 'p2' in types or 'Tech Pass (All Tech Events)' in types:
-        allowed_catagories.extend(['tech'])
-    if 'p3' in types or 'Non Tech Pass (All Non-Tech Events)' in types:
-        allowed_catagories.extend(['non_tech'])
-    if 'p4' in types or 'Diamond Pass (All Events)' in types:
-        allowed_catagories.extend(['tech','non_tech','premium'])
-    if 'p51' in types or 'Platinum Pass (All Premium and Non-Tech Events)' in types:
-        allowed_catagories.extend(['non_tech', 'premium'])
-    if 'p52' in types or 'Platinum Pass (All Premium and Tech Events)' in types:
-        allowed_catagories.extend(['tech','premium'])
-    if 'p6' in types or 'Gold Pass (All Tech and Non-Tech Events)' in types:
-        allowed_catagories.extend(['tech','non_tech'])
-    if 'p7' in types or 'Combo Pass (All Events ; 3 Participants)' in types:
-        allowed_catagories.extend(['tech','non_tech','premium'])
+    print(allowed_events)
 
-    return allowed_catagories
+    return allowed_events
 
 def check_user_event_eligibility(user: Users, event: EventDetails) -> bool:
-    allowed_catagories = eligible_events(user)
-    if event.category in allowed_catagories:
+    allowed_events = eligible_events(user)
+    if event.event_id in allowed_events:
         return True
 
     return False
@@ -132,3 +123,7 @@ def send_registration_mail(
     ret = send_mail(to, subject, body, body_format='html')
 
     return ret
+
+def get_mit_code_pass():
+    event_pass = Passes.query.filter_by(pass_id='nL4BFHtkh6').one_or_none()
+    return event_pass

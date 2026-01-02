@@ -11,8 +11,8 @@ from flask import redirect, render_template, flash, url_for, request, Blueprint,
 from flask_login import login_required, current_user
 import xlsxwriter
 
-from app.models import EventDetails, Users, EventRegistrations
-from app.utils import save_image
+from app.models import EventDetails, Users, EventRegistrations, Passes, PassAccesses
+from app.utils import save_image, random_string
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
 from app.utils_organizer import get_registered_teams
@@ -103,6 +103,22 @@ def organiser_create_event():
             if not user:
                 flash(f'Organizer doesn\'t seem to have an account - {i}', 'warning')
         db.session.add(evt)
+        db.session.commit()
+
+        pass_id = random_string(10)
+        p = Passes(
+            pass_id= pass_id,
+            created_by=current_user,
+            pass_type=details['category'],
+            pass_name=details['name'],
+            pass_description=f"Pass for workshop: {details['name']}",
+            price=cost,
+        )
+        pa = PassAccesses(
+            event_pass=p,
+            event=evt
+        )
+        db.session.add_all([p, pa])
         db.session.commit()
 
         flash('Event Created Successfully', 'success')
@@ -241,8 +257,16 @@ def organiser_event(idx):
     teams = get_registered_teams(evt)
     for team in teams:
         x = []
-        for member in team:
-            x.append([member.name, member.reg_no, member.email, member.id, False, False])
+        for member in team.members:
+            x.append([
+                member.name,
+                member.reg_no,
+                member.mobile,
+                member.email,
+                member.id,
+                False,
+                False
+            ])
         data.append([x]+[False, evt.id])
 
     return render_template('organiser_event_details.html', event=evt,
