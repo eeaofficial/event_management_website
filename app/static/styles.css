@@ -25,6 +25,12 @@ footer {
     right: 2vw;
     z-index: 20;
 }
+.flash-message-secondary{
+    position: fixed;
+    top: 10vh;
+    right: 2vw;
+    z-index: 20;
+}
 
 
 

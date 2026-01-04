@@ -114,11 +114,13 @@ def organiser_create_event():
             pass_description=f"Pass for workshop: {details['name']}",
             price=cost,
         )
-        pa = PassAccesses(
-            event_pass=p,
-            event=evt
-        )
-        db.session.add_all([p, pa])
+        db.session.add(p)
+        if details['category'] == 'workshop':
+            pa = PassAccesses(
+                event_pass=p,
+                event=evt
+            )
+            db.session.add(pa)
         db.session.commit()
 
         flash('Event Created Successfully', 'success')

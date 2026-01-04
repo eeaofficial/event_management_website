@@ -87,10 +87,7 @@
         $(document).ready(function() {
             $('#register-workshop').on('click', function(event){
                 event.preventDefault();
-                amt = '{{event.event_cost}}';
-                reg_no="{{current_user.reg_no}}"
-                pass_type = '{{pass_id}}'
-                var url = "{{url_for('payment')}}?"+'&pass_id='+pass_type;
+                var url = "{{url_for('payment')}}?"+'&pass_id={{pass_id}}';
                 console.log(url);
                 window.location.href = url;
             });
@@ -138,17 +135,17 @@
             </div>
             
             {% if current_user.is_authenticated %}
-                {% if event.id in reg_event_ids %}
+                {% if event.event_id in reg_event_ids %}
                     <button type="button" class="btn btn-info btn-lg success">Registered!</button>
                 {% else %}
                     {% if event.is_accepting_registration %}
-                        {%if not is_eligible %}
-                            <button type="button" class="btn btn-info btn-lg success" disabled>No Eligible Pass Available</button>
+                        {%if event.category == 'workshop'%}
+                            <button type="button" class="btn btn-info btn-lg" id="register-workshop">Pay INR {{event.event_cost}} & Register</button>
                         {%else%}
-                            {%if event.category == 'workshop'%}
-                                    <button type="button" class="btn btn-info btn-lg" id="register-workshop">Pay INR {{event.event_cost}} & Register</button>
+                            {%if not is_eligible %}
+                                <button type="button" class="btn btn-info btn-lg success" disabled>No Eligible Pass Available</button>
                             {%else%}
-                                <button type="button" class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#register-modal">Register</button>
+                            <button type="button" class="btn btn-info btn-lg" data-bs-toggle="modal" data-bs-target="#register-modal">Register</button>
                             {%endif%}
                         {%endif%}
                     {% else %}
@@ -175,17 +172,12 @@
                     <button type="button" class="close" data-bs-dismiss="modal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <!-- <button id="rowAdder" type="button"
-                            class="btn btn-dark">
-                            <span class="bi bi-plus-square-dotted">
-                            </span> ADD
-                        </button> -->
                     <div>
                         Enter Registration number of all team members
                         <br>
                         Team Members :
                     </div>
-                        
+
                     <form id="modal-form" action="" class="form">
                         <div class="formGroup">
                             <input class="for_nam" type="text" id="reg1" value="{{current_user.reg_no}}" disabled/>

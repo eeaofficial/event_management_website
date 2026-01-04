@@ -1,0 +1,352 @@
+{%extends "layout.html"%}
+
+{%block head%}
+
+<style>
+    .auto-dismiss {
+        transition: opacity 0.6s ease-out;
+        margin-bottom: 15px;
+    }
+</style>
+
+    <script>
+
+        function showFlashMessage(message, type = 'warning', timeout = 1000) {
+            const $alert = $('<div>', {
+                class: `alert alert-${type} alert-dismissible fade show`,
+                role: 'alert'
+            });
+
+            const $closeBtn = $('<button>', {
+                type: 'button',
+                class: 'btn-close',
+                'data-bs-dismiss': 'alert',
+                'aria-label': 'Close'
+            });
+
+            $alert.append(document.createTextNode(message));
+            $alert.append($closeBtn);
+
+            $('.flash-message-secondary').append($alert);
+
+            setTimeout(() => {
+                $alert.fadeOut('slow', function () {
+                    $(this).remove();
+                });
+            }, timeout);
+        }
+        
+        function updateEventStatus(eventId) {
+            var newAcceptStatus = $('#status_' + eventId).prop('checked');
+            var newResultStatus = $('#result_' + eventId).prop('checked');
+            
+            var resultCheckbox = $('#result_' + eventId);
+            var wasDisabled = resultCheckbox.data('was-disabled');
+            if (wasDisabled === undefined) {
+                wasDisabled = resultCheckbox.prop('disabled');
+                resultCheckbox.data('was-disabled', wasDisabled);
+            }
+
+            $('#status_' + eventId).prop('disabled', true);
+            if (!wasDisabled) {
+                resultCheckbox.prop('disabled', true);
+            }
+
+            $.ajax({
+                url: "{{url_for('admin.admin_modify_event')}}",
+                type: 'POST',
+                data: {
+                    'idx': eventId,
+                    'new_accept_status': newAcceptStatus ? 'true' : 'false',
+                    'new_result_status': newResultStatus ? 'true' : 'false'
+                },
+                success: function(response) {
+                    if (response.status=='success') {
+                        if(newAcceptStatus) {
+                            $('#accept_' + eventId).text('Accepted');
+                        } else {
+                            $('#accept_' + eventId).text('Not yet accepted');
+                        }
+
+                        if(newResultStatus) {
+                            $('#result_txt_' + eventId).text('Accepted');
+                        } else {
+                            $('#result_txt_' + eventId).text('Not yet accepted');
+                        }
+
+                        showFlashMessage('Event status updated successfully!', 'success');
+                    } else {
+                        $('#status_' + eventId).prop('checked', !newAcceptStatus);
+                        $('#result_' + eventId).prop('checked', !newResultStatus);
+                        showFlashMessage('Failed to update event status. Please try again.', 'danger');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('#status_' + eventId).prop('checked', !newAcceptStatus);
+                    $('#result_' + eventId).prop('checked', !newResultStatus);
+                    showFlashMessage('Error updating event status: ' + error, 'danger');
+                },
+                complete: function() {
+                    $('#status_' + eventId).prop('disabled', false);
+
+                    var resultCheckbox = $('#result_' + eventId);
+                    var wasDisabled = resultCheckbox.data('was-disabled');
+                    resultCheckbox.prop('disabled', wasDisabled || false);
+                }
+            });
+        }
+
+        function updateEventPasses(eventId) {
+            var selectedPassIds = [];
+            $('.pass-checkbox[data-event-id="' + eventId + '"]:checked').each(function() {
+                selectedPassIds.push($(this).data('pass-id'));
+            });
+
+            var updateBtn = $('a[onclick*="updateEventPasses(\'' + eventId + '\')"]');
+            var originalText = updateBtn.text();
+            updateBtn.css('pointer-events', 'none').css('opacity', '0.6').text('Updating...');
+
+            $.ajax({
+                url: "{{url_for('admin.admin_modify_event')}}",
+                type: 'POST',
+                data: {
+                    'idx': eventId,
+                    'accepted_pass_ids': selectedPassIds.join(',')
+                },
+                success: function(response) {
+                    if (response.status == 'success') {
+                        var count = selectedPassIds.length;
+                        $('#passesCount_' + eventId).text(count + (count === 1 ? ' pass' : ' passes'));
+
+                        var displayDiv = $('#passesDisplay_' + eventId);
+                        if (selectedPassIds.length > 0) {
+                            displayDiv.empty();
+                            $('.pass-checkbox[data-event-id="' + eventId + '"]:checked').each(function() {
+                                var passName = $(this).closest('label').find('strong').text();
+                                $('<span>', {
+                                    class: 'badge bg-info me-1',
+                                    text: passName
+                                }).appendTo(displayDiv);
+                            });
+                        } else {
+                            displayDiv
+                            .empty()
+                            .append(
+                                $('<span>', {
+                                    class: 'text-muted',
+                                    text: 'No pass allows registration'
+                                })
+                            );
+                        }
+
+                        var dropdownElement = document.getElementById('passesDropdown_' + eventId);
+                        var dropdown = bootstrap.Dropdown.getInstance(dropdownElement);
+                        if (dropdown) {
+                            dropdown.hide();
+                        } else {
+                            $(dropdownElement).dropdown('hide');
+                        }
+
+                        var passNames = [];
+                        $('.pass-checkbox[data-event-id="' + eventId + '"]:checked').each(function() {
+                            passNames.push($(this).closest('label').find('strong').text());
+                        });
+                        var message = 'Passes updated successfully!';
+                        if (passNames.length > 0) {
+                            message = 'Passes updated: ' + passNames.join(', ');
+                        }
+                        showFlashMessage(message, 'success');
+                    } else {
+                        showFlashMessage('Failed to update passes. Please try again.', 'danger');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    showFlashMessage('Error updating passes: ' + error, 'danger');
+                },
+                complete: function() {
+                    updateBtn.css('pointer-events', 'auto').css('opacity', '1').text('Update Passes');
+                }
+            });
+        }
+        
+        $(document).ready(function() {
+            $('input[id^="result_"]').each(function() {
+                $(this).data('was-disabled', $(this).prop('disabled'));
+            });
+
+            $('.passes-dropdown').on('click', function(e) {
+                e.stopPropagation();
+            });
+        });
+    </script>
+
+    <style>
+        #events-table{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+        #events-table th{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+        #events-table td{
+            padding: 2px;
+            margin: auto;
+            border-width: 1px;
+            border-style: ridge;
+        }
+        
+        .passes-dropdown {
+            min-width: 250px;
+        }
+        
+        .passes-dropdown .dropdown-item {
+            white-space: normal;
+        }
+        
+        .passes-dropdown input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .dynamic-flash-message {
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+    </style>
+
+{%endblock head%}
+
+
+{%block body%}
+<div id="events-list">
+        <table id="events-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>ID</th>
+                    <th>Preview</th>
+                    <th>Type</th>
+                    <th>Number of Registrations</th>
+                    <th>Download Participants List</th>
+                    <th>Acceptance Status</th>
+                    <th>Result Status</th>
+                    <th>Acceptance Action</th>
+                    <th>Result Action</th>
+                    <th>Pass (one among selected)</th>
+                    <th>Winners</th>
+                    <th>Runners</th>
+                </tr>
+            </thead>
+            <tbody>
+                {%for i in events%}
+                    <tr>
+                        <td>
+                            <a href="{{url_for('organizer.organiser_event', idx=i.event_id)}}"  target="_blank">
+                                {{i.name}}
+                            </a>
+
+                        </td>
+                        <td>{{i.event_id}}</td>
+                        <td><a href="{{url_for('organizer.preview_event', idx=i.event_id)}}" target="_blank" class="text-reset">Preview</a></td>
+                        <td>{{i.category}}</td>
+                        <td>{{i.n_registrations}}</td>
+                        <td><a href="{{url_for('organizer.organiser_event_download', idx=i.event_id)}}">Download</td>
+                        <td id="accept_{{ i.id }}">
+                            {%if i.is_event_accepted%}
+                                Accepted
+                            {%else%}
+                                Not yet accepted
+                            {%endif%}
+                        </td>
+                        <td id="result_txt_{{ i.id }}">
+                            {%if i.is_result_accepted%}
+                                Accepted
+                            {%else%}
+                                Not yet accepted
+                            {%endif%}
+                        </td>
+                        <td><input type="checkbox" id="status_{{ i.id }}" {% if i.is_event_accepted %}checked{% endif %} onclick="updateEventStatus('{{ i.id }}')"></td>
+                        <td>
+                            <input type="checkbox" id="result_{{ i.id }}" {% if i.is_result_accepted %}checked{% endif %} {% if not i.is_result_submitted %}disabled{% endif %} onclick="updateEventStatus('{{ i.id }}')">
+                            {%if not i.is_result_submitted%}
+                                TBA
+                            {%endif%}
+                        </td>
+                        <td>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="passesDropdown_{{ i.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span id="passesCount_{{ i.id }}">{{ event_passes_map[i.id]|length if event_passes_map[i.id] else 0 }} passes</span>
+                                </button>
+                                <ul class="dropdown-menu passes-dropdown" aria-labelledby="passesDropdown_{{ i.id }}" style="max-height: 300px; overflow-y: auto;">
+                                    {% for pass in all_passes %}
+                                        <li>
+                                            <label class="dropdown-item" style="cursor: pointer; margin: 0;">
+                                                <input type="checkbox" class="pass-checkbox" 
+                                                       data-event-id="{{ i.id }}" 
+                                                       data-pass-id="{{ pass.pass_id }}" 
+                                                       value="{{ pass.pass_id }}"
+                                                       {% if event_passes_map[i.id] and pass in event_passes_map[i.id] %}checked{% endif %}>
+                                                <strong>{{ pass.pass_name }}</strong>
+                                                {% if pass.pass_description %}
+                                                    <br><small class="text-muted">{{ pass.pass_description }}</small>
+                                                {% endif %}
+                                            </label>
+                                        </li>
+                                    {% endfor %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-center" href="#" onclick="updateEventPasses('{{ i.id }}'); return false;" style="background-color: #0d6efd; color: white; font-weight: bold;">
+                                            Update Passes
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div id="passesDisplay_{{ i.id }}" class="mt-1" style="font-size: 0.85em;">
+                                {% if event_passes_map[i.id] %}
+                                    {% for pass in event_passes_map[i.id] %}
+                                        <span class="badge bg-info">{{ pass.pass_name }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">No passes required</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if i.is_result_submitted%}
+                                {% if winner %}
+                                    {% for j in winner%}
+                                        {{j}}<br>
+                                    {%endfor%}
+                                {%endif%}
+                            {%endif%}
+                        </td>
+                        <td>
+                            {% if i.is_result_submitted%}
+                                {% if runner %}
+                                    {% for j in i.runner%}
+                                        {{j}}<br>
+                                    {%endfor%}
+                                {%endif%}
+                            {%endif%}
+                        </td>
+                    </tr>
+                {%endfor%}
+            </tbody>
+        </table>
+    </div>
+{%endblock body%}

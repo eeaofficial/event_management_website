@@ -11,10 +11,9 @@ from flask import Blueprint, render_template, request, jsonify, abort, send_file
 from flask_login import current_user
 import xlsxwriter
 
-from app.models import EventDetails, Users, Purchases
+from app.models import EventDetails, Users, Purchases, Passes, PassAccesses
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
-from app.init_data import pass_name
 from app.utils import get_static_dir
 from app.utils_admin import get_data
 
@@ -25,21 +24,14 @@ def admin_dashboard():
     if not current_user.is_authenticated or not current_user.isAdministrator:
         abort(404)
 
-    all_events = EventDetails.query.all()
+    return render_template('admin_dashboard.html')
 
-    return render_template('admin_dashboard.html', events=all_events)
-
-
-@bp.route('/modify-user', methods=['GET', 'POST'])
+@bp.route('/modify-user')
 def admin_modify_user():
     if not current_user.is_authenticated or not current_user.isAdministrator:
         abort(404)
 
-    if request.method == "POST":
-        pass
-
     return render_template('admin_modify_user.html')
-
 
 @bp.route('/get-user', methods=['POST'])
 def admin_get_user():
@@ -80,7 +72,7 @@ def admin_update_user():
         return jsonify({'error':'unknown page'})
 
     data = dict(request.form)
-    # print(data)
+    print(data)
 
     user = Users.query.filter_by(reg_no=data['reg_no']).first()
     if not user:
@@ -137,20 +129,61 @@ def refresh():
         })
     return jsonify({"html":"error"})
 
-@bp.route('/modify_event', methods=["POST"])
+
+@bp.route('/manage-events')
+def manage_events():
+    if not current_user.is_authenticated or not current_user.isAdministrator:
+        abort(404)
+
+    all_events = EventDetails.query.all()
+    all_passes = Passes.query.filter_by(is_active=True).order_by(Passes.id).all()
+
+    event_passes_map = {}
+    for event in all_events:
+        passes = (
+            Passes.query
+            .join(PassAccesses)
+            .filter(PassAccesses.event_key == event.id)
+            .all()
+        )
+        event_passes_map[event.id] = passes
+    return render_template('admin_manage_events.html', events=all_events,
+        all_passes=all_passes, event_passes_map=event_passes_map)
+
+
+@bp.route('/modify-event', methods=["POST"])
 def admin_modify_event():
     if not current_user.is_authenticated or not current_user.isAdministrator:
         return jsonify({'error':'unknown page'})
 
-    event_id = request.form['event_id']
-    new_accept_status = request.form['new_accept_status'] == 'true'
-    new_result_status = request.form['new_result_status'] == 'true'
-    evt = EventDetails.query.get(event_id)
-    evt.is_event_accepted = new_accept_status
-    evt.is_result_accepted = new_result_status
+    idx = request.form['idx']
+    event = EventDetails.query.get(idx)
+
+    if 'new_accept_status' in request.form:
+        event.is_event_accepted = request.form['new_accept_status'] == 'true'
+
+    if 'new_result_status' in request.form:
+        event.is_result_accepted = request.form['new_result_status'] == 'true'
+
+    if 'accepted_pass_ids' in request.form:
+        accepted_pass_ids = request.form['accepted_pass_ids'].split(',')
+
+        PassAccesses.query.filter_by(event_key=event.id).delete()
+        db.session.commit()
+        for pass_id in accepted_pass_ids:
+            pass_id = pass_id.strip()
+            if pass_id:
+                event_pass = Passes.query.filter_by(pass_id=pass_id).first()
+                if event_pass:
+                    pa = PassAccesses(
+                        event=event,
+                        event_pass=event_pass
+                    )
+                    db.session.add(pa)
+
     db.session.commit()
 
-    return jsonify(success=True)
+    return jsonify({'status': 'success', 'message': 'ok'})
 
 @bp.route('/all-users')
 def admin_all_users():

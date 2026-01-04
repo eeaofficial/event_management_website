@@ -2,8 +2,6 @@
 Models
 """
 
-from datetime import datetime, timezone
-
 from flask import current_app
 from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
@@ -54,6 +52,10 @@ class Users(db.Model, UserMixin):
         return (
             db.session.query(Passes)
             .join(Purchases)
+            .filter(
+                Purchases.purchased_by_key == self.id,
+                Purchases.payment_status == 'accepted'
+            )
             .distinct()
             .all()
         )
