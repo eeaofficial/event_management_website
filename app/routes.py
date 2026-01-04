@@ -147,8 +147,10 @@ def reset_password(token):
 def dashboard():
     code_possible = is_code_applicable()
 
+    purchases = Purchases.query.filter_by(purchased_by_key=current_user.id).all()
+
     return render_template('dashboard.html', title=current_user.name,
-        code_possible=code_possible
+        code_possible=code_possible, purchases=purchases
     )
 
 # based on institution previlegde
@@ -243,20 +245,10 @@ def update_profile():
 @bp.route('/buy-pass')
 @login_required
 def buy_pass():
-    # not_eligible = []
-    # is_eligible = eligible_events(current_user)
-    # if 'premium' in is_eligible:
-    #     not_eligible.extend(['p1','p4','p51','p52','p7'])
-    # if 'non_tech' in is_eligible:
-    #     not_eligible.extend(['p3','p4','p51','p7'])
-    # if 'tech' in is_eligible:
-    #     not_eligible.extend(['p2','p4','p52','p7'])
-
-    # return render_template('buy_pass.html', not_eligible=not_eligible)
-
     all_passes = Passes.query.order_by(Passes.id).all()
+    user_passes = current_user.event_passes()
 
-    return render_template('buy_pass.html', all_passes=all_passes)
+    return render_template('buy_pass.html', all_passes=all_passes, user_passes=user_passes)
 
 @bp.route('/payment', methods=['GET', 'POST'])
 @login_required
@@ -308,10 +300,11 @@ def payment():
     if not pass_obj:
         flash('Invalid Pass Requested', 'danger')
         return redirect(url_for('dashboard'))
+    if pass_obj in current_user.event_passes():
+        flash('You already have this pass', 'info')
+        return redirect(url_for('dashboard'))
+
     amount = str(pass_obj.price)
-    # workshop_name = ''
-    # if pass_type and 'workshop' in pass_type:
-    #     workshop_name = EventDetails.query.filter_by(event_id=pass_type[-5:]).first().name
 
     verifiers = Users.query.filter_by(isVerifier=True, isAdministrator=False).all()
 

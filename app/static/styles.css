@@ -44,10 +44,10 @@ footer {
     padding: 20px;
 }
 
-.col :hover {
+/* .col :hover {
     transform: scale(1.03);
     transition: transform 0.5s;
-}
+} */
 
 .title-event :hover{
     transform: scale(1.03);

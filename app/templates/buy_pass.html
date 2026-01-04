@@ -62,9 +62,25 @@
                 <div class="formGroup">
                     <div>
                         Type:
-                        <select name="type" id="type" class="for_nam" style="color:white; background-color: #002333;" required>
+                        <select name="type" id="type" class="for_nam"
+                            style="color:white; background-color:#002333;" required>
+
                             {% for each_pass in all_passes %}
-                                <option value="{{each_pass.pass_id}}" data-cost="{{each_pass.price}}">{{each_pass.pass_name}}</option>
+                                {% set ns = namespace(has_pass=false) %}
+
+                                {% for user_pass in user_passes %}
+                                    {% if user_pass.id == each_pass.id %}
+                                        {% set ns.has_pass = true %}
+                                    {% endif %}
+                                {% endfor %}
+
+                                <option value="{{ each_pass.pass_id }}"
+                                        data-cost="{{ each_pass.price }}"
+                                        {% if ns.has_pass %}disabled{% endif %}>
+                                    {{ each_pass.pass_name }}
+                                    {% if ns.has_pass %}(Already Purchased){% endif %}
+                                </option>
+
                             {% endfor %}
                         </select>
                     </div>    

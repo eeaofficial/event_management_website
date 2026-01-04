@@ -177,17 +177,6 @@ class EventDetails(db.Model):
     n_registrations = db.Column(db.Integer, default=0, nullable=False)
     on_register_mail_cnt = db.Column(db.String(1000), default='', nullable=False)
 
-class Payments(db.Model):
-    __tablename__ = 'payments'
-    id = db.Column(db.Integer, primary_key=True)
-    reg_no = db.Column(db.String(200), nullable=False) # reg number of user
-    pass_type = db.Column(db.String(20), nullable=False)
-    # session_id = db.Column(db.String(200), nullable=False)
-    # order_id = db.Column(db.String(200), nullable=False)
-    amount = db.Column(db.Integer, default=0, nullable=False)
-    screenshot = db.Column(db.String(50), nullable=False)
-    tx_no = db.Column(db.String(50), unique=True, nullable=False)
-    is_valid_payment = db.Column(db.Boolean, default=False, nullable=False)
 
 # Passes and Passes accesses are not yet robust enough
 # while creating events, admin must ensure to add all respective events to passes

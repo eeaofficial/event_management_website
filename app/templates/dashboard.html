@@ -162,6 +162,79 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="col" style="width: auto !important;">
+                        <div class="row row-cols-1">
+                            <div class="col" style="width: auto !important;">
+                                <div class="card electrify glow "
+                                    style="width:100%;border-radius: 15px;border:2px solid #ff00de;background-color: rgba(0, 0, 0, 0.5);">
+                                        <div class="card-header text-center">Your Purchases</div>
+                                        <hr class="mt-0 mb-4"/>
+                                        <div class="card-body text-center">
+                                        <div class="row">
+                                            <div class="col-12 p-0">
+                                                <div class="table-responsive">
+                                                    <table class="table table-bordered table-sm mb-0" style="background-color:rgba(0,0,0,0.3);color:#fff;">
+                                                        <thead>
+                                                            <tr>
+                                                                <th>Purchase ID</th>
+                                                                <th>Pass</th>
+                                                                <th>Purchased At</th>
+                                                                <th>Price</th>
+                                                                <th>Status</th>
+                                                                <th>Transaction ID</th>
+                                                                <th>Proof</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {% for i in purchases %}
+                                                            <tr>
+                                                                <td>{{ i.purchase_id }}</td>
+                                                                <td>{{ i.event_pass.pass_name }}</td>
+                                                                <td>{{ i.purchased_at }}</td>
+                                                                <td>₹{{ i.purchase_price }}</td>
+                                                                <td>{{ i.payment_status|capitalize }}</td>
+                                                                <td>
+                                                                    {% if i.transaction_id %}
+                                                                        {{ i.transaction_id }}
+                                                                    {% else %}
+                                                                        <span class="text-muted">--</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                                <td>
+                                                                    {% if i.payment_proof %}
+                                                                        <!-- Modal trigger -->
+                                                                        <a href="#" data-bs-toggle="modal" data-bs-target="#proofModal{{ i.purchase_id }}">View</a>
+                                                                        <!-- Modal -->
+                                                                        <div class="modal fade" id="proofModal{{ i.purchase_id }}" tabindex="-1" aria-labelledby="proofModalLabel{{ i.purchase_id }}" aria-hidden="true">
+                                                                        <div class="modal-dialog modal-dialog-centered">
+                                                                            <div class="modal-content" style="background-color:#222;">
+                                                                            <div class="modal-header">
+                                                                                <h5 class="modal-title" id="proofModalLabel{{ i.purchase_id }}">Payment Proof</h5>
+                                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="background-color:white;"></button>
+                                                                            </div>
+                                                                            <div class="modal-body text-center">
+                                                                                <img src="{{ url_for('uploaded_file', filename='payment_screenshots/' + i.payment_proof) }}" alt="Payment Proof" class="img-fluid rounded" style="max-height: 400px;">
+                                                                            </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        </div>
+                                                                    {% else %}
+                                                                        <span class="text-muted">--</span>
+                                                                    {% endif %}
+                                                                </td>
+                                                            </tr>
+                                                            {%endfor%}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
