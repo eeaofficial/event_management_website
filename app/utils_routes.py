@@ -53,6 +53,7 @@ def eligible_events(user: Users) -> list[str]:
 
     p = Purchases.query.filter_by(purchased_by_key=user.id, payment_status='accepted').all()
     passes = [i.event_pass for i in p]
+    print()
     allowed_events = []
     for i in passes:
         events = (EventDetails.query
@@ -118,7 +119,7 @@ def send_registration_mail(
     if team_members:
         members_regno = [member.reg_no for member in team_members]
         body += f"Team Members : {', '.join(members_regno)} <br>"
-    body += event.on_register_mail_cnt
+    body += event.participant_instructions
 
     ret = send_mail(to, subject, body, body_format='html')
 

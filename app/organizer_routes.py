@@ -2,7 +2,6 @@
 organizer routes
 """
 
-import random
 import string
 from io import BytesIO
 from datetime import datetime
@@ -11,11 +10,11 @@ from flask import redirect, render_template, flash, url_for, request, Blueprint,
 from flask_login import login_required, current_user
 import xlsxwriter
 
-from app.models import EventDetails, Users, EventRegistrations, Passes, PassAccesses
+from app.models import EventDetails, TeamMembers, Teams, Users, EventRegistrations, Passes, PassAccesses, EventOrganizers, EventResults
 from app.utils import save_image, random_string
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
-from app.utils_organizer import get_registered_teams
+from app.utils_organizer import get_registered_teams, get_organizers_from_regno, get_organizer_regnos
 
 bp = Blueprint("organizer", __name__)
 
@@ -25,8 +24,8 @@ def organiser_dashboard():
     if not current_user.isOrganiser:
         flash('Invalid Route!', 'danger')
         return redirect(url_for('dashboard'))
+    events = current_user.get_organizing_events()
 
-    events = EventDetails.query.filter_by(primary_organiser=current_user.reg_no)
     return render_template('organiser_dashboard.html', events=events)
 
 @bp.route('/create-event', methods=['GET', 'POST'])
@@ -38,7 +37,6 @@ def organiser_create_event():
 
     if request.method == 'POST':
         details = dict(request.form)
-        # print(details)
         rounds = {}
         ids = []
         for i in details.keys():
@@ -58,18 +56,20 @@ def organiser_create_event():
 
         n_rounds = len(rounds.keys())
 
-        organisers = []
+        organizers = [current_user]
+        no_ac = []
         for j, val in details.items():
             if 'org_' == j[:4]:
-                organisers.append(val)
+                user = Users.query.filter_by(reg_no=val).first()
+                if not user:
+                    no_ac.append(val)
+                else:
+                    organizers.append(user)
+        if no_ac:
+            flash(f'Organizer doesn\'t seem to have an account - {", ".join(no_ac)}', 'warning')
 
-        num_organisers = 1 + len(organisers)
 
-        event_id = ''.join(random.choice(string.ascii_letters) for _ in range(5))
-
-        cost = 0
-        if details['category'] == 'workshop':
-            cost = details['cost']
+        event_id = random_string(5)
 
         event_pic = 'default.jpg'
         if 'event_pic' in request.files:
@@ -86,36 +86,37 @@ def organiser_create_event():
             name=details['name'],
             category=details['category'],
             description=details['description'],
-            primary_organiser=current_user.reg_no,
+            created_by=current_user,
             max_team_size=details['max_team_size'],
             num_rounds=n_rounds,
             rounds=rounds,
-            other_organisers=','.join(organisers),
-            num_organisers=num_organisers,
             thumbnail=event_pic,
             topic=details['topic'],
-            event_cost=cost,
-            on_register_mail_cnt = details['mail_cnt']
+            participant_instructions=details['mail_cnt']
         )
 
-        for i in organisers:
-            user = Users.query.filter_by(reg_no=i).first()
-            if not user:
-                flash(f'Organizer doesn\'t seem to have an account - {i}', 'warning')
+        for organizer in organizers:
+            eo = EventOrganizers(
+                event=evt,
+                organizer=organizer
+            )
+            db.session.add(eo)
+
         db.session.add(evt)
         db.session.commit()
 
-        pass_id = random_string(10)
-        p = Passes(
-            pass_id= pass_id,
-            created_by=current_user,
-            pass_type=details['category'],
-            pass_name=details['name'],
-            pass_description=f"Pass for workshop: {details['name']}",
-            price=cost,
-        )
-        db.session.add(p)
         if details['category'] == 'workshop':
+            pass_id = random_string(10)
+            p = Passes(
+                pass_id= pass_id,
+                created_by=current_user,
+                pass_type=details['category'],
+                pass_name=details['name'],
+                pass_description=f"Pass for workshop: {details['name']}",
+                is_active=False
+            )
+            db.session.add(p)
+
             pa = PassAccesses(
                 event_pass=p,
                 event=evt
@@ -132,28 +133,33 @@ def organiser_create_event():
 @login_required
 def send_sample_mail():
     data = dict(request.form)
-    idx = data['id']
+
     if not current_user.isOrganiser:
         return jsonify({'message':'Not an organiser'})
-    e = EventDetails.query.filter_by(event_id=idx).first()
-    if not e:
+
+    idx = data['id']
+    event = EventDetails.query.filter_by(event_id=idx).first()
+    if not event:
         return jsonify({'message':'No such event'})
-    organiser_reg_nos = [e.primary_organiser]
-    organiser_reg_nos.extend(e.other_organisers.split(','))
+
+    organizers = event.get_organizers()
     if not current_user.isAdministrator:
-        if current_user.reg_no not in organiser_reg_nos and not current_user.isOrganiser:
-            return jsonify({'message':f'You are not the organiser of Event {e.name}!'})
+        if current_user not in organizers:
+            return jsonify({'message':f'You are not the organiser of Event {event.name}!'})
 
     subject = 'Registation Successful | <Symposium-Name> year <Sample ; for Organiser>'
     to = current_user.email
     body = f'''<br>
-    Successfully Registered for {e.name} ! <br><br>
-    Team Members : (team members registration numbers will be displayed here) <br><br>
+    Successfully Registered for {event.name} ! <br><br>
+    Team Members : (team members' registration numbers will be displayed here) <br><br>
     '''
-    body += e.on_register_mail_cnt
+    body += event.participant_instructions
+
     ret = send_mail(to, subject, body, body_format='html')
+
     if ret['status'] != 'success':
         return jsonify({'message':'Unable to send Mail; Contact Admin'})
+
     return jsonify({'message':'Mail sent'})
 
 
@@ -170,10 +176,12 @@ def organiser_event(idx):
         return redirect(url_for('organizer.organiser_dashboard'))
 
     if request.method == 'POST':
-        details = dict(request.form)
-
-        orgs = [evt.primary_organiser]
-        orgs.extend(evt.other_organisers.split(','))
+        if current_user != evt.created_by:
+            if evt in current_user.get_organizing_events():
+                return jsonify({'status': 'error', 'message': 'You can ONLY edit events that are created by you!'})
+            return jsonify({'status': 'error', 'message': 'Invalid Route!'})
+        form = request.form
+        details = dict(form)
 
         rounds = {}
         ids = []
@@ -193,13 +201,19 @@ def organiser_event(idx):
                         rounds[i].update({t:details['rd_'+t+'_'+id_rd]})
 
         n_rounds = len(rounds.keys())
+        evt.num_rounds=n_rounds
+        evt.rounds=rounds
 
-        organisers = []
+        org_regnos = []
         for j, val in details.items():
             if 'org_' == j[:4]:
-                organisers.append(val)
-        organisers.append(evt.primary_organiser)
-        num_organisers = len(organisers)
+                org_regnos.append(val)
+
+        organizers, no_ac = get_organizers_from_regno(org_regnos)
+        organizers.append(evt.created_by)
+
+        if no_ac:
+            flash(f'Organizer doesn\'t seem to have an account - {", ".join(no_ac)}', 'warning')
 
         event_pic = evt.thumbnail
         if 'event_pic' in request.files:
@@ -210,35 +224,43 @@ def organiser_event(idx):
                 category='event_thumbnails'
             )
             event_pic = new_path or event_pic
-
-        evt.name=details['name']
-        evt.category=details['category']
-        evt.description=details['description']
-        evt.max_team_size=details['max_team_size']
-        evt.num_rounds=n_rounds
-        evt.rounds=rounds
-        evt.other_organisers=','.join(organisers[:-1])
-        evt.num_organisers=num_organisers
         evt.thumbnail=event_pic
-        evt.topic=details['topic']
-        evt.on_register_mail_cnt=details['mail_cnt']
 
-        for i in organisers:
-            user = Users.query.filter_by(reg_no=i).first()
-            if not user:
-                flash(f'Organizer doesn\'t seem to have an account - {i}', 'warning')
+        if 'name' in form:
+            evt.name=details['name']
+        if 'catagory' in form:
+            evt.category=details['category']
+        if 'description' in form:
+            evt.description=details['description']
+        if 'max_team_size' in form:
+            evt.max_team_size=details['max_team_size']
+        if 'topic' in form:
+            evt.topic=details['topic']
+        if 'participant_instructions' in form:
+            evt.participant_instructions=details['mail_cnt']
+
+        EventOrganizers.query.filter_by(event_key=evt.id).delete()
+        db.session.commit()
+        for organizer in organizers:
+            eo = EventOrganizers(
+                event=evt,
+                organizer=organizer
+            )
+            db.session.add(eo)
 
         db.session.commit()
 
         flash('Event Updated Successfully', 'success')
         return redirect(url_for('organizer.organiser_dashboard'))
 
-    organiser_reg_nos = [evt.primary_organiser]
-    organiser_reg_nos.extend(evt.other_organisers.split(','))
+    # GET
+
+    if not current_user.isOrganiser:
+        flash("Invalid Route!", "danger")
 
     if not current_user.isAdministrator:
-        if current_user.reg_no not in organiser_reg_nos and not current_user.isOrganiser:
-            flash(f'You are not the organiser of Event {evt.name}!', 'danger')
+        if current_user not in evt.get_organizers():
+            flash(f'You are not the organizer of Event {evt.name}!', 'danger')
             return redirect(url_for('dashboard'))
 
     event_rounds = []
@@ -246,34 +268,18 @@ def organiser_event(idx):
     for i in evt.rounds.values():
         event_rounds.append(i)
 
-    event_organisers = evt.other_organisers.split(',')
-    event_organisers.append(evt.primary_organiser)
-    for i in event_organisers:
-        if current_user.reg_no == i:
-            pass
-            #event_organisers.remove(i)
+    org_regnos = get_organizer_regnos(evt.get_organizers())
 
-    # us.append((u.name, u.reg_no, u.mobile, u.email, u.id, is_winner, is_runner))
-    # data.append([us]+[event.event_attended, event.id])
     data = []
     teams = get_registered_teams(evt)
     for team in teams:
-        x = []
-        for member in team.members:
-            x.append([
-                member.name,
-                member.reg_no,
-                member.mobile,
-                member.email,
-                member.id,
-                False,
-                False
-            ])
-        data.append([x]+[False, evt.id])
+        tms = TeamMembers.query.filter_by(team_key=team.id).all()
+        print(type(tms))
+        data.append(tms)
 
     return render_template('organiser_event_details.html', event=evt,
         registered=data, event_rounds=event_rounds,
-        event_organisers=event_organisers
+        event_organisers=org_regnos
     )
 
 
@@ -290,10 +296,8 @@ def organiser_event_download(idx):
         flash('No Such Event Exists', 'danger')
         return redirect(url_for('organizer.organiser_dashboard'))
 
-    organiser_reg_nos = [evt.primary_organiser]
-    organiser_reg_nos.extend(evt.other_organisers.split(','))
     if not current_user.isAdministrator:
-        if current_user.reg_no not in organiser_reg_nos:
+        if current_user not in evt.get_organizers():
             flash(f'You are not the organiser of Event {evt.name}!', 'danger')
             return redirect(url_for('dashboard'))
 
@@ -349,8 +353,18 @@ def organiser_event_result():
     data = dict(request.form)
     evt = EventDetails.query.filter_by(event_id=data['event_id']).first()
 
+    if not current_user.isOrganizer:
+        return jsonify({'status': 'error', 'message': 'Invalid Route!'})
+
     if not evt:
-        return jsonify({'message':'no such event'})
+        return jsonify({'status': 'error', 'message':'no such event'})
+
+    if current_user != evt.created_by:
+        return jsonify({'status': 'error', 'message':'You can ONLY submit winner/runner if you created the event'})
+
+    user = Users.query.filter_by()
+
+    position_entry = EventResults.query.filter_by(event_key=evt.id, participant_key=user.id).first()
 
     evt.is_result_submitted = True
 
@@ -361,51 +375,68 @@ def organiser_event_result():
 @bp.route('/preview-event/<idx>')
 @login_required
 def preview_event(idx):
-    evt = EventDetails.query.filter_by(event_id=idx).first()
-    orgs = [evt.primary_organiser]
-    orgs.extend(evt.other_organisers.split(',')[:-1])
+    if not current_user.isOrganiser:
+        flash('Invalid Route', 'danger')
+        return redirect(url_for('dashboard'))
+
+    evt = EventDetails.query.filter_by(event_id=idx).one_or_none()
+    if not evt:
+        flash('Not a valid event', 'danger')
+        return redirect(url_for('dashboard'))
+
+    organizers = evt.get_organizers()
 
     if not current_user.isAdministrator:
-        if current_user.reg_no not in orgs:
-            flash('Invalid Route !', 'danger')
+        if current_user not in organizers:
+            flash('You are not the organizer of the event!', 'danger')
+            return redirect(url_for('dashboard'))
 
     organiser_details = []
-    o1 = Users.query.filter_by(reg_no=evt.primary_organiser).first()
-    organiser_details.append(
-        {
-            'name' : o1.name,
-            'mobile' : o1.mobile
-        }
-    )
-
-    for reg_no in evt.other_organisers.split(','):
-        i = Users.query.filter_by(reg_no=reg_no).first()
-        if i:
-            organiser_details.append(
-                {
-                    'name' : i.name,
-                    'mobile' : i.mobile
-                }
-            )
+    for organizer in organizers:
+        organiser_details.append(
+            {
+                'name' : organizer.name,
+                'mobile' : organizer.mobile
+            }
+        )
 
     page = '<h1>Preview<h1>'
-    page += render_template('event_details.html', event=evt, id=idx, organiser_details=organiser_details)
+    page += render_template('event_details.html', event=evt,
+        id=idx, organiser_details=organiser_details)
 
     return page
 
-@bp.route('/update_user_status', methods=['POST'])
+@bp.route('/update-participation-status', methods=['POST'])
 @login_required
-def update_user_status():
-    event_id = request.form['event_id']
-    new_status = request.form['new_status'] == 'true'
-    evt = EventRegistrations.query.get(event_id)
-    # evt.event_attended = new_status
-    # Events-event_attended
-    evt.time = str(datetime.now())
-    db.session.commit()
-    return jsonify(success=True)
+def update_participation_status():
+    if not current_user.isOrganiser:
+        return jsonify({'status': 'error', 'details': 'Invalid Route!'})
 
-@bp.route('/update_event_detail', methods=['POST'])
+    data = dict(request.form)
+
+    if 'event_id' not in data or 'tm_id' not in data or 'new_status' not in data:
+        return jsonify({'status': 'error', 'details': 'Request not complete!'})
+
+    evt = EventDetails.query.filter_by(event_id=data['event_id']).one_or_none()
+    if not evt:
+        return jsonify({'status': 'error', 'details': 'No such event!'})
+    if current_user not in evt.get_organizers():
+        return jsonify({'status': 'error', 'details': f'You are not an organizer of the requested event {evt.name}({evt.event_id})!'})
+
+    tm_entry = TeamMembers.query.get(data['tm_id'])
+    if not tm_entry:
+        return jsonify({'status': 'error', 'details': 'Unable to find Team Member Entry for event'})
+    if tm_entry.team.event != evt:
+        return jsonify({'status': 'error', 'details': 'data mismatch!'})
+
+    tm_entry.event_attended = data['new_status'] == 'true'
+    tm_entry.attended_at = datetime.now()
+
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'details': 'ok'})
+
+@bp.route('/update-event-detail', methods=['POST'])
 @login_required
 def update_event_detail():
     event_id = request.form['event_id']
@@ -419,14 +450,13 @@ def update_event_detail():
 @login_required
 def organiser_update_event_result():
     data =dict(request.form)
-    user_id = data['user_id']
+
     event_id = data['event_id']
-    # print('user id',user_id)
-    # print('event id', event_id)
-    u = Users.query.filter_by(id=user_id).first()
     evt = EventDetails.query.filter_by(event_id=event_id).first()
-    if not u:
-        return jsonify({'message':'No such Participant'})
+    if not evt:
+        return jsonify({'status': 'error', 'details': 'No such event!'})
+    # if not u:
+    #     return jsonify({'message':'No such Participant'})
 
     # check if user attended event
     # teams = get_registered_teams(event_id)

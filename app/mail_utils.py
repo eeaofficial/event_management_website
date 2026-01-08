@@ -116,7 +116,12 @@ DEFAULT_SIGNATURE = '\n\nThanks & Regards,\nOrganizing Team'
 # SMTP requires MIMEMultiPart.as_string() - human readable
 # GMAIL requires safer string encoded - not human readbale
 
-def send_mail_smtp(to, subject, body, body_format='plain', attachments=None):
+def send_mail_smtp(to: str,
+        subject: str,
+        body: str,
+        body_format: str='plain',
+        attachments: Optional[list[str]]=None
+    ) -> dict[str, str]:
     try:
         mime_message = create_email(to, subject, body,
             smtp_from_email, body_format, attachments)
@@ -137,7 +142,13 @@ def send_mail_smtp(to, subject, body, body_format='plain', attachments=None):
     return {'status': 'success', 'details': 'ok'}
 
 # using gmail API
-def send_mail_http(to, subject, body, body_format='plain', attachments=None):
+def send_mail_http(
+        to: str,
+        subject: str,
+        body: str,
+        body_format: str='plain',
+        attachments: Optional[list[str]]=None
+    ) -> dict[str, str]:
     try:
         raise Exception("Development & Testing")
         # `me` - special alias for from email in gmail

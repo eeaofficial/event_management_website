@@ -3,6 +3,7 @@
 {%block head%}
     <script>
         const REGISTER_URL = "{{url_for('register')}}"
+        const EVENT_CATAGORY = '{{event.category}}'
     </script>
     <script src="{{url_for('static', filename='form_submit.js')}}"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles_login.css') }}">
@@ -179,6 +180,7 @@
                     </div>
 
                     <form id="modal-form" action="" class="form">
+                        <input type="text" id="event-id" value="{{event.event_id}}" hidden/>
                         <div class="formGroup">
                             <input class="for_nam" type="text" id="reg1" value="{{current_user.reg_no}}" disabled/>
                         </div>

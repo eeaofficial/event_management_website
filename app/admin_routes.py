@@ -45,7 +45,7 @@ def admin_get_user():
     if user:
         x = user.registered_events()
         user_events = [i.event_id for i in x]
-        y = user.organizing_events()
+        y = user.get_organizing_events()
         user_org_events = [i.event_id for i in y]
         return jsonify({
                 'userid':user.id,

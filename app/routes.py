@@ -11,10 +11,10 @@ from flask_login import login_user, current_user, logout_user, login_required
 
 from app.extensions import db, bcrypt
 from app.forms import SignUpForm, LoginForm, ResetRequestForm, ResetPasswordForm, UpdateProfileForm
-from app.models import Users, EventDetails, Passes, Purchases, PassAccesses
+from app.models import Users, EventDetails, Passes, Purchases, PassAccesses, EventOrganizers
 from app.utils import is_code_applicable, save_image, get_upload_dir, random_string
 from app.mail_utils import send_mail_http as send_mail
-from app.utils_routes import eligible_events, check_user_event_eligibility, register_participants, \
+from app.utils_routes import check_user_event_eligibility, register_participants, \
     send_registration_mail, send_welcome_mail, send_reset_email, get_mit_code_pass
 
 bp = Blueprint("", __name__)
@@ -313,27 +313,32 @@ def payment():
 @bp.route('/events')
 def events():
     event_types = json.load(open('event_types.json'))
-    return render_template('events.html', title='Events', active_page='events', event_types=event_types)
+    return render_template('events.html', title='Events',
+        active_page='events', event_types=event_types)
 
 @bp.route('/tech-events')
 def tech_events():
     all_events = EventDetails.query.filter_by(category='tech', is_event_accepted=True).all()
-    return render_template('events_list.html', title='Tech Events', active_page='events', events=all_events, header='Technical Events')
+    return render_template('events_list.html', title='Tech Events',
+        active_page='events', events=all_events, header='Technical Events')
 
 @bp.route('/non-tech-events')
 def non_tech_events():
     all_events = EventDetails.query.filter_by(category='non_tech', is_event_accepted=True).all()
-    return render_template('events_list.html', title='Non Tech Events', active_page='events', events=all_events, header='Non Technical Events')
+    return render_template('events_list.html', title='Non Tech Events',
+        active_page='events', events=all_events, header='Non Technical Events')
 
 @bp.route('/premium-events')
 def premium_events():
     all_events = EventDetails.query.filter_by(category='premium', is_event_accepted=True).all()
-    return render_template('events_list.html', title='Premium Events', active_page='events', events=all_events, header='Premium Events')
+    return render_template('events_list.html', title='Premium Events',
+        active_page='events', events=all_events, header='Premium Events')
 
 @bp.route('/workshops')
 def workshops():
     all_events = EventDetails.query.filter_by(category='workshop', is_event_accepted=True).all()
-    return render_template('events_list.html', title='Workshops', active_page='events', events=all_events, header='Workshops')
+    return render_template('events_list.html', title='Workshops',
+        active_page='events', events=all_events, header='Workshops')
 
 @bp.route('/event-details/<idx>')
 def event_details(idx):
@@ -349,22 +354,16 @@ def event_details(idx):
 
     is_eligible = check_user_event_eligibility(current_user, event)
 
-    organiser_details = []
-    o1 = Users.query.filter_by(reg_no=event.primary_organiser).first()
-    organiser_details.append(
-        {
-            'name' : o1.name,
-            'mobile' : o1.mobile
-        }
-    )
-
-    for reg_no in event.other_organisers.split(','):
-        i = Users.query.filter_by(reg_no=reg_no).first()
-        if i:
-            organiser_details.append({
-                    'name' : i.name,
-                    'mobile' : i.mobile
-            })
+    organizer_details = []
+    organizers = EventOrganizers.query.filter_by(event_key=event.id).all()
+    for o in organizers:
+        organizer = o.organizer
+        organizer_details.append(
+            {
+                'name' : organizer.name,
+                'mobile' : organizer.mobile
+            }
+        )
 
     registered_events = current_user.registered_events()
     reg_event_ids = [e.event_id for e in registered_events]
@@ -374,8 +373,8 @@ def event_details(idx):
 
     if not event.is_result_accepted:
         return render_template('event_details.html', event=event,
-            organiser_details=organiser_details, is_eligible=is_eligible, reg_event_ids=reg_event_ids,
-            pass_id=pass_id)
+            organiser_details=organizer_details, is_eligible=is_eligible,
+            reg_event_ids=reg_event_ids, pass_id=pass_id)
 
     winners = []
     runners = []
@@ -397,9 +396,12 @@ def register():
 
     event = EventDetails.query.filter_by(event_id=data['id']).first()
 
+    if not event:
+        return jsonify({'status': 'error', 'details': 'No such events'})
+
     if not event.is_accepting_registration:
-        raise Exception("This event is no loonger accepting registrations")
-        # return jsonify({"error":"This event is no loonger accepting registrations"})
+        return jsonify({'status': 'error', 'details': 'This event is no loonger accepting registrations'})
+        # raise Exception("This event is no loonger accepting registrations")
 
     users = []
     for key, value in data.items():
@@ -410,7 +412,7 @@ def register():
         if x:
             #user-event
             event_registered = x.registered_events()
-            if data['id'] in event_registered:
+            if event in event_registered:
                 return jsonify({"error": f'{x.reg_no} Already registered!'})
 
             users.append(x)

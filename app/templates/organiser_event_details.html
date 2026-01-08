@@ -65,51 +65,55 @@
     </style>
 
     <script>
-        function updateUserStatus(eventId) {
-            var newStatus = $('.status_' + eventId).prop('checked');
-            $('.status_' + eventId).prop('checked', newStatus);
+        function updateUserStatus(tmId) {
+            var newStatus = $('.status_' + tmId).prop('checked');
+            $('.status_' + tmId).prop('checked', newStatus);
             $.ajax({
-                url: "{{url_for('organizer.update_user_status')}}",
+                url: "{{url_for('organizer.update_participation_status')}}",
                 type: 'POST',
-                data: {event_id: eventId, new_status: newStatus},
+                data: {
+                    'tm_id': tmId,
+                    'event_id': '{{event.event_id}}',
+                    'new_status': newStatus
+                },
                 success: function(response) {
-                if (response.success) {
+                if (response.status=='success') {
                     if(newStatus) {
-                        $('.attend_' + eventId).text('Attended');
+                        $('.attend_' + tmId).text('Attended');
                     } else {
-                        $('.attend_' + eventId).text('Not yet Attended');
+                        $('.attend_' + tmId).text('Not yet Attended');
                     }
                     alert('User status updated successfully.');
                 } else {
-                    alert('Failed to update user status.');
+                    alert('Failed to update user status. - ' + response.details);
                 }
                 }
             });
         }
 
-        function updateEventResult(userId) {
-            var newWinnerStatus = $('#winner_user_' + userId).prop('checked');
-            var newRunnerStatus = $('#runner_user_' + userId).prop('checked');
+        function updateEventResult(tmId) {
+            var newWinnerStatus = $('#winner_user_' + tmId).prop('checked');
+            var newRunnerStatus = $('#runner_user_' + tmId).prop('checked');
             $.ajax({
                 url: "{{url_for('organizer.organiser_update_event_result')}}",
                 type: 'POST',
                 data: {
-                    user_id: userId,
-                    event_id: '{{event.event_id}}',
-                    newWinnerStatus: newWinnerStatus,
-                    newRunnerStatus: newRunnerStatus
+                    'tm_id': tm_id,
+                    'newWinnerStatus': newWinnerStatus,
+                    'newRunnerStatus': newRunnerStatus,
+                    'event_id': '{{event.id}}'
                 },
                 success: function(response) {
-                    if (response.success) {
+                    if (response.status == 'success') {
                         if(newWinnerStatus) {
-                            $('#winner_user_' + userId).prop('checked', true);
+                            $('#winner_user_' + tmId).prop('checked', true);
                         } else {
-                            $('#winner_user_' + userId).prop('checked', false);
+                            $('#winner_user_' + tmId).prop('checked', false);
                         }
                         if(newRunnerStatus) {
-                            $('#runner_user_' + userId).prop('checked', true);
+                            $('#runner_user_' + tmId).prop('checked', true);
                         } else {
-                            $('#runner_user_' + userId).prop('checked', false);
+                            $('#runner_user_' + tmId).prop('checked', false);
                         }
                         alert('Winner or Runner status updated successfully.');
                     } else {
@@ -225,9 +229,12 @@
                 numRounds++;        
             }
             
-            var event_organisers = JSON.parse('{{event_organisers|tojson|safe}}');
-
-            for(i=0; i<parseInt('{{event.num_organisers}}')-1; i++) {
+            var event_organisers_raw = JSON.parse('{{event_organisers|tojson|safe}}');
+            var event_organisers = event_organisers_raw.filter(item => item !== '{{current_user.reg_no}}');
+            var $regNoBox = $('<div>');
+            $regNoBox.append( $("<input>").attr("type", "text").attr("class","for_nam").attr("disabled", true).val("YOU ({{current_user.reg_no}})"));
+            $("#organiserDetails").append($regNoBox);
+            for(i=0; i<event_organisers.length; i++) {
                 var lenght = 5;
                 var randomString = Math.random().toString(36).substring(2, 2+lenght);
         
@@ -352,29 +359,6 @@
                 })
             });
         });
-    
-        // $(document).ready(function(){
-        //     $('#filter-user').change(function(){
-        //         console.log($(this).val())
-        //         if($(this).val() == 'a'){
-        //             $("table tr").each(function(){
-        //                 var value = $(this).find("td:eq(3)").html(); // Change "1" to the index of the column you want to check
-        //                 if(value == "Not yet Attended"){
-        //                     $(this).hide();
-        //                 }
-        //             });
-        //         }
-        //         else if($(this).val() == 'na'){
-        //             $("table tr").each(function(){
-        //                 var value = $(this).find("td:eq(3)").html(); // Change "1" to the index of the column you want to check
-        //                 if(value == "Attended"){
-        //                     $(this).hide();
-        //                 }
-        //             });
-        //         }
-                
-        //     });
-        // });
     </script>
 
 {%endblock head%}
@@ -383,39 +367,35 @@
 
     <h1>{{event.name}}</h1>
 
-    Event Status : 
+    Event Status: 
     {% if event.is_event_accepted %}
     Accepted
     {%else%}
-    Not yet accepted ; Please contact admin
+    Not yet accepted; Contact admin to accept
     {%endif%}
     <br/><br/>
 
-    Result status :
+    Result status:
     {% if event.is_result_submitted %}
         {% if event.is_result_accepted %}
         Accepted and Published
         {%else%}
-        Not yet accepted ; Please contact admin
+        Not yet accepted; Contact admin to accept
         {%endif%}
     {%else%}
         To be finalised by you
     {%endif%}
     <br/><br/><br/>
 
+    {%set created_by_me = current_user==event.created_by %}
 
     {%if not event.is_event_accepted%}
-        <button id="update-button" class="btn" {%if event.is_result_submitted %} disabled {% endif %}>Update Event</button>
+        <button id="update-button" class="btn" {%if event.is_result_submitted or not created_by_me %} disabled {% endif %}>Update Event</button>
     {%endif%}
     <button id="participants-button" class="btn">See Registed Participants</button>
-    <button class="btn" id="send-sample-mail">Send Sample Mailing Content to you for preview</button>
-    <!-- <select class="for_nam" id="filter-user">
-        <option value="all">All</option>
-        <option value="na">Not yet Attended</option>
-        <option value="a">Attended</option>
-    </select> -->
+    <button class="btn" id="send-sample-mail" {%if not created_by_me%}disabled{%endif%}>Send Sample Mailing Content to you for preview</button>
 
-    {% if not event.is_result_submitted %}
+    {% if created_by_me and not event.is_result_submitted%}
         <button id="result-button" style="color:red">Confirm and Submit the selected winners and runners (Action CANNOT be undone and event gets FREEZED)</button>
     {%endif%}
 
@@ -486,8 +466,8 @@
 
                     <div class="formGroup">
                         <div>
-                            Mailing Content:
-                            <textarea name="mail_cnt" class="for_nam" required>{{event.on_register_mail_cnt}}</textarea>
+                            Participant Information:
+                            <textarea name="mail_cnt" class="for_nam">{{event.participant_information}}</textarea>
                         </div>
                     </div>
                     <br/><br/>
@@ -558,25 +538,45 @@
                     <a href="{{ url_for('organizer.organiser_event_download',idx=event.event_id) }}">Download Participants Details as Excel</a>
                 </td>
             </tr>
-            {%for i in registered%}
-                <tr>
-                    <td rowspan="{{i[0] | length}}">{{loop.index}}</td>
-                {%for j in i[0]%}
-                    
-                        {%for x in j[:-3]%}
-                            <td>{{x}}</td>
-                        {%endfor%}
-            
-                        <td class="attend_{{ i[2] }}">
-                            {%if i[1]%}
-                            Attended
+            {% for tms in registered %}
+                {% set outer_index = loop.index %}
+                {% for i in tms %}
+                    {% set member=i.user %}
+                    <tr>
+                        {% if loop.index == 1 %}
+                            <td rowspan="{{tms | length}}">{{outer_index}}</td>
+                        {% endif %}
+                        <td>{{member.name}}</td>
+                        <td>{{member.reg_no}}</td>
+                        <td>{{member.mobile}}</td>
+                        <td>{{member.email}}</td>
+
+                        <td class="attend_{{ i.id }}">
+                            {%if i.event_attended%}
+                                Attended<hr/>
+                                @ {{i.attended_at}}
                             {%else%}
-                            Not yet Attended
+                                Not yet Attended
                             {%endif%}
                         </td>
-                        <td><input type="checkbox" class="status_{{ i[2] }}" {% if i[1] %}checked{% endif %} {% if event.is_result_submitted %} disabled {% endif %} onclick="updateUserStatus('{{ i[2] }}')"></td>
-                        <td><input type="checkbox" id="winner_user_{{ j[-3] }}" {% if j[-2] %}checked{% endif %} {% if event.is_result_submitted %} disabled {% endif %} onclick="updateEventResult('{{ j[-3] }}')"></td>
-                        <td><input type="checkbox" id="runner_user_{{ j[-3] }}" {% if j[-1] %}checked{% endif %} {% if event.is_result_submitted %} disabled {% endif %} onclick="updateEventResult('{{ j[-3] }}')"></td>
+                        <td>
+                            <input type="checkbox" class="status_{{ i.id }}" 
+                                {% if i.event_attended %} checked {% endif %}
+                                {% if event.is_result_submitted %} disabled {% endif %}
+                                onclick="updateUserStatus('{{ i.id }}')"/>
+                        </td>
+                        <td>
+                            <input type="checkbox" id="winner_user_{{ i.id }}"
+                                {% if i.is_winner() %} checked {% endif %}
+                                {% if event.is_result_submitted %} disabled {% endif %}
+                                onclick="updateEventResult('{{ i.id }}')"/>
+                        </td>
+                        <td>
+                            <input type="checkbox" id="runner_user_{{ i.id }}"
+                                {% if i.is_runner() %} checked {% endif %}
+                                {% if event.is_result_submitted %} disabled {% endif %}
+                                onclick="updateEventResult('{{ i.id }}')">
+                        </td>
                     </tr>
                 {%endfor%}
             {%endfor%}

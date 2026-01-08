@@ -60,8 +60,16 @@ class Users(db.Model, UserMixin):
             .all()
         )
 
-    def organizing_events(self):
-        return []
+    def get_organizing_events(self):
+        return (
+            EventDetails.query
+            .join(EventOrganizers)
+            .filter(
+                EventOrganizers.organizer_key == self.id,
+            )
+            .distinct()
+            .all()
+        )
 
     def get_reset_token(self, expiry_sec=1800):
         s = Serializer(current_app.config['SECRET_KEY'], expiry_sec)
@@ -138,44 +146,87 @@ class TeamMembers(db.Model):
     team_key = db.Column(db.Integer, db.ForeignKey('teams.id'), nullable=False)
     user_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
+    event_attended = db.Column(db.Boolean, default=False)
+    # is valid only if event_attended is set
+    # else this holds time when team created
+    attended_at = db.Column(db.DateTime, nullable=False,
+        server_default=db.func.now()
+    )
+
     team = db.relationship('Teams', lazy=True)
     user = db.relationship('Users', lazy=True)
+
+    def is_winner(self):
+        return False
+
+    def is_runner(self):
+        return False
 
     def __repr__(self):
         return f"TeamMembers('{self.team_key}', '{self.user_key}')"
 
 class EventDetails(db.Model):
     __tablename__ = 'event_details'
+
     id = db.Column(db.Integer, primary_key=True)
+    created_by_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
     event_id = db.Column(db.String(5), nullable=False, unique=True)
     name = db.Column(db.String(20), nullable=False)
     category = db.Column(db.String(20), nullable=False)
     description = db.Column(db.String(200), nullable=False)
-    primary_organiser = db.Column(db.String(10), nullable=False)
     max_team_size = db.Column(db.Integer, nullable=False)
     num_rounds = db.Column(db.Integer, nullable=False)
     rounds = db.Column(db.JSON, nullable=False) # json string with name, description, time, mode
-    other_organisers = db.Column(db.String(100), nullable=False) # other organisers reg no
-    num_organisers = db.Column(db.Integer, nullable=False) # including primary organisers
     thumbnail = db.Column(db.String(20))
-    topic = db.Column(db.String(20))
-    event_cost = db.Column(db.Integer)
-
-    winner = db.Column(db.String(10*30+9))
-    runner = db.Column(db.String(10*10+9))
-
-    # control accepting participants into events
-    is_accepting_registration = db.Column(db.Boolean, default=True, nullable=False)
+    topic = db.Column(db.String(40))
+    # send via mail once registered
+    participant_instructions = db.Column(db.String(1000), default='', nullable=False)
 
     #admin should accept to make things "on-line" at website for the public
     is_event_accepted = db.Column(db.Boolean, default=False, nullable=False)
 
-    is_result_submitted = db.Column(db.Boolean, default=False, nullable=False)
-    is_result_accepted = db.Column(db.Boolean, default=False, nullable=False) # if result accepted by admin; will be pushed "on-line"
+    # control accepting participants into events
+    is_accepting_registration = db.Column(db.Boolean, default=True, nullable=False)
 
-    workshop_fee = db.Column(db.Integer, default=0, nullable=False)
-    n_registrations = db.Column(db.Integer, default=0, nullable=False)
-    on_register_mail_cnt = db.Column(db.String(1000), default='', nullable=False)
+    is_result_submitted = db.Column(db.Boolean, default=False, nullable=False)
+    # if result accepted by admin; will be pushed "on-line"
+    is_result_accepted = db.Column(db.Boolean, default=False, nullable=False)
+
+    created_by = db.relationship('Users', lazy=True)
+
+    def get_organizers(self):
+        return ( Users.query
+            .join(EventOrganizers)
+            .filter(
+                EventOrganizers.event_key == self.id,
+                Users.id == EventOrganizers.organizer_key,
+            )
+            .all()
+        )
+
+
+class EventOrganizers(db.Model):
+    __tablename__ = 'event_organizers'
+
+    id = db.Column(db.Integer, primary_key=True)
+    event_key = db.Column(db.Integer, db.ForeignKey('event_details.id'), nullable=False)
+    organizer_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    event = db.relationship('EventDetails', lazy=True)
+    organizer = db.relationship('Users', lazy=True)
+
+
+class EventResults(db.Model):
+    __tablename__ = 'event_results'
+    id = db.Column(db.Integer, primary_key=True)
+    event_key = db.Column(db.Integer, db.ForeignKey('event_details.id'), nullable=False)
+    participant_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    position = db.Column(db.Integer, default=0)
+
+    event = db.relationship('EventDetails', lazy=True)
+    participant = db.relationship('Users', lazy=True)
 
 
 # Passes and Passes accesses are not yet robust enough
@@ -191,7 +242,7 @@ class Passes(db.Model):
     pass_type = db.Column(db.String(20)) # event or workshop
     pass_name = db.Column(db.String(20))
     pass_description = db.Column(db.String(100))
-    price = db.Column(db.Integer)
+    price = db.Column(db.Integer, default=-1)
     created_at = db.Column(db.DateTime, nullable=False,
         server_default=db.func.now()
     )
@@ -240,12 +291,14 @@ class PurchaseStatusLogs(db.Model):
     purchase_key = db.Column(db.Integer, db.ForeignKey('purchases.id'), nullable=False)
     changed_by_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
-    old_status = db.Column(db.String(20))
-    new_status =  db.Column(db.String(20))
+    # just record new tx id
+    tx_id = db.Column(db.String(20))
+    status =  db.Column(db.String(20))
     reason = db.Column(db.String(30))
     changed_at = db.Column(db.DateTime, nullable=False,
         server_default=db.func.now()
     )
+    changed_fields = db.Column(db.String(40))
 
     changed_by = db.relationship('Users', lazy=True)
     purchase = db.relationship('Purchases', lazy=True)

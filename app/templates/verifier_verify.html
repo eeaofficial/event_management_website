@@ -17,15 +17,25 @@
         function updateVerificationStatus(purchase_id) {
             var newStatus = $('#status_' + purchase_id + ' option:selected').val();
             var reason = $('#reason_' + purchase_id).val();
-            console.log(purchase_id, newStatus, reason);
+            var txidCheckbox = $('#txid_enable_' + purchase_id);
+            var txidInput = $('#txid_' + purchase_id);
+            
+            var payload = {
+                'purchase_id': purchase_id,
+                'new_status': newStatus,
+                'reason': reason
+            };
+            
+            // Include new_txid in payload if checkbox is checked and input has value
+            if (txidCheckbox.is(':checked') && txidInput.val().trim() !== '') {
+                payload['new_txid'] = txidInput.val().trim();
+            }
+            
+            console.log(purchase_id, newStatus, reason, payload);
             $.ajax({
                 url: "{{url_for('verifier.callback')}}",
                 type: 'POST',
-                data: {
-                  'purchase_id': purchase_id,
-                  'new_status': newStatus,
-                  'reason': reason
-                },
+                data: payload,
                 success: function(response) {
                     if (response.status == 'success') {
                         $('#disp_' + purchase_id).text(response.newStatus);
@@ -37,6 +47,16 @@
                 }
             });
         }
+        
+        function toggleTxIdInput(purchaseId) {
+            var checkbox = document.getElementById('txid_enable_' + purchaseId);
+            var input = document.getElementById('txid_' + purchaseId);
+            input.disabled = !checkbox.checked;
+            if (!checkbox.checked) {
+                input.value = "";
+            }
+        }
+        
     </script>
 
 <style>
@@ -71,9 +91,11 @@
         <th>User</th>
         <th>Purchase ID</th>
         <th>Pass Type</th>
-        <th>Screenshot</th>
         <th>Current Status</th>
+        <th>Screenshot</th>
         <th>New Status</th>
+        <th>Reason</th>
+        <th>Transaction ID (update if required)</th>
       </tr>
     </thead>
     <tbody>
@@ -81,8 +103,8 @@
       <tr>
         <td>{{loop.index}}</td>
         <td>{{item.purchased_by}}</td>
-        <td>{{item.purchase_id[:10]}}...</td>
-        <td>{{item.event_pass.pass_name}}</td>
+        <td>{{item.purchase_id}}</td>
+        <td>{{item.event_pass.pass_name}}<hr/>Type: {{item.event_pass.pass_type}}
         <td id="disp_{{item.purchase_id}}">{{item.payment_status}}</td>
         <td><img src="{{ url_for('uploaded_file', filename='payment_screenshots/' + item.payment_proof) }}" alt="Missing Image Proof"></td>
         <td>
@@ -94,6 +116,12 @@
         </td>
         <td>
             <input type="text" id="reason_{{item.purchase_id}}" required/>
+        </td>
+        <td>
+            <div style="display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" id="txid_enable_{{item.purchase_id}}" onchange="toggleTxIdInput('{{item.purchase_id}}')">
+                <input type="text" id="txid_{{item.purchase_id}}" disabled />
+            </div>
         </td>
         <td>
             <button class="btn" onclick="updateVerificationStatus('{{ item.purchase_id }}')">Update</button>

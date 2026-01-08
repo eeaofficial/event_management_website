@@ -6,13 +6,13 @@ $(document).ready(function() {
             url: REGISTER_URL,
             type: 'POST',
             data:{
-                "id":$('#event-id').html(),
+                "id":$('#event-id').val(),
                 "reg1":$('#reg1').val(),
                 "reg2":$('#reg2').val(),
                 "reg3":$('#reg3').val(),
                 "reg4":$('#reg4').val(),
                 "reg5":$('#reg5').val(),
-                'type':'{{event.category}}'
+                'type':EVENT_CATAGORY
             }
         })
         .done(function(data){

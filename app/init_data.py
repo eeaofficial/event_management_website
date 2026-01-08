@@ -15,13 +15,9 @@ pass_name = {
     'p51' : 'Platinum Pass (All Premium and Non-Tech Events)',
     'p52' : 'Platinum Pass (All Premium and Tech Events)',
     'p6' : 'Gold Pass (All Tech and Non-Tech Events)',
-    # 'p7' : 'Combo Pass (All Events ; 3 Participants)',
-    'workshop_hIvTL':'Empowering Chip Design Innovators: RISC-V Workshop with Skywater 130nm Chips',
-    'workshop_TRawK':'Data analysis on different domain Model training and advancements',
-    'workshop_mOXHL':'Deep Learning using Python',
-    'workshop_gjhuR':'Different types of multiple access technologies and 5G usage scenarios with its key capabilities'
 }
 
+VALID_PAYMENT_STATUSES = ['submitted', 'accepted', 'rejected', 'cancelled']
 
 # hard coded creation of SUPER ADMIN login
 def ensure_super_admin():
