@@ -93,6 +93,7 @@
         <th>Pass Type</th>
         <th>Current Status</th>
         <th>Screenshot</th>
+        <th>Payer Account</th>
         <th>New Status</th>
         <th>Reason</th>
         <th>Transaction ID (update if required)</th>
@@ -107,6 +108,7 @@
         <td>{{item.event_pass.pass_name}}<hr/>Type: {{item.event_pass.pass_type}}
         <td id="disp_{{item.purchase_id}}">{{item.payment_status}}</td>
         <td><img src="{{ url_for('uploaded_file', filename='payment_screenshots/' + item.payment_proof) }}" alt="Missing Image Proof"></td>
+        <td>{{item.payer_account}}</td>
         <td>
             <select id="status_{{item.purchase_id}}">
                 <option value="rejected">Reject</option>

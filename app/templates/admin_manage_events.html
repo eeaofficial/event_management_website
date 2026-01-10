@@ -183,7 +183,7 @@
 
 
 {%block body%}
-<div id="events-list">
+    <div id="events-list">
         <table id="events-table">
             <thead>
                 <tr>
@@ -197,13 +197,19 @@
                     <th>Result Status</th>
                     <th>Acceptance Action</th>
                     <th>Result Action</th>
-                    <th>Pass (one among selected)</th>
+                    <th>
+                        Pass (one among selected)
+                        <hr/>
+                        <span class="text-danger">(InActive)</span>
+                    </th>
                     <th>Winners</th>
                     <th>Runners</th>
                 </tr>
             </thead>
             <tbody>
                 {%for i in events%}
+                    {% set event_passes_active = i.get_passes() %}
+                    {% set event_passes_inactive = i.get_passes(is_active=False) %}
                     <tr>
                         <td>
                             <a href="{{url_for('organizer.organiser_event', idx=i.event_id)}}"  target="_blank">
@@ -240,10 +246,10 @@
                         <td>
                             {% if i.category != "workshop" %}
                             <div class="dropdown">
-                                <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="passesDropdown_{{ i.id }}" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <span id="passesCount_{{ i.id }}">{{ event_passes_map[i.id]|length if event_passes_map[i.id] else 0 }} passes</span>
+                                <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="passesDropdown_{{ i.id }}" data-bs-toggle="dropdown">
+                                    <span id="passesCount_{{ i.id }}">{{ event_passes_active|length }} pass(es)</span>
                                 </button>
-                                <ul class="dropdown-menu passes-dropdown" aria-labelledby="passesDropdown_{{ i.id }}" style="max-height: 300px; overflow-y: auto;">
+                                <ul class="dropdown-menu passes-dropdown" style="max-height: 300px; overflow-y: auto;">
                                     {% for pass in all_passes %}
                                         <li>
                                             <label class="dropdown-item" style="cursor: pointer; margin: 0;">
@@ -251,7 +257,7 @@
                                                        data-event-id="{{ i.id }}" 
                                                        data-pass-id="{{ pass.pass_id }}" 
                                                        value="{{ pass.pass_id }}"
-                                                       {% if event_passes_map[i.id] and pass in event_passes_map[i.id] %}checked{% endif %}>
+                                                       {% if event_passes_active and pass in event_passes_active %}checked{% endif %}>
                                                 <strong>{{ pass.pass_name }}</strong>
                                                 {% if pass.pass_description %}
                                                     <br><small class="text-muted">{{ pass.pass_description }}</small>
@@ -271,31 +277,27 @@
                             </div>
                             {%endif%}
                             <div id="passesDisplay_{{ i.id }}" class="mt-1" style="font-size: 0.85em;">
-                                {% if event_passes_map[i.id] %}
-                                    {% for pass in event_passes_map[i.id] %}
-                                        <span class="badge bg-info">{{ pass.pass_name }}</span>
+                                {% if event_passes_active %}
+                                    {% for pass in event_passes_active %}
+                                        <span class="badge bg-success">{{ pass.pass_name }}</span>
                                     {% endfor %}
                                 {% else %}
                                     <span class="text-muted">No pass allows registration</span>
                                 {% endif %}
+                                <hr/>
+                                {% for pass in event_passes_inactive %}
+                                    <span class="badge bg-danger">{{ pass.pass_name }}</span>
+                                {% endfor %}
                             </div>
                         </td>
                         <td>
                             {% if i.is_result_submitted%}
-                                {% if winner %}
-                                    {% for j in winner%}
-                                        {{j}}<br>
-                                    {%endfor%}
-                                {%endif%}
+                                See event
                             {%endif%}
                         </td>
                         <td>
                             {% if i.is_result_submitted%}
-                                {% if runner %}
-                                    {% for j in i.runner%}
-                                        {{j}}<br>
-                                    {%endfor%}
-                                {%endif%}
+                                See event
                             {%endif%}
                         </td>
                     </tr>

@@ -237,6 +237,16 @@ class EventDetails(db.Model):
             .all()
         )
 
+    def get_passes(self, is_active=True):
+        return (
+            Passes.query
+            .join(PassAccesses)
+            .filter(
+                Passes.is_active == is_active,
+                PassAccesses.event_key == self.id
+            )
+            .all()
+        )
 
 class EventOrganizers(db.Model):
     __tablename__ = 'event_organizers'
@@ -310,6 +320,7 @@ class Purchases(db.Model):
     purchase_id = db.Column(db.String(40), nullable=False, unique=True)
     payment_proof = db.Column(db.String(40), nullable=False, unique=True) # screenshot file name
     transaction_id = db.Column(db.String(40)) # nullable
+    payer_account = db.Column(db.String(40), nullable=False)
     purchased_at = db.Column(db.DateTime, nullable=False,
         server_default=db.func.now()
     )
@@ -320,6 +331,7 @@ class Purchases(db.Model):
     purchased_by = db.relationship('Users', lazy=True)
 
 class PurchaseStatusLogs(db.Model):
+    __tablename__ = 'Purchase_status_logs'
     id = db.Column(db.Integer, primary_key=True)
     purchase_key = db.Column(db.Integer, db.ForeignKey('purchases.id'), nullable=False)
     changed_by_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)

@@ -72,7 +72,6 @@ def admin_update_user():
         return jsonify({'error':'unknown page'})
 
     data = dict(request.form)
-    print(data)
 
     user = Users.query.filter_by(reg_no=data['reg_no']).first()
     if not user:
@@ -138,20 +137,7 @@ def manage_events():
     all_events = EventDetails.query.all()
     all_passes = Passes.query.filter_by(is_active=True).order_by(Passes.id).all()
 
-    event_passes_map = {}
-    for event in all_events:
-        passes = (
-            Passes.query
-            .join(PassAccesses)
-            .filter(
-                Passes.is_active == True,
-                PassAccesses.event_key == event.id
-            )
-            .all()
-        )
-        event_passes_map[event.id] = passes
-    return render_template('admin_manage_events.html', events=all_events,
-        all_passes=all_passes, event_passes_map=event_passes_map)
+    return render_template('admin_manage_events.html', events=all_events, all_passes=all_passes)
 
 
 @bp.route('/modify-event', methods=["POST"])
@@ -265,6 +251,7 @@ def all_payments_download():
             sno,
             i.purchase_id,
             i.transaction_id,
+            i.payer_account,
             i.purchased_at,
             u.reg_no,
             u.name,
@@ -282,8 +269,8 @@ def all_payments_download():
     header_dt_format = workbook.add_format({'bold': True, 'num_format': 'dd mmm yyyy, hh:mm AM/PM'})
     dt_format = workbook.add_format({'num_format': 'dd mmm yyyy, hh:mm AM/PM'})
 
-    headers = ['S.No.', 'Purchase ID', 'Tranaction ID', 'Purchased At',
-        'Registration Number', 'Name', 'Dept & College',
+    headers = ['S.No.', 'Purchase ID', 'Tranaction ID', 'Payer Account' 
+        'Purchased At', 'Registration Number', 'Name', 'Dept & College',
         'Amount Paid', 'Payment Status', 'Pass Name'
     ]
     worksheet.write(0, 0, 'All Purchases', header_format)
@@ -316,6 +303,74 @@ def all_payments_download():
     resp.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     return resp
 
+
+@bp.route('/manage-passes')
+def manage_passes():
+    if not current_user.is_authenticated or not current_user.isAdministrator:
+        abort(404)
+
+    if not current_user.isAdministrator:
+        send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
+
+    passes = Passes.query.all()
+    return render_template('admin_manage_passes.html', passes=passes)
+
+@bp.route('/manage-passes', methods=['POST'])
+def update_pass_status():
+    if not current_user.is_authenticated or not current_user.isAdministrator:
+        return jsonify({'status': 'error', 'details': 'Invalid route'})
+
+    data = dict(request.form)
+
+    if 'pass_id' not in data or 'new_status' not in data:
+        return jsonify({'status': 'error', 'details': 'Request not complete'})
+
+    p = Passes.query.get(data['pass_id'])
+    if not p:
+        return jsonify({'status': 'error', 'details': f'Pass not found - {data["pass_id"]}'})
+
+    new_status = data['new_status'] == 'true'
+    if new_status:
+        if p.price <= 0:
+            return jsonify({'status': 'error', 'details': 'Pass has invalid cost, cannot make it active'})
+
+    p.is_active = new_status
+    db.session.commit()
+
+
+    return jsonify({'status': 'success', 'details': 'ok'})
+
+@bp.route('/upadte-pass-price', methods=['POST'])
+def update_pass_price():
+    if not current_user.is_authenticated or not current_user.isAdministrator:
+        return jsonify({'status': 'error', 'details': 'Invalid route'})
+
+    data = dict(request.form)
+
+    if 'pass_id' not in data or 'new_price' not in data:
+        return jsonify({'status': 'error', 'details': 'Request not complete'})
+
+    p = Passes.query.get(data['pass_id'])
+    if not p:
+        return jsonify({'status': 'error', 'details': 'Pass not found'})
+
+    new_price = -1
+    try:
+        new_price = int(data['new_price'])
+    except:
+        pass
+
+    if new_price <= 0:
+        return jsonify({'status': 'error', 'details': 'Pass price invalid, should be > 0'})
+
+    # workshop passes are only the passes that are less than zero by default
+    if p.price > 0:
+        return jsonify({'status': 'error', 'details': 'Pass price can ONLY be updated if it was <= zero; this ensures fairness once pass is bought'})
+
+    p.price = new_price
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'details': 'ok'})
 
 # **************** Unsent Mail Management ****************
 

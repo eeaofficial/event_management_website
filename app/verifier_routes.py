@@ -22,7 +22,7 @@ def callback():
     data = dict(request.form)
 
     purchase_id = data['purchase_id']
-    p = Purchases.query.filter_by(purchase_id=purchase_id).first()
+    p = Purchases.query.filter_by(purchase_id=purchase_id).one_or_404()
     if not p:
         return jsonify({'message' : 'Not a valid payment'})
 

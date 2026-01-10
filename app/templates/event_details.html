@@ -86,8 +86,9 @@
     <script>
         $(document).ready(function() {
             $('#register-workshop').on('click', function(event){
+                passId = $('#register-workshop').data("pass-id");
                 event.preventDefault();
-                var url = "{{url_for('payment')}}?"+'&pass_id={{pass_id}}';
+                var url = "{{url_for('payment')}}?"+'&pass_id='+passId;
                 console.log(url);
                 window.location.href = url;
             });
@@ -140,7 +141,12 @@
                 {% else %}
                     {% if event.is_accepting_registration %}
                         {%if event.category == 'workshop'%}
-                            <button type="button" class="btn btn-info btn-lg" id="register-workshop">Pay INR {{event.event_cost}} & Register</button>
+                            {% set event_pass = event.get_passes() %}
+                            {% if event_pass|length == 1%}
+                                <button type="button" class="btn btn-info btn-lg" id="register-workshop" data-pass-id="{{event_pass[0].pass_id}}">Pay INR {{event_pass[0].price}} & Register</button>
+                            {% else %}
+                                <button class="btn" disabled>Workshop is not open for registration yet, contact support</button>
+                            {% endif %}
                         {%else%}
                             {%if not is_eligible %}
                                 <button type="button" class="btn btn-info btn-lg success" disabled>No Eligible Pass Available</button>

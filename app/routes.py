@@ -11,7 +11,7 @@ from flask_login import login_user, current_user, logout_user, login_required
 
 from app.extensions import db, bcrypt
 from app.forms import SignUpForm, LoginForm, ResetRequestForm, ResetPasswordForm, UpdateProfileForm
-from app.models import Users, EventDetails, Passes, Purchases, PassAccesses, EventOrganizers
+from app.models import Users, EventDetails, Passes, Purchases, EventOrganizers
 from app.utils import is_code_applicable, save_image, get_upload_dir, random_string
 from app.mail_utils import send_mail_http as send_mail
 from app.utils_routes import check_user_event_eligibility, register_participants, \
@@ -171,12 +171,14 @@ def verify_code_mit():
         if not event_pass:
             if not code_possible:
                 return jsonify({'message':'unable to get pass, contact admin'})
-        p = p = Purchases(
+        p = Purchases(
             purchase_id=purchase_id,
             payment_proof=screenshot,
             purchase_price=0,
             event_pass=event_pass,
-            purchased_by=current_user
+            purchased_by=current_user,
+            payer_account=current_user.reg_no
+            # purchase_status='accepted'
         )
 
         db.session.add(p)
@@ -265,8 +267,8 @@ def payment():
 
         if not 'screenshot' in request.files:
             flash('Invalid Proof or proof not uploaded !')
-            return redirect(url_for('dashboard'))
-        
+            return redirect(request.referrer or url_for('dashboard'))
+
         filename = f'{current_user.reg_no}_{random_string(10)}'
 
         image = request.files['screenshot']
@@ -277,17 +279,27 @@ def payment():
         )
         if not filename:
             flash('Error in uploading proof image !', 'danger')
-            return redirect(url_for('dashboard'))
+            return redirect(request.referrer or url_for('dashboard'))
 
         purchase_id = random_string(40)
         pass_id = data['pass_id']
-        event_pass = Passes.query.filter_by(pass_id=pass_id).first()
+        event_pass = Passes.query.filter_by(pass_id=pass_id).one_or_none()
+        if not event_pass.is_active:
+            flash('No such pass exists!', 'danger')
+            return redirect(request.referrer or url_for('dashboard'))
+
+        payer_account = data['payer-account']
+        if not payer_account:
+            flash('Payer account is required', 'danger')
+            return redirect(request.referrer or url_for('dashboard'))
+
         p = Purchases(
             purchase_id=purchase_id,
             payment_proof=filename,
             transaction_id=data['tx-id'],
             purchase_price=data['amount'],
             event_pass=event_pass,
+            payer_account=payer_account,
             purchased_by=current_user
         )
         db.session.add(p)
@@ -297,13 +309,16 @@ def payment():
         return redirect(url_for('dashboard'))
 
     pass_id = request.args.get('pass_id')
-    pass_obj = Passes.query.filter_by(pass_id=pass_id).first()
+    pass_obj = Passes.query.filter_by(pass_id=pass_id).one_or_none()
     if not pass_obj:
         flash('Invalid Pass Requested', 'danger')
-        return redirect(url_for('dashboard'))
+        return redirect(request.referrer or url_for('dashboard'))
     if pass_obj in current_user.event_passes():
         flash('You already have this pass', 'info')
         return redirect(url_for('dashboard'))
+    if not pass_obj.is_active:
+        flash('Not a valid active pass', 'danger')
+        return redirect(request.referrer or url_for('dashboard'))
 
     amount = str(pass_obj.price)
 
@@ -370,20 +385,20 @@ def event_details(idx):
     registered_events = current_user.registered_events()
     reg_event_ids = [e.event_id for e in registered_events]
 
-    pass_id = ''
-    if event.category == 'workshop':
-        passes_allowed = PassAccesses.query.filter_by(event_key=event.id).first()
-        if not passes_allowed:
-            pass
-            # flash("No registration allowed", "danger")
-            # return redirect(url_for('events'))
-        if passes_allowed:
-            pass_id = Passes.query.get(passes_allowed.pass_key).pass_id
+    # pass_id = ''
+    # if event.category == 'workshop':
+    #     passes_allowed = PassAccesses.query.filter_by(event_key=event.id).first()
+    #     if not passes_allowed:
+    #         pass
+    #         # flash("No registration allowed", "danger")
+    #         # return redirect(url_for('events'))
+    #     if passes_allowed:
+    #         pass_id = Passes.query.get(passes_allowed.pass_key).pass_id
 
     if force_details or not event.is_result_accepted:
         return render_template('event_details.html', event=event,
             organiser_details=organizer_details, is_eligible=is_eligible,
-            reg_event_ids=reg_event_ids, pass_id=pass_id)
+            reg_event_ids=reg_event_ids)
 
     winners = get_event_results(event, 1)
     runners = get_event_results(event, 2)

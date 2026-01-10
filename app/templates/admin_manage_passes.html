@@ -1,0 +1,100 @@
+{% extends "layout.html" %}
+
+{% block head %}
+    <script>
+        function updatePassStatus(pId) {
+            var newStatus = $('.status_' + pId).prop('checked');
+            $('.status_' + pId).prop('checked', newStatus);
+            $.ajax({
+                url: "{{url_for('admin.update_pass_status')}}",
+                type: 'POST',
+                data: {
+                    'pass_id': pId,
+                    'new_status': newStatus
+                },
+                success: function(response) {
+                    if (response.status == 'success') {
+                        showFlashMessage('Pass status updated successfully.', 'success');
+                    } else {
+                        $('.status_' + pId).prop('checked', !newStatus);
+                        showFlashMessage('Failed to update pass status. - ' + response.details, 'danger', 1, false);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    $('.status_' + pId).prop('checked', !newStatus);
+                    showFlashMessage('Error updating pass status: ' + error, 'danger', 1, false);
+                }
+            });
+        }
+        function updatePassPrice(pId) {
+            var newPrice = $('.price_' + pId).val();
+            $.ajax({
+                url: "{{url_for('admin.update_pass_price')}}",
+                type: 'POST',
+                data: {
+                    'pass_id': pId,
+                    'new_price': newPrice
+                },
+                success: function(response) {
+                    if (response.status == 'success') {
+                        $('.curr_price_' + pId).text(newPrice);
+                        $('.price_' + pId).attr('placeholder', 'New Cost').attr('disabled', true).val('');
+                        showFlashMessage('Pass status updated successfully.', 'success');
+                    } else {
+                        showFlashMessage('Failed to update pass status. - ' + response.details, 'danger', 1, false);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    showFlashMessage('Error updating pass status: ' + error, 'danger', 1, false);
+                }
+            });
+        }
+    </script>
+
+{% endblock head %}
+
+{% block body %}
+    <div>
+        <table class="table table-bordered" style="color:white">
+            <thead>
+                <tr>
+                    <th>Pass ID</th>
+                    <th>Pass Name</th>
+                    <th>Pass Category</th>
+                    <th>Pass Description</th>
+                    <th>Created By</th>
+                    <th>Created At</th>
+                    <th>Is active</th>
+                    <th>Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in passes %}
+                    <tr>
+                        <td>{{p.pass_id}}</td>
+                        <td>{{p.pass_name}}</td>
+                        <td>{{p.pass_type}}</td>
+                        <td>{{p.pass_description}}</td>
+                        <td>
+                            {{p.created_by.name}}, {{p.created_by.reg_no}}, {{p.created_by.email}}, {{p.created_by.mobile}}
+                        </td>
+                        <td>{{p.created_at}}</td>
+                        <td>
+                             <input type="checkbox" class="status_{{ p.id }}"
+                                {% if p.is_active %} checked {% endif %}
+                                onclick="updatePassStatus('{{ p.id }}')"/>
+                        </td>
+                        <td class="curr_price_{{p.id}}">{{p.price}}</td>
+                        <td>
+                            <input type="text" data-pid="{{p.id}}" class="price_{{p.id}}" placeholder="New Cost"
+                            {% if p.price > 0%} disabled {% endif%}/>
+                        </td>
+                        <td>
+                            <button class="btn" onclick="updatePassPrice('{{p.id}}')">Submit</button>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock body %}
