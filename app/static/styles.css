@@ -25,11 +25,11 @@ footer {
     right: 2vw;
     z-index: 20;
 }
-.flash-message-secondary{
+.update-toast{
     position: fixed;
     top: 10vh;
     right: 2vw;
-    z-index: 20;
+    z-index: 9999;
 }
 
 

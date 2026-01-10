@@ -3,7 +3,7 @@ Admin Routes
 """
 
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import string
 import json
 
@@ -143,7 +143,10 @@ def manage_events():
         passes = (
             Passes.query
             .join(PassAccesses)
-            .filter(PassAccesses.event_key == event.id)
+            .filter(
+                Passes.is_active == True,
+                PassAccesses.event_key == event.id
+            )
             .all()
         )
         event_passes_map[event.id] = passes
@@ -154,18 +157,54 @@ def manage_events():
 @bp.route('/modify-event', methods=["POST"])
 def admin_modify_event():
     if not current_user.is_authenticated or not current_user.isAdministrator:
-        return jsonify({'error':'unknown page'})
+        return jsonify({'status': 'error', 'details': 'Invalid route'})
 
     idx = request.form['idx']
     event = EventDetails.query.get(idx)
+    if not event:
+        return jsonify({'status': 'error', 'details': 'no such event'})
 
     if 'new_accept_status' in request.form:
-        event.is_event_accepted = request.form['new_accept_status'] == 'true'
+        new_accept_status = request.form['new_accept_status'] == 'true'
+
+        if new_accept_status and event.category == 'workshop':
+            # expected 1 but still let's assume multiple pas are there
+            pas = PassAccesses.query.filter_by(event_key=event.id).all()
+
+            active_passes_count = 0
+            workshop_pass = None
+            for pa in pas:
+                if pa.event_pass.is_active:
+                    active_passes_count += 1
+                    workshop_pass = pa.event_pass
+                    # and pa.event_pass.price <= 0:
+                    # price_not_set.append(pa.event_pass)
+
+            if active_passes_count != 1:
+                return jsonify({'status': 'error', 'details': f'Workshop requires EXACTLY ONE active pass, but now has {active_passes_count}'})
+
+            if not workshop_pass:
+                return jsonify({'status': 'error', 'details': 'Could not find workshop pass'})
+
+            if workshop_pass.price <= 0:
+                return jsonify({'status': 'error', 'details': f'Pass price not set (or is invalid) - {workshop_pass.pass_id}'})
+
+        # is_event_accepted primarily controls making event live
+        # allow admin to retract event even after result getting live
+        # so no constraint here
+        event.is_event_accepted = new_accept_status
 
     if 'new_result_status' in request.form:
+        new_result_status = request.form['new_result_status'] == 'true'
+        if new_result_status and not event.is_result_submitted:
+            return jsonify({'status': 'error', 'details': 'organizer has not submitted result yet'})
+
         event.is_result_accepted = request.form['new_result_status'] == 'true'
 
     if 'accepted_pass_ids' in request.form:
+        if event.category == 'workshop':
+            return jsonify({'status': 'error', 'details': 'workshop passes are not editable'})
+
         accepted_pass_ids = request.form['accepted_pass_ids'].split(',')
 
         PassAccesses.query.filter_by(event_key=event.id).delete()
@@ -183,7 +222,7 @@ def admin_modify_event():
 
     db.session.commit()
 
-    return jsonify({'status': 'success', 'message': 'ok'})
+    return jsonify({'status': 'success', 'details': 'ok'})
 
 @bp.route('/all-users')
 def admin_all_users():
@@ -214,6 +253,8 @@ def all_payments_download():
     if not current_user.isAdministrator:
         send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
 
+    IST = timezone(timedelta(hours=5, minutes=30))
+    dt_cols = [3]
     payments = Purchases.query.order_by(Purchases.purchased_at.asc()).all()
     data = []
     sno = 1
@@ -229,7 +270,7 @@ def all_payments_download():
             u.name,
             f'{u.dept}, {u.college}',
             i.purchase_price,
-            i.payment_staus,
+            i.payment_status,
             p.pass_name,
         ])
         sno += 1
@@ -238,19 +279,30 @@ def all_payments_download():
     workbook = xlsxwriter.Workbook(output)
     worksheet = workbook.add_worksheet('All Purchases')
     header_format = workbook.add_format({'bold': True})
-    headers = ['S.No.', 'Purchase ID', 'Tranaction ID', 'Purchased At'
+    header_dt_format = workbook.add_format({'bold': True, 'num_format': 'dd mmm yyyy, hh:mm AM/PM'})
+    dt_format = workbook.add_format({'num_format': 'dd mmm yyyy, hh:mm AM/PM'})
+
+    headers = ['S.No.', 'Purchase ID', 'Tranaction ID', 'Purchased At',
         'Registration Number', 'Name', 'Dept & College',
         'Amount Paid', 'Payment Status', 'Pass Name'
     ]
     worksheet.write(0, 0, 'All Purchases', header_format)
     worksheet.write(1, 0, 'Data as of', header_format)
-    worksheet.write(1, 1, datetime.now().strftime('%Y-%m-%d %I:%M %p'),header_format)
+    worksheet.write(1, 1, datetime.now().astimezone(IST).replace(tzinfo=None), header_dt_format)
+
     for i, header in enumerate(headers):
         worksheet.write(3, i, header, header_format)
 
+    row = 4
     for row, row_data in enumerate(data, start=4):
         for col, cell_data in enumerate(row_data):
-            worksheet.write(row, col, cell_data)
+            if col in dt_cols:
+                worksheet.write(row, col, cell_data, dt_format)
+            else:
+                worksheet.write(row, col, cell_data)
+
+    row += 4
+    worksheet.write(row, 0, "All date and time are in IST")
 
     workbook.close()
 

@@ -4,7 +4,7 @@ utils for organizer routes
 
 from typing import Union
 
-from app.models import EventDetails, EventRegistrations, Teams, Users
+from app.models import EventDetails, EventRegistrations, Teams, Users, TeamMembers
 
 def get_registered_teams(event: Union[EventDetails, str]) -> list[Teams]:
     if not isinstance(event, EventDetails):
@@ -24,6 +24,15 @@ def get_registered_teams(event: Union[EventDetails, str]) -> list[Teams]:
 
     return registered_teams
 
+
+def get_registered_tm_entires(event: Union[EventDetails, str]) -> list[list[TeamMembers]]:
+    """
+        returns teamMemberEntries (list) for every team
+    """
+    teams = get_registered_teams(event)
+    tm_entires = [team.tms for team in teams]
+
+    return tm_entires
 
 def get_organizers_from_regno(regnos: list[str]) -> tuple[list[Users], list[str]]:
     """

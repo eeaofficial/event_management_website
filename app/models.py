@@ -5,6 +5,7 @@ Models
 from flask import current_app
 from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from sqlalchemy.ext.associationproxy import association_proxy
 
 from app.extensions import db, login_manager
 
@@ -21,8 +22,8 @@ class Users(db.Model, UserMixin):
     reg_no = db.Column(db.String(30), unique=True, nullable=False)
     college = db.Column(db.String(50), nullable=False)
     dept = db.Column(db.String(30), nullable=False)
-    password = db.Column(db.String(128), nullable=False)
     mobile = db.Column(db.String(10), nullable=False)
+    password = db.Column(db.String(128), nullable=False)
 
     # same account can be used for both organising and participating
     isOrganiser = db.Column(db.Boolean, default=False, nullable=False) # subject to approval from an admin
@@ -70,6 +71,16 @@ class Users(db.Model, UserMixin):
             .distinct()
             .all()
         )
+    
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'reg_no': self.reg_no,
+            'college': self.college,
+            'dept': self.dept,
+            'email': self.email,
+            'mobile': self.mobile
+        }
 
     def get_reset_token(self, expiry_sec=1800):
         s = Serializer(current_app.config['SECRET_KEY'], expiry_sec)
@@ -132,6 +143,7 @@ class Teams(db.Model):
         secondary='team_members',
         lazy=True
     )
+    tms = db.relationship('TeamMembers', lazy=True)
 
     def __repr__(self):
         return f"Teams('{self.team_id}', '{self.event_key}', '{self.team_name}')"
@@ -157,13 +169,33 @@ class TeamMembers(db.Model):
     user = db.relationship('Users', lazy=True)
 
     def is_winner(self):
-        return False
+        return (
+            EventResults.query
+            .join(EventResults.tm)
+            .filter(
+                EventResults.tm_key == self.id,
+                EventResults.event_key == self.team.event_key,
+                TeamMembers.user_key == self.user_key,
+                EventResults.position == 1
+            ).first()
+            is not None
+        )
 
     def is_runner(self):
-        return False
+        return (
+            EventResults.query
+            .join(EventResults.tm)
+            .filter(
+                EventResults.tm_key == self.id,
+                EventResults.event_key == self.team.event_key,
+                TeamMembers.user_key == self.user_key,
+                EventResults.position == 2
+            ).first()
+            is not None
+        )
 
     def __repr__(self):
-        return f"TeamMembers('{self.team_key}', '{self.user_key}')"
+        return f"TeamMembers('{self.id}', 'Teams:{self.team_key}', 'Users:{self.user_key}')"
 
 class EventDetails(db.Model):
     __tablename__ = 'event_details'
@@ -221,12 +253,13 @@ class EventResults(db.Model):
     __tablename__ = 'event_results'
     id = db.Column(db.Integer, primary_key=True)
     event_key = db.Column(db.Integer, db.ForeignKey('event_details.id'), nullable=False)
-    participant_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    tm_key = db.Column(db.Integer, db.ForeignKey('team_members.id'), nullable=False)
 
     position = db.Column(db.Integer, default=0)
 
     event = db.relationship('EventDetails', lazy=True)
-    participant = db.relationship('Users', lazy=True)
+    tm = db.relationship('TeamMembers', lazy=True)
+    participant = association_proxy('tm', 'user')
 
 
 # Passes and Passes accesses are not yet robust enough

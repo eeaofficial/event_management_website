@@ -7,7 +7,8 @@ from typing import Optional
 from flask import url_for
 
 from app.models import EventDetails, Users, Purchases, \
-    Teams, TeamMembers, EventRegistrations, Passes, PassAccesses
+    Teams, TeamMembers, EventRegistrations, Passes, PassAccesses, \
+    EventResults
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
 from app.utils import random_string
@@ -128,3 +129,18 @@ def send_registration_mail(
 def get_mit_code_pass():
     event_pass = Passes.query.filter_by(pass_id='nL4BFHtkh6').one_or_none()
     return event_pass
+
+def get_event_results(event: EventDetails, position: int) -> list[Users]:
+    if not isinstance(event, EventDetails):
+        return []
+
+    ers = EventResults.query.filter_by(event_key=event.id, position=position).all()
+    candidates = []
+    for er in ers:
+        participant = er.participant
+        if er.tm.event_attended:
+            candidates.append(participant)
+        else:
+            print(f"[WARN] Ignore participant didn't attend - {participant}")
+
+    return candidates

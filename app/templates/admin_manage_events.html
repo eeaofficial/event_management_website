@@ -1,41 +1,7 @@
 {%extends "layout.html"%}
 
 {%block head%}
-
-<style>
-    .auto-dismiss {
-        transition: opacity 0.6s ease-out;
-        margin-bottom: 15px;
-    }
-</style>
-
-    <script>
-
-        function showFlashMessage(message, type = 'warning', timeout = 1000) {
-            const $alert = $('<div>', {
-                class: `alert alert-${type} alert-dismissible fade show`,
-                role: 'alert'
-            });
-
-            const $closeBtn = $('<button>', {
-                type: 'button',
-                class: 'btn-close',
-                'data-bs-dismiss': 'alert',
-                'aria-label': 'Close'
-            });
-
-            $alert.append(document.createTextNode(message));
-            $alert.append($closeBtn);
-
-            $('.flash-message-secondary').append($alert);
-
-            setTimeout(() => {
-                $alert.fadeOut('slow', function () {
-                    $(this).remove();
-                });
-            }, timeout);
-        }
-        
+    <script>        
         function updateEventStatus(eventId) {
             var newAcceptStatus = $('#status_' + eventId).prop('checked');
             var newResultStatus = $('#result_' + eventId).prop('checked');
@@ -78,13 +44,13 @@
                     } else {
                         $('#status_' + eventId).prop('checked', !newAcceptStatus);
                         $('#result_' + eventId).prop('checked', !newResultStatus);
-                        showFlashMessage('Failed to update event status. Please try again.', 'danger');
+                        showFlashMessage('Failed to update event status - ' + response.details, 'danger', 1, false);
                     }
                 },
                 error: function(xhr, status, error) {
                     $('#status_' + eventId).prop('checked', !newAcceptStatus);
                     $('#result_' + eventId).prop('checked', !newResultStatus);
-                    showFlashMessage('Error updating event status: ' + error, 'danger');
+                    showFlashMessage('Error updating event status: ' + error, 'danger', 1, false);
                 },
                 complete: function() {
                     $('#status_' + eventId).prop('disabled', false);
@@ -157,11 +123,11 @@
                         }
                         showFlashMessage(message, 'success');
                     } else {
-                        showFlashMessage('Failed to update passes. Please try again.', 'danger');
+                        showFlashMessage('Failed to update passes - ' + response.details, 'danger', 1, false);
                     }
                 },
                 error: function(xhr, status, error) {
-                    showFlashMessage('Error updating passes: ' + error, 'danger');
+                    showFlashMessage('Error updating passes: ' + error, 'danger', 1, false);
                 },
                 complete: function() {
                     updateBtn.css('pointer-events', 'auto').css('opacity', '1').text('Update Passes');
@@ -211,22 +177,6 @@
         .passes-dropdown input[type="checkbox"] {
             margin-right: 8px;
         }
-        
-        .dynamic-flash-message {
-            animation: slideInRight 0.3s ease-out;
-        }
-        
-        @keyframes slideInRight {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
     </style>
 
 {%endblock head%}
@@ -288,6 +238,7 @@
                             {%endif%}
                         </td>
                         <td>
+                            {% if i.category != "workshop" %}
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="passesDropdown_{{ i.id }}" data-bs-toggle="dropdown" aria-expanded="false">
                                     <span id="passesCount_{{ i.id }}">{{ event_passes_map[i.id]|length if event_passes_map[i.id] else 0 }} passes</span>
@@ -308,14 +259,17 @@
                                             </label>
                                         </li>
                                     {% endfor %}
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li>
-                                        <a class="dropdown-item text-center" href="#" onclick="updateEventPasses('{{ i.id }}'); return false;" style="background-color: #0d6efd; color: white; font-weight: bold;">
-                                            Update Passes
-                                        </a>
-                                    </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-center" href="#"
+                                                onclick="updateEventPasses('{{ i.id }}');"
+                                                style="background-color: #0d6efd; color: white; font-weight: bold;">
+                                                Update Passes
+                                            </a>
+                                        </li>
                                 </ul>
                             </div>
+                            {%endif%}
                             <div id="passesDisplay_{{ i.id }}" class="mt-1" style="font-size: 0.85em;">
                                 {% if event_passes_map[i.id] %}
                                     {% for pass in event_passes_map[i.id] %}

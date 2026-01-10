@@ -4,17 +4,17 @@ organizer routes
 
 import string
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
-from flask import redirect, render_template, flash, url_for, request, Blueprint, send_file, jsonify
+from flask import redirect, render_template, flash, url_for, request, Blueprint, send_file, jsonify, abort
 from flask_login import login_required, current_user
 import xlsxwriter
 
-from app.models import EventDetails, TeamMembers, Teams, Users, EventRegistrations, Passes, PassAccesses, EventOrganizers, EventResults
+from app.models import EventDetails, TeamMembers, Users, Passes, PassAccesses, EventOrganizers, EventResults
 from app.utils import save_image, random_string
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
-from app.utils_organizer import get_registered_teams, get_organizers_from_regno, get_organizer_regnos
+from app.utils_organizer import get_organizers_from_regno, get_organizer_regnos, get_registered_tm_entires
 
 bp = Blueprint("organizer", __name__)
 
@@ -158,9 +158,9 @@ def send_sample_mail():
     ret = send_mail(to, subject, body, body_format='html')
 
     if ret['status'] != 'success':
-        return jsonify({'message':'Unable to send Mail; Contact Admin'})
+        return jsonify({'status': 'error', 'details': f'Unable to send Mail - {ret["details"]}'})
 
-    return jsonify({'message':'Mail sent'})
+    return jsonify({'status': 'success', 'message':'Mail sent'})
 
 
 @bp.route('/event/<idx>', methods=['GET', 'POST'])
@@ -182,6 +182,12 @@ def organiser_event(idx):
             return jsonify({'status': 'error', 'message': 'Invalid Route!'})
         form = request.form
         details = dict(form)
+
+        if evt.is_event_accepted:
+            return jsonify({'status': 'error', 'message': 'event can\'t be edited once it is live!'})
+
+        if evt.is_result_submitted:
+            return jsonify({'status': 'error', 'message': 'results are already submitted, no more modification allowed!'})
 
         rounds = {}
         ids = []
@@ -227,17 +233,17 @@ def organiser_event(idx):
         evt.thumbnail=event_pic
 
         if 'name' in form:
-            evt.name=details['name']
+            evt.name = details['name']
         if 'catagory' in form:
-            evt.category=details['category']
+            evt.category = details['category']
         if 'description' in form:
-            evt.description=details['description']
+            evt.description = details['description']
         if 'max_team_size' in form:
-            evt.max_team_size=details['max_team_size']
+            evt.max_team_size = details['max_team_size']
         if 'topic' in form:
-            evt.topic=details['topic']
+            evt.topic = details['topic']
         if 'participant_instructions' in form:
-            evt.participant_instructions=details['mail_cnt']
+            evt.participant_instructions = details['mail_cnt']
 
         EventOrganizers.query.filter_by(event_key=evt.id).delete()
         db.session.commit()
@@ -270,12 +276,7 @@ def organiser_event(idx):
 
     org_regnos = get_organizer_regnos(evt.get_organizers())
 
-    data = []
-    teams = get_registered_teams(evt)
-    for team in teams:
-        tms = TeamMembers.query.filter_by(team_key=team.id).all()
-        print(type(tms))
-        data.append(tms)
+    data = get_registered_tm_entires(evt)
 
     return render_template('organiser_event_details.html', event=evt,
         registered=data, event_rounds=event_rounds,
@@ -300,40 +301,56 @@ def organiser_event_download(idx):
         if current_user not in evt.get_organizers():
             flash(f'You are not the organiser of Event {evt.name}!', 'danger')
             return redirect(url_for('dashboard'))
-
-    teams = get_registered_teams(idx)
+    IST = timezone(timedelta(hours=5, minutes=30))
+    teams = get_registered_tm_entires(evt)
     data = []
     n = 5
     start_row = []
     sno = 1
     for team in teams:
         start_row.append(n)
-        for i in team.members:
-            u = Users.query.filter_by(reg_no=i).first()
-            # data.append([sno, u.name, u.reg_no, u.mobile, u.email, event.event_attended])
-            data.append([sno, u.name, u.reg_no, u.mobile, u.email, False])
+        for tm in team:
+            u = tm.user
+            attended_at = "NA"
+            if tm.event_attended:
+                # as because tm.attended_at is naive, when we do astimezone of IST, it assumes that time is already local
+                # so we want to first .replace(tzinfo=timezone.utc) and then astimezone of IST
+                attended_at = tm.attended_at.replace(tzinfo=timezone.utc).astimezone(IST).replace(tzinfo=None)
+                print(attended_at)
+            data.append([sno, u.name, u.reg_no, u.mobile, u.email, u.dept, u.college, tm.event_attended, attended_at])
             n += 1
         sno += 1
     start_row.append(n)
+    dt_cols = [8]
 
     output = BytesIO()
     workbook = xlsxwriter.Workbook(output)
     worksheet = workbook.add_worksheet(f'{evt.name}')
     header_format = workbook.add_format({'bold': True})
-    headers = ['S.No.', 'Name', 'Registration Number', 'Phone Number', 'Email', 'Attended Event']
+    header_dt_format = workbook.add_format({'bold': True, 'num_format': 'dd mmm yyyy, hh:mm AM/PM'})
+    dt_format = workbook.add_format({'num_format': 'dd mmm yyyy, hh:mm AM/PM'})
+
+    headers = ['S.No.', 'Name', 'Registration Number', 'Phone Number', 'Email', 'Department', 'College', 'Has Attended Event?', 'Attended At']
     worksheet.write(0, 0, evt.name, header_format)
     worksheet.write(1, 0, 'Data as of', header_format)
-    worksheet.write(1, 1, datetime.now().strftime('%Y-%m-%d %I:%M %p'),header_format)
+    worksheet.write(1, 1, datetime.now().astimezone(IST).replace(tzinfo=None), header_dt_format)
     for i, header in enumerate(headers):
         worksheet.write(3, i, header, header_format)
 
+    row = 4
     for row, row_data in enumerate(data, start=4):
         for col, cell_data in enumerate(row_data):
-            worksheet.write(row, col, cell_data)
+            if col in dt_cols:
+                worksheet.write(row, col, cell_data, dt_format)
+            else:
+                worksheet.write(row, col, cell_data)
 
     for n, i in enumerate(range(1, len(start_row)), start=1):
         if not start_row[i]-1 == start_row[i-1]:
             worksheet.merge_range(f'A{start_row[i-1]}:A{start_row[i]-1}', n)
+
+    row += 4
+    worksheet.write(row, 0, "All date and time are in IST")
 
     workbook.close()
 
@@ -346,31 +363,6 @@ def organiser_event_download(idx):
     resp.headers["Content-Disposition"] = f"attachment; filename=sympo_name_participants_{name}.xlsx"
     resp.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     return resp
-
-@bp.route('/event_result', methods=['POST'])
-@login_required
-def organiser_event_result():
-    data = dict(request.form)
-    evt = EventDetails.query.filter_by(event_id=data['event_id']).first()
-
-    if not current_user.isOrganizer:
-        return jsonify({'status': 'error', 'message': 'Invalid Route!'})
-
-    if not evt:
-        return jsonify({'status': 'error', 'message':'no such event'})
-
-    if current_user != evt.created_by:
-        return jsonify({'status': 'error', 'message':'You can ONLY submit winner/runner if you created the event'})
-
-    user = Users.query.filter_by()
-
-    position_entry = EventResults.query.filter_by(event_key=evt.id, participant_key=user.id).first()
-
-    evt.is_result_submitted = True
-
-    db.session.commit()
-
-    return jsonify({'success':'success', 'winner':evt.winner, 'runner':evt.runner})
 
 @bp.route('/preview-event/<idx>')
 @login_required
@@ -388,7 +380,7 @@ def preview_event(idx):
 
     if not current_user.isAdministrator:
         if current_user not in organizers:
-            flash('You are not the organizer of the event!', 'danger')
+            flash(f'You are not the organizer of the event {evt.name}!', 'danger')
             return redirect(url_for('dashboard'))
 
     organiser_details = []
@@ -420,8 +412,9 @@ def update_participation_status():
     evt = EventDetails.query.filter_by(event_id=data['event_id']).one_or_none()
     if not evt:
         return jsonify({'status': 'error', 'details': 'No such event!'})
-    if current_user not in evt.get_organizers():
-        return jsonify({'status': 'error', 'details': f'You are not an organizer of the requested event {evt.name}({evt.event_id})!'})
+    if not current_user.isAdministrator:
+        if current_user not in evt.get_organizers():
+            return jsonify({'status': 'error', 'details': f'You are not an organizer of the requested event {evt.name}({evt.event_id})!'})
 
     tm_entry = TeamMembers.query.get(data['tm_id'])
     if not tm_entry:
@@ -430,65 +423,142 @@ def update_participation_status():
         return jsonify({'status': 'error', 'details': 'data mismatch!'})
 
     tm_entry.event_attended = data['new_status'] == 'true'
-    tm_entry.attended_at = datetime.now()
+    tm_entry.attended_at = datetime.now(timezone.utc)
 
     db.session.commit()
 
-    return jsonify({'status': 'success', 'details': 'ok'})
+    return jsonify({'status': 'success', 'details': 'ok', 'timestamp': tm_entry.attended_at.isoformat()})
 
-@bp.route('/update-event-detail', methods=['POST'])
+@bp.route('/update-accept-participants', methods=['POST'])
 @login_required
-def update_event_detail():
+def update_accept_participants():
+    if not current_user.isOrganiser:
+        return jsonify({'status': 'error', 'details': 'Invalid Route!'})
+
+    data = dict(request.form)
+
+    if 'event_id' not in data or 'newAcceptRegistrationStatus' not in data:
+        return jsonify({'status': 'error', 'details': 'Incomplete request!'})
+
+    evt = EventDetails.query.filter_by(event_id=data['event_id']).one_or_none()
+    if not evt:
+        return jsonify({'status': 'error', 'details': 'No such event!'})
+    if not current_user.isAdministrator:
+        if current_user not in evt.get_organizers():
+            return jsonify({'status': 'error', 'details': f'You are not an organizer of the requested event {evt.name}({evt.event_id})!'})
+    if evt.is_result_submitted:
+        return jsonify({'status': 'error', 'details': 'Results are already submitted, no more edits possible'})
+
     event_id = request.form['event_id']
     new_status = request.form['newAcceptRegistrationStatus'] == 'true'
     evt = EventDetails.query.filter_by(event_id=event_id).first()
     evt.is_accepting_registration = new_status
     db.session.commit()
-    return jsonify(success=True)
+    return jsonify({'status': 'success', 'details': 'ok'})
 
-@bp.route('/update_event_result', methods=['POST'])
+@bp.route('/update-event-result', methods=['POST'])
 @login_required
-def organiser_update_event_result():
-    data =dict(request.form)
+def update_event_result():
+    if not current_user.isOrganiser:
+        return jsonify({'status': 'error', 'details': 'Invalid Route!'})
 
-    event_id = data['event_id']
-    evt = EventDetails.query.filter_by(event_id=event_id).first()
+    data = dict(request.get_json())
+
+    if 'event_id' not in data or 'tm_ids' not in data or 'position' not in data:
+        return jsonify({'status': 'error', 'details': 'Incomplete request!'})
+
+    if data['position'] not in ['winner', 'runner']:
+        return jsonify({'status': 'error', 'details': 'Invalid position value!'})
+
+    evt = EventDetails.query.filter_by(event_id=data['event_id']).one_or_none()
     if not evt:
         return jsonify({'status': 'error', 'details': 'No such event!'})
-    # if not u:
-    #     return jsonify({'message':'No such Participant'})
+    if not current_user.isAdministrator:
+        if current_user not in evt.get_organizers():
+            return jsonify({'status': 'error', 'details': f'You are not an organizer of the requested event {evt.name}({evt.event_id})!'})
+    if evt.is_result_submitted:
+        return jsonify({'status': 'error', 'details': 'Results are already submitted, no more edits possible'})
 
-    # check if user attended event
-    # teams = get_registered_teams(event_id)
-    # for team in teams:
-    #     for u in team.members:
-    #         if u.reg_no in i.reg_no:
-    #             break
+    tm_entries = []
+    for i in data['tm_ids']:
+        tm_entry = TeamMembers.query.get(i)
+        if not tm_entry:
+            return jsonify({'status': 'error', 'details': f'Unable to find Team Member Entry for event - {i}'})
+        if tm_entry.team.event != evt:
+            return jsonify({'status': 'error', 'details': 'data mismatch!'})
+        if not tm_entry.event_attended:
+            return jsonify({'status': 'error', 'details': f'User not participated in event yet - {i}'})
+        tm_entries.append(tm_entry)
 
-    # if not i.event_attended:
-    if "Not implemnted": #Events-event_attended
-        return jsonify({'message':'Participant not attended event'})
-    if not evt:
-        return jsonify({'message':'No such Event'})
-
-
-    if data['newWinnerStatus'] == 'true':
-        if evt.winner:
-            evt.winner += u.reg_no + ','
-        else:
-            evt.winner = u.reg_no + ','
-    else:
-        if evt.winner:
-            evt.winner = evt.winner.replace(u.reg_no+',', '')
-
-    if data['newRunnerStatus'] == 'true':
-        if evt.runner:
-            evt.runner += u.reg_no + ','
-        else:
-            evt.runner = u.reg_no + ','
-    else:
-        if evt.runner:
-            evt.runner = evt.runner.replace(u.reg_no+',', '')
-
+    position = 1 if data['position'] == 'winner' else 2
+    EventResults.query.filter_by(event_key=evt.id, position=position).delete()
     db.session.commit()
-    return jsonify(success=True)
+    for tme in tm_entries:
+        er = EventResults(
+            event=evt,
+            tm=tme,
+            position=position
+        )
+        db.session.add(er)
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'details': 'ok'})
+
+@bp.route('/get-results/<idx>')
+def get_results(idx):
+    if not current_user.is_authenticated or not current_user.isOrganiser:
+        abort(404)
+
+    evt = EventDetails.query.get(idx)
+
+    if not evt:
+        return jsonify({'status': 'error', 'details': 'Event not found'})
+    if not current_user.isAdministrator:
+        if current_user not in evt.get_organizers():
+            return jsonify({'status': 'error', 'details': f'You are not an organizer of the requested event {evt.name}({evt.event_id})!'})
+
+    winners = []
+    runners = []
+
+    wer = EventResults.query.filter_by(event=evt, position=1).all()
+    rer = EventResults.query.filter_by(event=evt, position=2).all()
+
+    for i in wer:
+        winners.append(i.participant.to_dict())
+    for j in rer:
+        runners.append(j.participant.to_dict())
+
+    return jsonify({
+        'status': 'success',
+        'details': 'ok',
+        'winners': winners,
+        'runners': runners
+    })
+
+
+@bp.route('/finalize-results', methods=['POST'])
+@login_required
+def finalize_results():
+    if not current_user.isOrganiser:
+        return jsonify({'status': 'error', 'details': 'Invalid Route!'})
+
+    data = dict(request.form)
+
+    if 'event_id' not in data:
+        return jsonify({'status': 'error', 'details': 'Incomplete request!'})
+
+    evt = EventDetails.query.filter_by(event_id=data['event_id']).one_or_none()
+    if not evt:
+        return jsonify({'status': 'error', 'details': 'No such event!'})
+    if not current_user.isAdministrator:
+        if current_user not in evt.get_organizers():
+            return jsonify({'status': 'error', 'details': f'You are not an organizer of the requested event {evt.name}({evt.event_id})!'})
+    if evt.is_result_submitted:
+        return jsonify({'status': 'error', 'details': 'Results already submitted!'})
+
+    evt.is_result_submitted = True
+    evt.is_accepting_registration = False
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'details': 'ok'})
+

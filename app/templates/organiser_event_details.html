@@ -61,6 +61,12 @@
             border-style: ridge;
         }
 
+        .locale-info {
+            color: white;
+            border: 1px solid #c7dcff;
+            border-radius: 6px;
+            padding: 10px 14px;
+        }
 
     </style>
 
@@ -77,65 +83,84 @@
                     'new_status': newStatus
                 },
                 success: function(response) {
-                if (response.status=='success') {
-                    if(newStatus) {
-                        $('.attend_' + tmId).text('Attended');
-                    } else {
-                        $('.attend_' + tmId).text('Not yet Attended');
-                    }
-                    alert('User status updated successfully.');
-                } else {
-                    alert('Failed to update user status. - ' + response.details);
-                }
-                }
-            });
-        }
-
-        function updateEventResult(tmId) {
-            var newWinnerStatus = $('#winner_user_' + tmId).prop('checked');
-            var newRunnerStatus = $('#runner_user_' + tmId).prop('checked');
-            $.ajax({
-                url: "{{url_for('organizer.organiser_update_event_result')}}",
-                type: 'POST',
-                data: {
-                    'tm_id': tm_id,
-                    'newWinnerStatus': newWinnerStatus,
-                    'newRunnerStatus': newRunnerStatus,
-                    'event_id': '{{event.id}}'
-                },
-                success: function(response) {
                     if (response.status == 'success') {
-                        if(newWinnerStatus) {
-                            $('#winner_user_' + tmId).prop('checked', true);
+                        const $target = $('.attend_' + tmId);
+
+                        const statusText = newStatus ? 'Attended' : 'Not yet Attended';
+                        var time = response.timestamp;
+
+                        $target.find('.status').text(statusText);
+                        $target.find('.time').attr('data-tm', time);
+                        $target.find('.time').text(formatDate(time));
+
+                        if(newStatus) {
+                            $target.find('.time').prop('hidden', false);
                         } else {
-                            $('#winner_user_' + tmId).prop('checked', false);
+                            $target.find('.time').prop('hidden', true);
                         }
-                        if(newRunnerStatus) {
-                            $('#runner_user_' + tmId).prop('checked', true);
-                        } else {
-                            $('#runner_user_' + tmId).prop('checked', false);
-                        }
-                        alert('Winner or Runner status updated successfully.');
+                        showFlashMessage('User status updated successfully.', 'success');
                     } else {
-                        alert(response.message+'\nFailed to update Winner or Runner status.');
+                        showFlashMessage('Failed to update user status. - ' + response.details, 1, false);
                     }
                 }
             });
-
         }
 
         function updateAcceptRegistrationStatus() {
             var newStatus = $('#status_accept_registration').prop('checked');
             $.ajax({
-                url: "{{url_for('organizer.update_event_detail')}}",
+                url: "{{url_for('organizer.update_accept_participants')}}",
                 type: 'POST',
-                data: {event_id: "{{event.event_id}}", newAcceptRegistrationStatus: newStatus},
+                data: {
+                    'event_id': "{{event.event_id}}",
+                    'newAcceptRegistrationStatus': newStatus
+                },
                 success: function(response) {
-                    if (response.success) {
-                        alert('Event status updated successfully.');
+                    if (response.status=='success') {
+                        showFlashMessage('Event status updated successfully', 'success');
                     } else {
-                        alert('Failed to update event status.');
+                        showFlashMessage('Failed to update event status - ' + response.details, 'danger', 1, false);
                     }
+                }
+            });
+        }
+
+        function updateEventResult(position) {
+            event.preventDefault();
+            var entries = [];
+            if(position=='winner') {
+                entries = $('.winner-checkbox:checked')
+                    .map(function () {
+                        return $(this).data('tm-id');
+                    })
+                    .get();
+            } else if(position=='runner') {
+                entries = $('.runner-checkbox:checked')
+                    .map(function () {
+                        return $(this).data('tm-id');
+                    })
+                    .get();
+            }
+
+            $.ajax({
+                url: "{{ url_for('organizer.update_event_result') }}",
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    'tm_ids': entries,
+                    'position': position,
+                    'event_id': '{{event.event_id}}'
+                }),
+                success: function(response){
+                    if(response.status=='success') {
+                        showFlashMessage('Event Result updated successfully!', 'success');
+                    }
+                    else {
+                        showFlashMessage('could not update event result - ' + response.details, 'danger', 1, false);
+                    }
+                },
+                error: function(){
+                    showFlashMessage('unable to complete request', 'danger', 1, false);
                 }
             });
         }
@@ -154,27 +179,91 @@
 
             $('#result-button').on('click', function(event){
                 event.preventDefault();
-                
+                $.ajax({
+                    url: "{{ url_for('organizer.get_results', idx=event.id) }}",
+                    type: 'GET',
+                    success: function(response) {
+                        if (response.status == 'success') {
+                            $('#winnersList').empty();
+                            $('#runnersList').empty();
 
-                if(confirm('Are you sure to fix winners as {{event.winner}} and runners as {{event.runner}}')) {
-                    $.ajax({
-                        url: "{{url_for('organizer.organiser_event_result')}}",
-                        type:"POST",
-                        data:{
-                            event_id:'{{event.event_id}}'
-                        },
-                        success: function(response){
-                            if(response.message) {
-                                alert(response.message);
+                            if (response.winners.length > 0) {
+                                response.winners.forEach(function(winner) {
+                                    const $li = $('<li>');
+
+                                    $li.append(
+                                        $('<strong>').text(winner.name),
+                                        ' (', winner.reg_no, ')',
+                                        $('<br>'),
+                                        $('<span>').text(winner.email),
+                                        $('<br>'),
+                                        $('<span>').text(`${winner.college} - ${winner.dept}`)
+                                    );
+
+                                    $('#winnersList').append($li);
+                                });
+                            } else {
+                                $('#winnersList').append('<li>No winners selected</li>');
                             }
-                            if(response.success) {
-                                alert(response.winner+'<br>'+response.runner);
+
+                            if (response.runners.length > 0) {
+                                response.runners.forEach(function(runner) {
+                                    const $li = $('<li>');
+
+                                    $li.append(
+                                        $('<strong>').text(runner.name),
+                                        ' (', runner.reg_no, ')',
+                                        $('<br>'),
+                                        $('<span>').text(runner.email),
+                                        $('<br>'),
+                                        $('<span>').text(`${runner.college} - ${runner.dept}`)
+                                    );
+
+                                    $('#runnersList').append($li);
+                                });
+                            } else {
+                                $('#runnersList').append('<li>No runners selected</li>');
                             }
+
+                            $('#confirmResultsModal').modal('show');
+                        } else {
+                            showFlashMessage('Error fetching results: ' + response.details, 'danger', 1, false);
                         }
-
-                    })
-                }
+                    },
+                    error: function() {
+                        showFlashMessage('Unable to fetch results.', 'danger', 1, false);
+                    }
+                });
             });
+
+            $('#confirmFinalize').on('click', function() {
+                $.ajax({
+                    url: "{{url_for('organizer.finalize_results')}}",
+                    type: "POST",
+                    data: {
+                        event_id: '{{event.event_id}}'
+                    },
+                    success: function(response) {
+                        $('#confirmResultsModal').modal('hide');
+                        if (response.status === 'success') {
+                            showFlashMessage('Results finalized successfully!', 'success');
+                            location.reload();
+                        } else {
+                            showFlashMessage('Error: ' + response.details, 'danger', 1, false);
+                        }
+                    },
+                    error: function() {
+                        showFlashMessage('Unable to finalize results. Please try again.', 'danger', 1, false);
+                    }
+                });
+            });
+
+            $("[data-dt]").each(function () {
+                const raw = $(this).data("dt");
+                $(this).text(formatDate(raw));
+            });
+
+            $('.locale-info').html(getLocaleInfoHTML())
         });
 
         $(document).ready(function() {
@@ -354,7 +443,13 @@
                         id:'{{event.event_id}}'
                     },
                     success:function(response){
-                        alert(response.message)
+                        if(response.status == 'success')
+                            showFlashMessage("Success! " + response.details, 'success');
+                        else
+                            showFlashMessage("Error: " + response.details, 'danger', 1, false);
+                    },
+                    error: function(xhr, status, error) {
+                        showFlashMessage('Error sending mail: ' + error, 'danger', 1, false);
                     }
                 })
             });
@@ -365,27 +460,37 @@
 
 {%block body%}
 
-    <h1>{{event.name}}</h1>
-
-    Event Status: 
-    {% if event.is_event_accepted %}
-    Accepted
-    {%else%}
-    Not yet accepted; Contact admin to accept
-    {%endif%}
+    <h1>Event: {{event.name}}</h1>
     <br/><br/>
 
-    Result status:
-    {% if event.is_result_submitted %}
-        {% if event.is_result_accepted %}
-        Accepted and Published
-        {%else%}
-        Not yet accepted; Contact admin to accept
+    <h2>
+        Status:
+        {% if event.is_result_submitted %}
+            Frozen
+        {% else %}
+            {% if event.is_event_accepted %}
+                Accepted & Live
+            {%else%}
+                Not yet live, contact admin to accept
+            {%endif%}
         {%endif%}
-    {%else%}
-        To be finalised by you
-    {%endif%}
+    </h2>
+    <br/><br/>
+
+    <h2>
+        Result Status:
+        {% if event.is_result_submitted %}
+            {% if event.is_result_accepted %}
+            Accepted and Published
+            {%else%}
+            Submitted, to be accepted; Contact admin to accept
+            {%endif%}
+        {%else%}
+            To be finalized by organizers
+        {%endif%}
+    </h2>
     <br/><br/><br/>
+
 
     {%set created_by_me = current_user==event.created_by %}
 
@@ -393,7 +498,8 @@
         <button id="update-button" class="btn" {%if event.is_result_submitted or not created_by_me %} disabled {% endif %}>Update Event</button>
     {%endif%}
     <button id="participants-button" class="btn">See Registed Participants</button>
-    <button class="btn" id="send-sample-mail" {%if not created_by_me%}disabled{%endif%}>Send Sample Mailing Content to you for preview</button>
+
+    <button class="btn" id="send-sample-mail">Send Sample Mailing Content to you for preview</button>
 
     {% if created_by_me and not event.is_result_submitted%}
         <button id="result-button" style="color:red">Confirm and Submit the selected winners and runners (Action CANNOT be undone and event gets FREEZED)</button>
@@ -401,7 +507,11 @@
 
     <div>
         Accept participant registration
-        <input type="checkbox" id="status_accept_registration" {% if event.is_accepting_registration %}checked{% endif %} onclick="updateAcceptRegistrationStatus()">
+        {% if not event.is_result_submitted %}
+            <input type="checkbox" id="status_accept_registration" {% if event.is_accepting_registration %}checked{% endif %} onclick="updateAcceptRegistrationStatus()">
+        {% else %}
+            <i class="fa fa-ban" style="color: red"></i>
+        {% endif %}
     </div>
 
     <div id="update-event">
@@ -526,15 +636,29 @@
                 <th>Registration Number</th>
                 <th>Phone Number</th>
                 <th>Email</th>
-                <th>Attended Event (Change Status)</th>
-                <th>Action</th>
-                <th>Action Winner</th>
-                <th>Action Runner</th>
+                <th>Particiation Status</th>
+                <th>Update Particiation Status</th>
+                <th>
+                    Action Winner <br/>
+                    <button id="header-winner-button" class="btn"
+                        {% if event.is_result_submitted %} disabled {%endif%}
+                        onclick="updateEventResult('winner')">
+                        Submit Winner
+                    </button>
+                </th>
+                <th>
+                    Action Runner <br/>
+                    <button id="header-runner-button" class="btn"
+                        {% if event.is_result_submitted %} disabled {%endif%}
+                        onclick="updateEventResult('runner')">
+                        Submit Runner
+                    </button>
+                </th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td colspan="7" style="align-self: center;">
+                <td colspan="9" style="align-self: center;">
                     <a href="{{ url_for('organizer.organiser_event_download',idx=event.event_id) }}">Download Participants Details as Excel</a>
                 </td>
             </tr>
@@ -546,36 +670,38 @@
                         {% if loop.index == 1 %}
                             <td rowspan="{{tms | length}}">{{outer_index}}</td>
                         {% endif %}
-                        <td>{{member.name}}</td>
+                        <td>({{i.id}}) {{member.name}}</td>
                         <td>{{member.reg_no}}</td>
                         <td>{{member.mobile}}</td>
                         <td>{{member.email}}</td>
 
                         <td class="attend_{{ i.id }}">
-                            {%if i.event_attended%}
-                                Attended<hr/>
-                                @ {{i.attended_at}}
-                            {%else%}
-                                Not yet Attended
-                            {%endif%}
+                            <span class="status">
+                                {%if i.event_attended%}
+                                    Attended
+                                {%else%}
+                                    Not yet Attended
+                                {%endif%}
+                            </span>
+                            <hr/>
+                            <span class="time" data-dt="{{i.attended_at}}" {%if not i.event_attended%}hidden{%endif%}></span>
+                            
                         </td>
                         <td>
-                            <input type="checkbox" class="status_{{ i.id }}" 
+                            <input type="checkbox" class="status_{{ i.id }}"
                                 {% if i.event_attended %} checked {% endif %}
                                 {% if event.is_result_submitted %} disabled {% endif %}
                                 onclick="updateUserStatus('{{ i.id }}')"/>
                         </td>
                         <td>
-                            <input type="checkbox" id="winner_user_{{ i.id }}"
+                            <input type="checkbox" class="winner-checkbox" data-tm-id="{{i.id}}"
                                 {% if i.is_winner() %} checked {% endif %}
-                                {% if event.is_result_submitted %} disabled {% endif %}
-                                onclick="updateEventResult('{{ i.id }}')"/>
+                                {% if event.is_result_submitted %} disabled {% endif %}/>
                         </td>
                         <td>
-                            <input type="checkbox" id="runner_user_{{ i.id }}"
+                            <input type="checkbox" class="runner-checkbox" data-tm-id="{{i.id}}"
                                 {% if i.is_runner() %} checked {% endif %}
-                                {% if event.is_result_submitted %} disabled {% endif %}
-                                onclick="updateEventResult('{{ i.id }}')">
+                                {% if event.is_result_submitted %} disabled {% endif %}/>
                         </td>
                     </tr>
                 {%endfor%}
@@ -584,4 +710,32 @@
     </table>
 
     <br/><br>
+
+    <div class="locale-info"></div>
+
+    <div class="modal fade" id="confirmResultsModal" tabindex="-1" style="color: black">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Winners and Runners</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <span>Are you sure you want to finalize the results? </span><br/>
+                    <h6>Winners:</h6>
+                    <ul id="winnersList"></ul>
+                    <h6>Runners:</h6>
+                    <ul id="runnersList"></ul>
+                </div>
+
+                <span class="alert alert-danger"><i class="fa-solid fa-triangle-exclamation"></i>This action cannot be undone.</span>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmFinalize">Confirm and Finalize</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 {%endblock body%}

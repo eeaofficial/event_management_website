@@ -26,6 +26,7 @@
 
 {%block body%}
 <button class="btn btn-success" id="print" onclick="window.print();">Print Page</button>
+<a href="{{ url_for('admin.all_payments_download') }}">Download All Payments as Excel</a>
     <table>
         <thead>
             <tr>

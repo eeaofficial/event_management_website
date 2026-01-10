@@ -15,7 +15,8 @@ from app.models import Users, EventDetails, Passes, Purchases, PassAccesses, Eve
 from app.utils import is_code_applicable, save_image, get_upload_dir, random_string
 from app.mail_utils import send_mail_http as send_mail
 from app.utils_routes import check_user_event_eligibility, register_participants, \
-    send_registration_mail, send_welcome_mail, send_reset_email, get_mit_code_pass
+    send_registration_mail, send_welcome_mail, send_reset_email, get_mit_code_pass, \
+    get_event_results
 
 bp = Blueprint("", __name__)
 
@@ -342,6 +343,7 @@ def workshops():
 
 @bp.route('/event-details/<idx>')
 def event_details(idx):
+    force_details = False
     event = EventDetails.query.filter_by(event_id=idx).first()
 
     if not event:
@@ -368,23 +370,23 @@ def event_details(idx):
     registered_events = current_user.registered_events()
     reg_event_ids = [e.event_id for e in registered_events]
 
-    passes_allowed = PassAccesses.query.filter_by(event_key=event.id).first()
-    pass_id = Passes.query.get(passes_allowed.pass_key).pass_id
+    pass_id = ''
+    if event.category == 'workshop':
+        passes_allowed = PassAccesses.query.filter_by(event_key=event.id).first()
+        if not passes_allowed:
+            pass
+            # flash("No registration allowed", "danger")
+            # return redirect(url_for('events'))
+        if passes_allowed:
+            pass_id = Passes.query.get(passes_allowed.pass_key).pass_id
 
-    if not event.is_result_accepted:
+    if force_details or not event.is_result_accepted:
         return render_template('event_details.html', event=event,
             organiser_details=organizer_details, is_eligible=is_eligible,
             reg_event_ids=reg_event_ids, pass_id=pass_id)
 
-    winners = []
-    runners = []
-    if event.winner:
-        for i in event.winner.split(','):
-            winners.append(Users.query.filter_by(reg_no=i).first())
-
-    if event.runner:
-        for i in event.runner.split(','):
-            runners.append(Users.query.filter_by(reg_no=i).first())
+    winners = get_event_results(event, 1)
+    runners = get_event_results(event, 2)
 
     return render_template('event_result.html', winners=winners, runners=runners, event=event)
 
