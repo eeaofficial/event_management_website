@@ -258,7 +258,6 @@ class EventOrganizers(db.Model):
     event = db.relationship('EventDetails', lazy=True)
     organizer = db.relationship('Users', lazy=True)
 
-
 class EventResults(db.Model):
     __tablename__ = 'event_results'
     id = db.Column(db.Integer, primary_key=True)
@@ -347,3 +346,27 @@ class PurchaseStatusLogs(db.Model):
 
     changed_by = db.relationship('Users', lazy=True)
     purchase = db.relationship('Purchases', lazy=True)
+
+
+    # # hard coded creation of SUPER ADMIN login
+    # email='eea2526official@gmail.com'
+    # user = User.query.filter_by(email=email).first()
+    # hashed_password = bcrypt.generate_password_hash('AdminAccess').decode('utf-8')
+    # if not user:
+    #     admin = User(
+    #             name='SuperAdmin',
+    #             email=email,
+    #             reg_no='2022504019',
+    #             dept='ECE',
+    #             college='MIT',
+    #             events='',
+    #             password=hashed_password,
+    #             mobile=7092554888,
+    #             isOrganiser=True,
+    #             isParticipant=True,
+    #             isAdministrator=True,
+    #             isVerifier=True
+    #             )
+    #     db.session.add(admin)
+    #     db.session.commit()
+
