@@ -109,19 +109,19 @@ with app.app_context():
         db.create_all()
 
     # hard coded creation of SUPER ADMIN login
-    email='super-admin@domain.com'
+    email='eea2526official@gmail.com'
     user = User.query.filter_by(email=email).first()
-    hashed_password = bcrypt.generate_password_hash('superPASS').decode('utf-8')
+    hashed_password = bcrypt.generate_password_hash('AdminAccess').decode('utf-8')
     if not user:
         admin = User(
                 name='SuperAdmin',
                 email=email,
-                reg_no='1234567890',
-                dept='',
-                college='',
+                reg_no='2022504019',
+                dept='ECE',
+                college='MIT',
                 events='',
                 password=hashed_password,
-                mobile=0,
+                mobile=7092554888,
                 isOrganiser=True,
                 isParticipant=True,
                 isAdministrator=True,
