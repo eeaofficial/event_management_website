@@ -60,3 +60,4 @@ XlsxWriter
 zipp
 zopfli
 gunicorn
+psycopg2-binary
