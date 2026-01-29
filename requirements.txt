@@ -60,4 +60,5 @@ XlsxWriter
 zipp
 zopfli
 gunicorn
+Flask-Migrate
 psycopg2-binary
