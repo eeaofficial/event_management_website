@@ -2,3 +2,4 @@
 token.json
 **/__init__.pyc
 **/instance
+.env
