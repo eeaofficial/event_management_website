@@ -27,7 +27,7 @@ Reason: <b>{reason}</b>
 '''
     if purchase.payment_status != 'accepted' and prev_status != purchase.payment_status:
         if event.category == 'workshop':
-            body += f'<b>Note: Your registeration for the workshop: <a href="{url_for('event_details', idx=event.event_id, _external=True)}">{event.name}</a> is also subject to verification</b>'
+            body += f'<b>Note: Your registration for the workshop: <a href="{url_for("event_details", idx=event.event_id, _external=True)}">{event.name}</a> is also subject to verification</b>'
         else:
             body += f"<b>Note: The events you registered with the pass ({purchase.event_pass.pass_name}) are subject to verification</b>"
 

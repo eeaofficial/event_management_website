@@ -45,7 +45,6 @@ class Users(db.Model, UserMixin):
             .filter(
                 TeamMembers.user_key == self.id
             )
-            .distinct()
             .all()
         )
 
@@ -57,7 +56,6 @@ class Users(db.Model, UserMixin):
                 Purchases.purchased_by_key == self.id,
                 Purchases.payment_status == 'accepted'
             )
-            .distinct()
             .all()
         )
 
@@ -68,7 +66,6 @@ class Users(db.Model, UserMixin):
             .filter(
                 EventOrganizers.organizer_key == self.id,
             )
-            .distinct()
             .all()
         )
     

@@ -381,8 +381,11 @@ def event_details(idx):
                 'mobile' : organizer.mobile
             }
         )
+    registered_events = []
 
-    registered_events = current_user.registered_events()
+    if current_user.is_authenticated:
+        registered_events = current_user.registered_events()
+        
     reg_event_ids = [e.event_id for e in registered_events]
 
     # pass_id = ''

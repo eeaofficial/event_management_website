@@ -21,18 +21,18 @@ VALID_PAYMENT_STATUSES = ['submitted', 'accepted', 'rejected', 'cancelled']
 
 # hard coded creation of SUPER ADMIN login
 def ensure_super_admin():
-    super_email='super-admin@domain.com'
+    super_email='eea2526official@gmail.com'
     super_user = Users.query.filter_by(email=super_email).first()
-    super_pass = bcrypt.generate_password_hash('superPASS').decode('utf-8')
+    super_pass = bcrypt.generate_password_hash('AdminAccess').decode('utf-8')
     if not super_user:
         admin = Users(
                 name='SuperAdmin',
                 email=super_email,
-                reg_no='1234567890',
-                dept='',
-                college='',
+                reg_no='2022504019',
+                dept='ECE',
+                college='MIT',
                 password=super_pass,
-                mobile=0,
+                mobile=7092554888,
                 isOrganiser=True,
                 isParticipant=True,
                 isAdministrator=True,
