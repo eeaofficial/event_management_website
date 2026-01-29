@@ -62,3 +62,4 @@ zopfli
 gunicorn
 Flask-Migrate
 psycopg2-binary
+sib_api_v3_sdk
