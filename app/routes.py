@@ -85,7 +85,7 @@ def signup():
         db.session.add(user)
         db.session.commit()
 
-        subject = 'Welcome to <Symposium-Name> \'23'
+        subject = 'Welcome to ElectroFocus\'26'
         to = user.email
         # sample body template while; mail sent when a user creates an account in the website
         body = f'''
@@ -136,7 +136,7 @@ def logout():
 def send_reset_email(user):
     m = 5
     token = user.get_reset_token(m*60) #120 sec valid token
-    subject = 'Password Reset Request | <Symposium-Name> year'
+    subject = 'Password Reset Request | ElectroFocus\'26'
     to = user.email
     body = f'''
     To reset Password, Click on the following link (expires in {m} mins)
@@ -250,7 +250,7 @@ def verify_code_mit():
 #     for i in evts:
 #         u = User.query.filter_by(reg_no=i.reg_no).first()
         
-#         subject = 'Registation Successful | <Symposium-Name> year'
+#         subject = 'Registation Successful | ElectroFocus\'26'
 #         to = u.email
 #         body = f'''<br>
 #         Successfully Registered for {e.name} ! <br><br>
@@ -276,7 +276,7 @@ def send_code_mit():
     if code_possible:
         code = hashlib.sha256(current_user.reg_no.encode('utf-8')).hexdigest()[20:50]
         
-        ret = send_mail(current_user.email, 'Code for Getting access to All events | <Symposium-Name> year', 
+        ret = send_mail(current_user.email, 'Code for Getting access to All events | ElectroFocus\'26', 
                       f'Your Code : {code} <br><br> THIS PASS IS SUBJECT TO VERIFICATION AT REGISTRATION DESK !!! <br><br>', format='html') 
         if not 'success' in ret:
             flash(f'Unable to send mail; Contact admin', 'danger')
@@ -450,7 +450,7 @@ def callback():
         for i in p.reg_no.split(','):
             if i:
                 u = User.query.filter_by(reg_no=i).first()
-                ret = send_mail(u.email, 'Transaction found in Order | <Symposium-Name>', f'Your Payment with Transaction number {tx_no} is found in order and is accepted')
+                ret = send_mail(u.email, 'Transaction found in Order | ElectroFocus\'26', f'Your Payment with Transaction number {tx_no} is found in order and is accepted')
                 err_msg += ret + '\n'
                 try:
                     if 'workshop' in p.pass_type:
@@ -471,7 +471,7 @@ def callback():
                         )
                         db.session.add(evt_reg)
 
-                        subject = 'Registation Successful | <Symposium-Name> year'
+                        subject = 'Registation Successful | ElectroFocus\'26'
                         to = u.email
                         body = f'''<br>
                         Successfully Registered for {evt.name} ! <br><br>
@@ -499,7 +499,7 @@ def callback():
                             )
                             db.session.add(evt_reg)
 
-                            subject = 'Registation Successful | <Symposium-Name> year'
+                            subject = 'Registation Successful | ElectroFocus\'26'
                             to = u.email
                             body = f'''<br>
                             Successfully Registered for {evt.name} ! <br><br>
@@ -519,7 +519,7 @@ def callback():
         for i in p.reg_no.split(','):
             if i:
                 u = User.query.filter_by(reg_no=i).first()
-                ret = send_mail(u.email, 'Transaction Alert | <Symposium-Name> year', f'Your Payment with Transaction number {tx_no} is put to verification. Please feel free to contact the organisers in case of discrepencies')
+                ret = send_mail(u.email, 'Transaction Alert | ElectroFocus\'26', f'Your Payment with Transaction number {tx_no} is put to verification. Please feel free to contact the organisers in case of discrepencies')
                 err_msg += f'{ret}\n'
         msg = 'success (updated as NOT verified)\n'
         if err_msg:
@@ -753,7 +753,7 @@ def register():
         people = evt_reg.reg_no.split(',')
         # print(users)
         for i in users:
-            subject = 'Registation Successful | <Symposium-Name> year'
+            subject = 'Registation Successful | ElectroFocus\'26'
             to = i.email
             body = f'''<br>
             Successfully Registered for {EventDetails.query.filter_by(event_id=data['id']).first().name} ! <br><br>
@@ -1158,7 +1158,7 @@ def send_sample_mail():
         if current_user.reg_no not in organiser_reg_nos and not current_user.isOrganiser:
             return jsonify({'message':f'You are not the organiser of Event {e.name}!'})
                 
-    subject = 'Registation Successful | <Symposium-Name> year <Sample ; for Organiser>'
+    subject = 'Registation Successful | ElectroFocus\'26 <Sample ; for Organiser>'
     to = current_user.email
     body = f'''<br>
     Successfully Registered for {e.name} ! <br><br>
@@ -1433,7 +1433,7 @@ def certificate():
     try:
         if not current_user.isAdministrator:
             # to monitor admin logins - super admin
-            send_mail('super_admin@domain.com', 'Certificate Writing Login Detected | <Symposium-Name> year', f'Certificate Login by : {current_user.name}, {current_user.reg_no}, {current_user.mobile}')
+            send_mail('super_admin@domain.com', 'Certificate Writing Login Detected | ElectroFocus\'26', f'Certificate Login by : {current_user.name}, {current_user.reg_no}, {current_user.mobile}')
     except:
         pass
     return render_template('certificate_data.html')
@@ -1546,152 +1546,35 @@ def method_not_allowed(e):
     return render_template('method_not_allowed.html')
 
 # ***********************************************
+# ****************** Sending Mail via Brevo API *******
 
-# ****************** Sending Mail via SMTP *******
-
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-import mimetypes
-from email import encoders
-import base64
-from email.utils import formatdate
-from email.header import Header
-
-smtp_server = 'smtp.dreamhost.com'
-smtp_port = 587
-smtp_username = 'user@domain.com'
-smtp_password = 'password'
-
-from_email = 'user@domain.com'
-
+import sib_api_v3_sdk
+from sib_api_v3_sdk.rest import ApiException
 
 def send_mail(to, subject, body, format='plain', attachments=[], signature=''):
     try:
-        server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()
-        server.login(smtp_username, smtp_password)
+        config = sib_api_v3_sdk.Configuration()
+        config.api_key['api-key'] = os.getenv("BREVO_API_KEY")
 
-        file_attachments = attachments
-        
-        #create email
-        mimeMessage = MIMEMultipart()
-        mimeMessage['From'] = 'user@domain.com'
-        mimeMessage['To'] = to
-        mimeMessage['Subject'] = subject
-        mimeMessage['Date'] = formatdate(localtime=True)
-        #mimeMessage.attach(MIMEText(html,'html'))
-        mimeMessage.attach(MIMEText(body, format))
+        api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
+            sib_api_v3_sdk.ApiClient(config)
+        )
 
-        if not signature:
-            # SIGNATURE
-            signature = '''
-Thanks & Regards,
-Organizing Team
-            '''
-        mimeMessage.attach(MIMEText(signature, 'plain'))
+        sender = {
+            "email": os.getenv("SENDER_EMAIL"),
+            "name": "ElectroFocus'26"
+        }
 
-        for attachment in file_attachments:
-            content_type, encoding = mimetypes.guess_type(attachment)
-            main_type, sub_type = content_type.split('/', 1)
-            file_name = os.path.basename(attachment)
+        email = sib_api_v3_sdk.SendSmtpEmail(
+            to=[{"email": to}],
+            sender=sender,
+            subject=subject,
+            html_content=body if format == 'html' else f"<p>{body}</p>"
+        )
 
-            with open(attachment, 'rb') as f:
-                myFile = MIMEBase(main_type, sub_type)
-                myFile.set_payload(f.read())
-                myFile.add_header('Content-Disposition', attachment, filename=file_name)
-                encoders.encode_base64(myFile)
+        api_instance.send_transac_email(email)
+        return "success"
 
-            mimeMessage.attach(myFile)
-
-        # raw_string = base64.urlsafe_b64encode(mimeMessage.as_bytes()).decode()
-        # print(from_email)
-        # print(to)
-        # print(mimeMessage.as_string())
-        server.sendmail(from_email, to, mimeMessage.as_string())
-        server.quit()
-        return 'success'
-    except Exception as e:
-        unsent_mail = {}
-        unsent_mail['to'] = to
-        unsent_mail['subject'] = subject
-        unsent_mail['body'] = body
-        unsent_mail['signature'] = signature
-        unsent_mail['attchments'] = attachments
-        save_unsent_mail_directory = os.path.join(app.static_folder, 'unsent_mails')
-        os.makedirs(save_unsent_mail_directory, exist_ok=True)
-        save_file_path = os.path.join(
-            save_unsent_mail_directory,
-            f'{hashlib.sha256(body.encode()).hexdigest()[10:40]}.json')
-        with open(save_file_path, 'w') as file:
-            json.dump(unsent_mail, file)
-        return 'error'
-
-
-# ****************** Sending Mail via HTTP *******
-
-from googleapiclient.discovery import build
-from google.oauth2.credentials import Credentials
-import base64
-
-from email import encoders
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
-import mimetypes
-
-import os
-
-def send_mail_http(to, subject, body, format='plain', attachments=[]):
-    creds = None
-    SCOPES = ['https://mail.google.com/']
-    creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    service = build('gmail', 'v1', credentials=creds)
-
-    file_attachments = attachments
-
-    #html = ''
-    #with open('message.html') as msg:
-    #    html += msg.read()
-
-    #create email
-    mimeMessage = MIMEMultipart()
-    mimeMessage['to'] = to
-    mimeMessage['subject'] = subject
-    #mimeMessage.attach(MIMEText(html,'html'))
-    mimeMessage.attach(MIMEText(body, format))
-
-    for attachment in file_attachments:
-        content_type, encoding = mimetypes.guess_type(attachment)
-        main_type, sub_type = content_type.split('/', 1)
-        file_name = os.path.basename(attachment)
-
-        with open(attachment, 'rb') as f:
-            myFile = MIMEBase(main_type, sub_type)
-            myFile.set_payload(f.read())
-            myFile.add_header('Content-Disposition', attachment, filename=file_name)
-            encoders.encode_base64(myFile)
-
-        mimeMessage.attach(myFile)
-
-
-    raw_string = base64.urlsafe_b64encode(mimeMessage.as_bytes()).decode()
-
-
-    message = service.users().messages().send(
-        userId='me',
-        body={'raw': raw_string}).execute()
-
-    return message
-    
-
-# ***********************************************
-
-# ******** remove after testing ***********
-@app.route('/beta/send_message/<msg>/to/<id>')
-def send(msg, id):
-    message = send_mail(id, 'Hello(Beta)', msg)
-    return message
-
-# ****************************************
+    except ApiException as e:
+        print("Brevo Email Error:", e)
+        return "error"
