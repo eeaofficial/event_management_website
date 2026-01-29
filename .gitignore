@@ -3,4 +3,5 @@ token.json
 **/__init__.pyc
 **/instance
 .env
+app/.env
 static/unsent_mails/
