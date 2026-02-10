@@ -12,7 +12,7 @@ $(document).ready(function() {
                 "reg3":$('#reg3').val(),
                 "reg4":$('#reg4').val(),
                 "reg5":$('#reg5').val(),
-                'type':EVENT_CATAGORY
+                'type':EVENT_CATEGORY
             }
         })
         .done(function(data){

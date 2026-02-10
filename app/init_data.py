@@ -41,30 +41,30 @@ def ensure_super_admin():
         db.session.add(admin)
 
     # users for testing
-    if not Users.query.filter_by(reg_no='1234567899').first():
-        pass_new = bcrypt.generate_password_hash('1').decode('utf-8')
-        u1 = Users(
-            name='abcde',
-            email='a@b.c',
-            reg_no='1234567899',
-            dept='',
-            college='',
-            password=pass_new,
-            mobile=0
-        )
-        db.session.add(u1)
-    if not Users.query.filter_by(reg_no='0123456789').first():
-        pass_new = bcrypt.generate_password_hash('1').decode('utf-8')
-        u2 = Users(
-            name='xyzwx',
-            email='x@y.z',
-            reg_no='0123456789',
-            dept='',
-            college='',
-            password=pass_new,
-            mobile=0
-        )
-        db.session.add(u2)
+    # if not Users.query.filter_by(reg_no='1234567899').first():
+    #     pass_new = bcrypt.generate_password_hash('1').decode('utf-8')
+    #     u1 = Users(
+    #         name='abcde',
+    #         email='a@b.c',
+    #         reg_no='1234567899',
+    #         dept='',
+    #         college='',
+    #         password=pass_new,
+    #         mobile=0
+    #     )
+    #     db.session.add(u1)
+    # if not Users.query.filter_by(reg_no='0123456789').first():
+    #     pass_new = bcrypt.generate_password_hash('1').decode('utf-8')
+    #     u2 = Users(
+    #         name='xyzwx',
+    #         email='x@y.z',
+    #         reg_no='0123456789',
+    #         dept='',
+    #         college='',
+    #         password=pass_new,
+    #         mobile=0
+    #     )
+    #     db.session.add(u2)
 
     db.session.commit()
 

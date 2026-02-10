@@ -11,12 +11,10 @@ from flask_login import login_user, current_user, logout_user, login_required
 
 from app.extensions import db, bcrypt
 from app.forms import SignUpForm, LoginForm, ResetRequestForm, ResetPasswordForm, UpdateProfileForm
-from app.models import Users, EventDetails, Passes, Purchases, EventOrganizers
+from app.models import Users, EventDetails, Passes, Purchases, EventOrganizers, PaymentSettings, Sponsor
 from app.utils import is_code_applicable, save_image, get_upload_dir, random_string
 from app.mail_utils import send_mail_http as send_mail
-from app.utils_routes import check_user_event_eligibility, register_participants, \
-    send_registration_mail, send_welcome_mail, send_reset_email, get_mit_code_pass, \
-    get_event_results
+from app.utils_routes import check_user_event_eligibility, register_participants, send_reset_email, get_mit_code_pass, get_event_results
 
 bp = Blueprint("", __name__)
 
@@ -33,7 +31,8 @@ def uploaded_file(filename):
 @bp.route('/')
 def home():
     event_types = json.load(open('event_types.json'))
-    return render_template('home.html', title='', event_types=event_types)
+    sponsors = Sponsor.query.filter_by(is_active=True).all()
+    return render_template('home.html', title='', event_types=event_types, sponsors=sponsors)
 
 @bp.route('/signup', methods=["GET", "POST"])
 def signup():
@@ -67,10 +66,10 @@ def signup():
         db.session.add(user)
         db.session.commit()
 
-        ret = send_welcome_mail(user)
+        # ret = send_welcome_mail(user)
         flash(f'Account has been created for { form.name.data } ! You can now log in', 'success')
-        if ret['status'] != 'success':
-            flash('Unable to send welcome Mail; Contact admin for details', 'danger')
+        # if ret['status'] != 'success':
+        #     flash('Unable to send welcome Mail; Contact admin for details', 'danger')
         return redirect(url_for('login'))
 
     return render_template('signup.html', title='Register', form=form, active_page='signup')
@@ -202,7 +201,7 @@ THIS PASS IS SUBJECT TO VERIFICATION AT REGISTRATION DESK !!!
 <br><br>
 """
         ret = send_mail(current_user.email,
-            'Code for Getting access to All events | <Symposium-Name> year',
+            'Code for Getting access to All events | Electrofocus\'26',
             msg,
             body_format='html'
         )
@@ -323,8 +322,8 @@ def payment():
     amount = str(pass_obj.price)
 
     verifiers = Users.query.filter_by(isVerifier=True, isAdministrator=False).all()
-
-    return render_template('payment.html', amount=amount, verifiers=verifiers, pass_obj=pass_obj)
+    settings = PaymentSettings.get_active()
+    return render_template('payment.html', amount=amount, settings=settings, verifiers=verifiers, pass_obj=pass_obj)
 
 @bp.route('/events')
 def events():
@@ -448,16 +447,16 @@ def register():
     register_participants(event, current_user, users)
 
     for user in users:
-        ret = send_registration_mail(user, event, team_members=users)
+        # ret = send_registration_mail(user, event, team_members=users)
         msg = "registered!\n"
-        if ret['status'] != 'success':
-            msg += "Unable to send mail; contact admin\n"
+        # if ret['status'] != 'success':
+        #     msg += "Unable to send mail; contact admin\n"
     return jsonify({"success":msg})
 
-# ******** remove after testing ***********
-@bp.route('/beta/send_message/<msg>/to/<idx>')
-def send(msg, idx):
-    message = send_mail(idx, 'Hello(Beta)', msg)
-    return message
+# # ******** remove after testing ***********
+# @bp.route('/beta/send_message/<msg>/to/<idx>')
+# def send(msg, idx):
+#     message = send_mail(idx, 'Hello(Beta)', msg)
+#     return message
 
-# ****************************************
+# # ****************************************

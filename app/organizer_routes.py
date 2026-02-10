@@ -13,7 +13,7 @@ import xlsxwriter
 from app.models import EventDetails, TeamMembers, Users, Passes, PassAccesses, EventOrganizers, EventResults
 from app.utils import save_image, random_string
 from app.extensions import db
-from app.mail_utils import send_mail_http as send_mail
+# from app.mail_utils import send_mail_http as send_mail
 from app.utils_organizer import get_organizers_from_regno, get_organizer_regnos, get_registered_tm_entires
 
 bp = Blueprint("organizer", __name__)
@@ -24,7 +24,12 @@ def organiser_dashboard():
     if not current_user.isOrganiser:
         flash('Invalid Route!', 'danger')
         return redirect(url_for('dashboard'))
-    events = current_user.get_organizing_events()
+    events = (
+    EventDetails.query
+    .join(EventOrganizers, EventOrganizers.event_key == EventDetails.id)
+    .filter(EventOrganizers.organizer_key == current_user.id)
+    .all()
+)
 
     return render_template('organiser_dashboard.html', events=events)
 
@@ -129,43 +134,176 @@ def organiser_create_event():
 
     return render_template('organiser_create_event.html')
 
-@bp.route('/send-sample-mail', methods=['POST'])
-@login_required
-def send_sample_mail():
-    data = dict(request.form)
+# @bp.route('/send-sample-mail', methods=['GET', 'POST'])
+# @login_required
+# def send_sample_mail():
+#     data = dict(request.form)
 
-    if not current_user.isOrganiser:
-        return jsonify({'message':'Not an organiser'})
+#     if not current_user.isOrganiser:
+#         return jsonify({'message':'Not an organiser'})
 
-    idx = data['id']
-    event = EventDetails.query.filter_by(event_id=idx).first()
-    if not event:
-        return jsonify({'message':'No such event'})
+#     idx = data['id']
+#     event = EventDetails.query.filter_by(event_id=idx).first()
+#     if not event:
+#         return jsonify({'message':'No such event'})
 
-    organizers = event.get_organizers()
-    if not current_user.isAdministrator:
-        if current_user not in organizers:
-            return jsonify({'message':f'You are not the organiser of Event {event.name}!'})
+#     organizers = event.get_organizers()
+#     if not current_user.isAdministrator:
+#         if current_user not in organizers:
+#             return jsonify({'message':f'You are not the organiser of Event {event.name}!'})
 
-    subject = 'Registation Successful | <Symposium-Name> year <Sample ; for Organiser>'
-    to = current_user.email
-    body = f'''<br>
-    Successfully Registered for {event.name} ! <br><br>
-    Team Members : (team members' registration numbers will be displayed here) <br><br>
-    '''
-    body += event.participant_instructions
+#     subject = 'Registation Successful | <Symposium-Name> year <Sample ; for Organiser>'
+#     to = current_user.email
+#     body = f'''<br>
+#     Successfully Registered for {event.name} ! <br><br>
+#     Team Members : (team members' registration numbers will be displayed here) <br><br>
+#     '''
+#     body += event.participant_instructions
 
-    ret = send_mail(to, subject, body, body_format='html')
+#     ret = send_mail(to, subject, body, body_format='html')
 
-    if ret['status'] != 'success':
-        return jsonify({'status': 'error', 'details': f'Unable to send Mail - {ret["details"]}'})
+#     if ret['status'] != 'success':
+#         return jsonify({'status': 'error', 'details': f'Unable to send Mail - {ret["details"]}'})
 
-    return jsonify({'status': 'success', 'message':'Mail sent'})
+#     return jsonify({'status': 'success', 'message':'Mail sent'})
 
 
-@bp.route('/event/<idx>', methods=['GET', 'POST'])
+# @bp.route('/event/<idx>', methods=['GET', 'POST'], endpoint='event_details')
+# @login_required
+# def organiser_event(idx):
+#     # idx = request.args.get('idx')
+#     if not current_user.isOrganiser:
+#         flash('Invalid Route!', 'danger')
+#         return redirect(url_for('dashboard'))
+
+#     evt = EventDetails.query.filter_by(event_id=idx).first()
+#     if not evt:
+#         flash('No Such Event Exists', 'danger')
+#         return redirect(url_for('organizer.organiser_dashboard'))
+
+#     if request.method == 'POST':
+#         form = request.form
+#         details = dict(form)
+#         # allow if creator
+#         is_organizer = EventOrganizers.query.filter_by(
+#             event_key=evt.id,
+#             organizer_key=current_user.id
+#         ).first()
+
+#         if not is_organizer:
+#             flash("You are not the organizer of this event", "danger")
+#             return redirect(url_for('organizer.organiser_dashboard'))
+
+
+
+#         if evt.is_event_accepted:
+#             flash("Event can\'t be edited once it is live!", "danger")
+#             return redirect(url_for('organizer.organiser_dashboard'))
+
+
+#         if evt.is_result_submitted:
+#             flash("Results are already submitted, no more modification allowed!", "warning")
+#             return redirect(url_for('organizer.organiser_dashboard'))
+
+
+#         rounds = {}
+#         ids = []
+#         for i in details.keys():
+#             if 'rd_' == i[:3]:
+#                 _, _, id_rd = i.split('_')
+#                 ids.append(id_rd)
+
+#         for i in ids:
+#             rounds.update({i:{}})
+
+#         for i, _ in rounds.items():
+#             for j, _ in details.items():
+#                 if 'rd_' == j[:3]:
+#                     _, t, id_rd = j.split('_')
+#                     if i == id_rd:
+#                         rounds[i].update({t:details['rd_'+t+'_'+id_rd]})
+
+#         n_rounds = len(rounds.keys())
+#         evt.num_rounds=n_rounds
+#         evt.rounds=rounds
+
+#         org_regnos = []
+#         for j, val in details.items():
+#             if 'org_' == j[:4]:
+#                 org_regnos.append(val)
+
+#         organizers, no_ac = get_organizers_from_regno(org_regnos)
+#         organizers.append(evt.created_by)
+
+#         if no_ac:
+#             flash(f'Organizer doesn\'t seem to have an account - {", ".join(no_ac)}', 'warning')
+
+#         event_pic = evt.thumbnail
+#         if 'event_pic' in request.files:
+#             image = request.files['event_pic']
+#             _, _, new_path = save_image(
+#                 image,
+#                 filename=idx,
+#                 category='event_thumbnails'
+#             )
+#             event_pic = new_path or event_pic
+#         evt.thumbnail=event_pic
+
+#         if 'name' in form:
+#             evt.name = details['name']
+#         if 'catagory' in form:
+#             evt.category = details['category']
+#         if 'description' in form:
+#             evt.description = details['description']
+#         if 'max_team_size' in form:
+#             evt.max_team_size = details['max_team_size']
+#         if 'topic' in form:
+#             evt.topic = details['topic']
+#         if 'participant_instructions' in form:
+#             evt.participant_instructions = details['mail_cnt']
+
+#         # EventOrganizers.query.filter_by(event_key=evt.id).delete()
+#         db.session.commit()
+#         # for organizer in organizers:
+#         #     eo = EventOrganizers(
+#         #         event=evt,
+#         #         organizer=organizer
+#         #     )
+#         #     db.session.add(eo)
+
+#         # db.session.commit()
+
+#         flash('Event Updated Successfully', 'success')
+#         return redirect(url_for('organizer.organiser_dashboard'))
+
+#     # GET
+
+#     if not current_user.isOrganiser:
+#         flash("Invalid Route!", "danger")
+
+#     if not current_user.isAdministrator:
+#         if current_user not in evt.get_organizers():
+#             flash(f'You are not the organizer of Event {evt.name}!', 'danger')
+#             return redirect(url_for('dashboard'))
+
+#     event_rounds = []
+
+#     for i in evt.rounds.values():
+#         event_rounds.append(i)
+
+#     org_regnos = get_organizer_regnos(evt.get_organizers())
+
+#     data = get_registered_tm_entires(evt)
+
+#     return render_template('organiser_event_details.html', event=evt,
+#         registered=data, event_rounds=event_rounds,
+#         event_organisers=org_regnos
+#     )
+
+@bp.route('/event/<idx>', methods=['GET', 'POST'], endpoint='event_details')
 @login_required
 def organiser_event(idx):
+    # idx = request.args.get('idx')
     if not current_user.isOrganiser:
         flash('Invalid Route!', 'danger')
         return redirect(url_for('dashboard'))
@@ -175,116 +313,54 @@ def organiser_event(idx):
         flash('No Such Event Exists', 'danger')
         return redirect(url_for('organizer.organiser_dashboard'))
 
+    # permission check
+    is_organizer = EventOrganizers.query.filter_by(
+        event_key=evt.id,
+        organizer_key=current_user.id
+    ).first()
+
+    if not is_organizer:
+        flash("You are not the organizer of this event", "danger")
+        return redirect(url_for('organizer.organiser_dashboard'))
+
     if request.method == 'POST':
-        if current_user != evt.created_by:
-            if evt in current_user.get_organizing_events():
-                return jsonify({'status': 'error', 'message': 'You can ONLY edit events that are created by you!'})
-            return jsonify({'status': 'error', 'message': 'Invalid Route!'})
-        form = request.form
-        details = dict(form)
 
         if evt.is_event_accepted:
-            return jsonify({'status': 'error', 'message': 'event can\'t be edited once it is live!'})
+            flash("Event can't be edited once live", "danger")
+            return redirect(url_for('organizer.event_details', idx=idx))
 
         if evt.is_result_submitted:
-            return jsonify({'status': 'error', 'message': 'results are already submitted, no more modification allowed!'})
+            flash("Results already submitted", "danger")
+            return redirect(url_for('organizer.event_details', idx=idx))
 
-        rounds = {}
-        ids = []
-        for i in details.keys():
-            if 'rd_' == i[:3]:
-                _, _, id_rd = i.split('_')
-                ids.append(id_rd)
+        form = request.form
 
-        for i in ids:
-            rounds.update({i:{}})
-
-        for i, _ in rounds.items():
-            for j, _ in details.items():
-                if 'rd_' == j[:3]:
-                    _, t, id_rd = j.split('_')
-                    if i == id_rd:
-                        rounds[i].update({t:details['rd_'+t+'_'+id_rd]})
-
-        n_rounds = len(rounds.keys())
-        evt.num_rounds=n_rounds
-        evt.rounds=rounds
-
-        org_regnos = []
-        for j, val in details.items():
-            if 'org_' == j[:4]:
-                org_regnos.append(val)
-
-        organizers, no_ac = get_organizers_from_regno(org_regnos)
-        organizers.append(evt.created_by)
-
-        if no_ac:
-            flash(f'Organizer doesn\'t seem to have an account - {", ".join(no_ac)}', 'warning')
-
-        event_pic = evt.thumbnail
-        if 'event_pic' in request.files:
-            image = request.files['event_pic']
-            _, _, new_path = save_image(
-                image,
-                filename=idx,
-                category='event_thumbnails'
-            )
-            event_pic = new_path or event_pic
-        evt.thumbnail=event_pic
-
-        if 'name' in form:
-            evt.name = details['name']
-        if 'catagory' in form:
-            evt.category = details['category']
-        if 'description' in form:
-            evt.description = details['description']
-        if 'max_team_size' in form:
-            evt.max_team_size = details['max_team_size']
-        if 'topic' in form:
-            evt.topic = details['topic']
-        if 'participant_instructions' in form:
-            evt.participant_instructions = details['mail_cnt']
-
-        EventOrganizers.query.filter_by(event_key=evt.id).delete()
-        db.session.commit()
-        for organizer in organizers:
-            eo = EventOrganizers(
-                event=evt,
-                organizer=organizer
-            )
-            db.session.add(eo)
+        evt.name = form.get('name')
+        evt.description = form.get('description')
+        evt.max_team_size = form.get('max_team_size')
+        evt.topic = form.get('topic')
+        evt.participant_instructions = form.get('mail_cnt')
 
         db.session.commit()
 
         flash('Event Updated Successfully', 'success')
-        return redirect(url_for('organizer.organiser_dashboard'))
+        return redirect(url_for('organizer.event_details', idx=idx))
 
     # GET
-
-    if not current_user.isOrganiser:
-        flash("Invalid Route!", "danger")
-
-    if not current_user.isAdministrator:
-        if current_user not in evt.get_organizers():
-            flash(f'You are not the organizer of Event {evt.name}!', 'danger')
-            return redirect(url_for('dashboard'))
-
-    event_rounds = []
-
-    for i in evt.rounds.values():
-        event_rounds.append(i)
-
+    event_rounds = list(evt.rounds.values())
     org_regnos = get_organizer_regnos(evt.get_organizers())
-
     data = get_registered_tm_entires(evt)
 
-    return render_template('organiser_event_details.html', event=evt,
-        registered=data, event_rounds=event_rounds,
+    return render_template(
+        'organiser_event_details.html',
+        event=evt,
+        registered=data,
+        event_rounds=event_rounds,
         event_organisers=org_regnos
     )
 
 
-@bp.route('/event/<idx>/download')
+@bp.route('/event/<idx>/download', endpoint='event_download')
 @login_required
 def organiser_event_download(idx):
     if not current_user.isOrganiser:

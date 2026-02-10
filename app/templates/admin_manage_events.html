@@ -200,7 +200,7 @@
                     <th>
                         Pass (one among selected)
                         <hr/>
-                        <span class="text-danger">(InActive)</span>
+                        <span class="text-danger">(Active)</span>
                     </th>
                     <th>Winners</th>
                     <th>Runners</th>
@@ -212,7 +212,7 @@
                     {% set event_passes_inactive = i.get_passes(is_active=False) %}
                     <tr>
                         <td>
-                            <a href="{{url_for('organizer.organiser_event', idx=i.event_id)}}"  target="_blank">
+                            <a href="{{url_for('organizer.event_details', idx=i.event_id)}}"  target="_blank">
                                 {{i.name}}
                             </a>
 
@@ -221,7 +221,7 @@
                         <td><a href="{{url_for('organizer.preview_event', idx=i.event_id)}}" target="_blank" class="text-reset">Preview</a></td>
                         <td>{{i.category}}</td>
                         <td>{{i.n_registrations}}</td>
-                        <td><a href="{{url_for('organizer.organiser_event_download', idx=i.event_id)}}">Download</td>
+                        <td><a href="{{url_for('organizer.event_download', idx=i.event_id)}}">Download</td>
                         <td id="accept_{{ i.id }}">
                             {%if i.is_event_accepted%}
                                 Accepted
@@ -244,7 +244,7 @@
                             {%endif%}
                         </td>
                         <td>
-                            {% if i.category != "workshop" %}
+                            {% if i.category == "workshop" %}
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-secondary dropdown-toggle" type="button" id="passesDropdown_{{ i.id }}" data-bs-toggle="dropdown">
                                     <span id="passesCount_{{ i.id }}">{{ event_passes_active|length }} pass(es)</span>

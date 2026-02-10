@@ -1,138 +1,183 @@
-{%extends "layout.html"%}
+{% extends "layout.html" %}
 
-{%block head%}
-    <script>
-        $(document).ready(function() {
-            $('#user-button').click(function() {
-                $.ajax({
-                    url: "{{url_for('admin.admin_get_user')}}",
-                    type: 'POST',
-                    data: {
-                        regno:$('#regno-input').val()
-                    },
-                    success: function(response){
-                        if(response.error){
-                            alert(response.error)
-                        } else {
-                            $('#user-data').show();
-                            $('#userid').val(response.userid);
-                            $('#name').val(response.name);
-                            $('#email').val(response.email);
-                            $('#regno').val(response.reg_no);
-                            $('#college').val(response.college);
-                            $('#dept').val(response.dept);
-                            $('#mobile').val(response.mobile);
-                            $('#events').val(response.events);
-                            $('#org_events').val(response.org_events);
-                            $('#isParticipant').prop('checked', response.isParticipant);
-                            $('#isOrganiser').prop('checked', response.isOrganiser);
-                            $('#isVerifier').prop('checked', response.isVerifier);
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        alert("Error: " + error);
-                    }
-                })
-            });
+{% block head %}
+<script>
+$(document).ready(function () {
 
-            $('#update-user').click(function(event) {
-                event.preventDefault();
-                $.ajax({
-                    url: "{{url_for('admin.admin_update_user')}}",
-                    type: 'POST',
-                    data: {
-                        'name':$('#name').val(),
-                        'email':$('#email').val(),
-                        'reg_no':$('#regno').val(),
-                        'college':$('#college').val(),
-                        'dept':$('#dept').val(),
-                        'mobile':$('#mobile').val(),
-                        'isOrganiser':$('#isOrganiser').prop('checked'),
-                        'isParticipant':$('#isParticipant').prop('checked'),
-                        'isVerifier':$('#isVerifier').prop('checked')
-                    },
-                    success: function(response) {
-                        alert(response.message)
-                    },
-                    error: function(xhr, status, error) {
-                        alert("Error: " + error);
-                    }
-                });
-            });
+    // ---------------- FETCH USER ----------------
+    $('#user-button').click(function () {
+        $.ajax({
+            url: "{{ url_for('admin.admin_get_user') }}",
+            type: 'POST',
+            data: {
+                regno: $('#regno-input').val()
+            },
+            success: function (response) {
+
+                if (response.error) {
+                    alert(response.error);
+                    return;
+                }
+
+                // Show form
+                $('#user-data').show();
+
+                // Fill user details
+                $('#userid').val(response.userid);
+                $('#name').val(response.name);
+                $('#email').val(response.email);
+                $('#regno').val(response.reg_no);
+                $('#college').val(response.college);
+                $('#dept').val(response.dept);
+                $('#mobile').val(response.mobile);
+
+                $('#isParticipant').prop('checked', response.isParticipant);
+                $('#isOrganiser').prop('checked', response.isOrganiser);
+                $('#isVerifier').prop('checked', response.isVerifier);
+
+                // -------- ORGANIZING EVENTS DROPDOWN --------
+                $('#organizing_event').empty();
+$('#organizing_event').append('<option value="">-- Select Event --</option>');
+
+response.all_events.forEach(event => {
+    const selected =
+        response.assigned_event_id === event.id ? 'selected' : '';
+
+    $('#organizing_event').append(`
+        <option value="${event.id}" ${selected}>
+            ${event.name} (${event.category})
+        </option>
+    `);
+});
+
+            },
+            error: function (xhr, status, error) {
+                alert("Error: " + error);
+            }
         });
-    </script>
-{%endblock head%}
+    });
 
-{%block body%}
-    
-    <div class="formGroup">
-        <div>
-            <input placeholder="Registration Number" type="text" class="for_nam" name="regno-input" id="regno-input">
-        </div>
-        
-    </div>
-    <button id="user-button">Fetch User</button>
+    // ---------------- UPDATE USER ----------------
+    $('#update-user').click(function (e) {
+    e.preventDefault();
 
-    <div id="user-data">
-        <div id="user-info"></div>
+    const selectedEvent = $('#organizing_event').val();
 
-        <form id="user-details">
-            <table id="user-table">
-                <tr>
-                    <th>User ID</th>
-                    <td><input type="text" id="userid" disabled></td>
-                </tr>
-                <tr>
-                    <th>Name</th>
-                    <td><input type="text" id="name" name="name"></td>
-                </tr>
-                <tr>
-                    <th>Email</th>
-                    <td><input type="text" id="email" name="email"></td>
-                </tr>
-                <tr>
-                    <th>Registration Number</th>
-                    <td><input type="text" id="regno" name="regno" disabled></td>
-                </tr>
-                <tr>
-                    <th>College</th>
-                    <td><input type="text" id="college"></td>
-                </tr>
-                <tr>
-                    <th>Department</th>
-                    <td><input type="text" id="dept"></td>
-                </tr>
-                <tr>
-                    <th>Mobile</th>
-                    <td><input type="text" id="mobile"></td>
-                </tr>
-                <tr>
-                    <th>Events</th>
-                    <td><input type="text" id="events" disabled></td>
-                </tr>
-                <tr>
-                    <th>Organising Events</th>
-                    <td><input type="text" id="org_events" disabled></td>
-                </tr>
-                <tr>
-                    <th>isOrganiser</th>
-                    <td><input type="checkbox" id="isOrganiser"></td>
-                </tr>
-                <tr>
-                    <th>isParticipant</th>
-                    <td><input type="checkbox" id="isParticipant"></td>
-                </tr>
-                <tr>
-                    <th>isVerifier</th>
-                    <td><input type="checkbox" id="isVerifier"></td>
-                </tr>
-                <tr>
-                    <th>Action</th>
-                    <td><button class="btn" id="update-user">Update</button></td>
-                </tr>
-                
-            </table>
-        </form>
-    </div>
+    $.ajax({
+        url: "{{ url_for('admin.admin_update_user') }}",
+        type: 'POST',
+        data: {
+            name: $('#name').val(),
+            email: $('#email').val(),
+            reg_no: $('#regno').val(),
+            college: $('#college').val(),
+            dept: $('#dept').val(),
+            mobile: $('#mobile').val(),
+            isOrganiser: $('#isOrganiser').prop('checked'),
+            isParticipant: $('#isParticipant').prop('checked'),
+            isVerifier: $('#isVerifier').prop('checked'),
+            organizing_event: selectedEvent
+        },
+        success: function () {
+            alert("User updated successfully");
+        },
+            error: function (xhr, status, error) {
+                alert("Update failed: " + error);
+            }
+        });
+    });
 
-{%endblock body%}
+});
+</script>
+{% endblock head %}
+
+{% block body %}
+
+<div class="formGroup">
+    <input
+        placeholder="Registration Number"
+        type="text"
+        class="for_nam"
+        id="regno-input">
+</div>
+
+<button id="user-button" class="btn">Fetch User</button>
+
+<br><br>
+
+<div id="user-data" style="display:none;">
+<form id="user-details">
+<table id="user-table">
+
+<tr>
+    <th>User ID</th>
+    <td><input type="text" id="userid" disabled></td>
+</tr>
+
+<tr>
+    <th>Name</th>
+    <td><input type="text" id="name"></td>
+</tr>
+
+<tr>
+    <th>Email</th>
+    <td><input type="text" id="email"></td>
+</tr>
+
+<tr>
+    <th>Registration Number</th>
+    <td><input type="text" id="regno" disabled></td>
+</tr>
+
+<tr>
+    <th>College</th>
+    <td><input type="text" id="college"></td>
+</tr>
+
+<tr>
+    <th>Department</th>
+    <td><input type="text" id="dept"></td>
+</tr>
+
+<tr>
+    <th>Mobile</th>
+    <td><input type="text" id="mobile"></td>
+</tr>
+
+<tr>
+  <th>Organizing Event</th>
+  <td>
+    <select id="organizing_event">
+      <option value="">-- Select Event --</option>
+    </select>
+  </td>
+</tr>
+
+
+<tr>
+    <th>Is Organiser</th>
+    <td><input type="checkbox" id="isOrganiser"></td>
+</tr>
+
+<tr>
+    <th>Is Participant</th>
+    <td><input type="checkbox" id="isParticipant"></td>
+</tr>
+
+<tr>
+    <th>Is Verifier</th>
+    <td><input type="checkbox" id="isVerifier"></td>
+</tr>
+
+<tr>
+    <th>Action</th>
+    <td>
+        <button class="btn" id="update-user">Update</button>
+    </td>
+</tr>
+
+</table>
+</form>
+</div>
+
+{% endblock body %}

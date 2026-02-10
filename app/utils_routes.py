@@ -14,23 +14,23 @@ from app.mail_utils import send_mail_http as send_mail
 from app.utils import random_string
 
 
-def send_welcome_mail(user: Users) -> dict[str, str]:
-    if not isinstance(user, Users):
-        return {'status': 'error', 'message': 'Not valid user'}
+# def send_welcome_mail(user: Users) -> dict[str, str]:
+#     if not isinstance(user, Users):
+#         return {'status': 'error', 'message': 'Not valid user'}
 
-    subject = 'Welcome to <Symposium-Name> \'23'
-    to = user.email
-    body = f'''
-    Reserve the dates ... for taking part in interesting events!!!
-    Take a look at the events {url_for('events', _external=True)}<br><br>
+#     subject = 'Welcome to <Symposium-Name> \'23'
+#     to = user.email
+#     body = f'''
+#     Reserve the dates ... for taking part in interesting events!!!
+#     Take a look at the events {url_for('events', _external=True)}<br><br>
 
-    Don't forget <b> some event <b> is waiting for you !!!! <br><br>
+#     Don't forget <b> some event <b> is waiting for you !!!! <br><br>
     
-    <a href="{url_for('events', _external=True)}">Register for events</a> <br><br><br>
-    '''
+#     <a href="{url_for('events', _external=True)}">Register for events</a> <br><br><br>
+#     '''
 
-    ret = send_mail(to, subject, body, body_format='html')
-    return ret
+#     ret = send_mail(to, subject, body, body_format='html')
+#     return ret
 
 def send_reset_email(user: Users) -> dict[str, str]:
     if not isinstance(user, Users):
@@ -109,22 +109,22 @@ def register_participants(
 
     db.session.commit()
 
-def send_registration_mail(
-        user: Users,
-        event: EventDetails,
-        team_members: Optional[list[Users]]=None
-    ) -> dict[str, str]:
-    subject = 'Registation Successful | <Symposium-Name> year'
-    to = user.email
-    body = f"<br>Successfully Registered for {event.name} ! <br><br>"
-    if team_members:
-        members_regno = [member.reg_no for member in team_members]
-        body += f"Team Members : {', '.join(members_regno)} <br>"
-    body += event.participant_instructions
+# def send_registration_mail(
+#         user: Users,
+#         event: EventDetails,
+#         team_members: Optional[list[Users]]=None
+#     ) -> dict[str, str]:
+#     subject = 'Registation Successful | <Symposium-Name> year'
+#     to = user.email
+#     body = f"<br>Successfully Registered for {event.name} ! <br><br>"
+#     if team_members:
+#         members_regno = [member.reg_no for member in team_members]
+#         body += f"Team Members : {', '.join(members_regno)} <br>"
+#     body += event.participant_instructions
 
-    ret = send_mail(to, subject, body, body_format='html')
+#     ret = send_mail(to, subject, body, body_format='html')
 
-    return ret
+#     return ret
 
 def get_mit_code_pass():
     event_pass = Passes.query.filter_by(pass_id='nL4BFHtkh6').one_or_none()

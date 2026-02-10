@@ -14,8 +14,12 @@
             <form id="paymentForm" enctype="multipart/form-data" method="post" class="signUp">
                 <div class="formGroup">
                     <div>
-                        <img src="{{url_for('static', filename='/images/'+'qr_code_'+amount+'.jpeg')}}" alt="Payment QR" class="mpic">
-                        <p>vpa@upi</p>
+                        <h3>Pay using UPI</h3>
+<p><b>UPI ID:</b> {{ settings.upi_id }}</p>
+
+<img src="{{ url_for('static', filename=settings.qr_image) }}?v={{ settings.updated_at.timestamp() }}" width="250">
+
+
                     </div>
                 </div>
                 <br><br>
@@ -33,6 +37,14 @@
                         For user:
                         <input type="text" class="for_nam" value="{{current_user.reg_no}}" name="reg_no" readonly/><br>
                         (please confirm your registeration number)
+                    </div>
+                </div>
+                <br>
+                <div class="formGroup">
+                    <div>
+                        For user:
+                        <input type="text" class="for_nam" value="{{current_user.email}}" name="email" readonly/><br>
+                        (please confirm your Email id)
                     </div>
                 </div>
                 <br><br>

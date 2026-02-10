@@ -2,54 +2,72 @@
 
 {% block head %}
     <script>
-        function updatePassStatus(pId) {
-            var newStatus = $('.status_' + pId).prop('checked');
-            $('.status_' + pId).prop('checked', newStatus);
-            $.ajax({
-                url: "{{url_for('admin.update_pass_status')}}",
-                type: 'POST',
-                data: {
-                    'pass_id': pId,
-                    'new_status': newStatus
-                },
-                success: function(response) {
-                    if (response.status == 'success') {
-                        showFlashMessage('Pass status updated successfully.', 'success');
-                    } else {
-                        $('.status_' + pId).prop('checked', !newStatus);
-                        showFlashMessage('Failed to update pass status. - ' + response.details, 'danger', 1, false);
-                    }
-                },
-                error: function(xhr, status, error) {
+$(document).ready(function(){
+
+    window.updatePassStatus = function(pId) {
+        var newStatus = $('.status_' + pId).prop('checked');
+        $.ajax({
+            url: "{{url_for('admin.update_pass_status')}}",
+            type: 'POST',
+            data: {
+                pass_id: pId,
+                new_status: newStatus
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    showFlashMessage('Pass status updated successfully.', 'success');
+                } else {
                     $('.status_' + pId).prop('checked', !newStatus);
-                    showFlashMessage('Error updating pass status: ' + error, 'danger', 1, false);
+                    showFlashMessage(response.details, 'danger', 1, false);
                 }
-            });
-        }
-        function updatePassPrice(pId) {
-            var newPrice = $('.price_' + pId).val();
-            $.ajax({
-                url: "{{url_for('admin.update_pass_price')}}",
-                type: 'POST',
-                data: {
-                    'pass_id': pId,
-                    'new_price': newPrice
-                },
-                success: function(response) {
-                    if (response.status == 'success') {
-                        $('.curr_price_' + pId).text(newPrice);
-                        $('.price_' + pId).attr('placeholder', 'New Cost').attr('disabled', true).val('');
-                        showFlashMessage('Pass status updated successfully.', 'success');
-                    } else {
-                        showFlashMessage('Failed to update pass status. - ' + response.details, 'danger', 1, false);
-                    }
-                },
-                error: function(xhr, status, error) {
-                    showFlashMessage('Error updating pass status: ' + error, 'danger', 1, false);
+            }
+        });
+    };
+
+    window.updatePassPrice = function(pId) {
+        var newPrice = $('.price_' + pId).val();
+        $.ajax({
+            url: "{{url_for('admin.update_pass_price')}}",
+            type: 'POST',
+            data: {
+                pass_id: pId,
+                new_price: newPrice
+            },
+            success: function(response) {
+                if (response.status === 'success') {
+                    $('.curr_price_' + pId).text(newPrice);
+                    $('.price_' + pId).prop('disabled', true).val('');
+                    showFlashMessage('Pass price updated.', 'success');
+                } else {
+                    showFlashMessage(response.details, 'danger', 1, false);
                 }
-            });
-        }
-    </script>
+            }
+        });
+    };
+
+    $('#createPassForm').on('submit', function(e){
+        e.preventDefault();
+
+        $.ajax({
+            url: "{{ url_for('admin.create_pass') }}",
+            type: "POST",
+            data: $(this).serialize(),
+            success: function(res){
+                if(res.status === 'success'){
+                    location.reload();
+                } else {
+                    alert(res.details);
+                }
+            },
+            error: function(){
+                alert("Server error while creating pass");
+            }
+        });
+    });
+
+});
+</script>
+
 
 {% endblock head %}
 
@@ -87,7 +105,7 @@
                         <td class="curr_price_{{p.id}}">{{p.price}}</td>
                         <td>
                             <input type="text" data-pid="{{p.id}}" class="price_{{p.id}}" placeholder="New Cost"
-                            {% if p.price > 0%} disabled {% endif%}/>
+                            {% if p.is_active %} disabled {% endif%}/>
                         </td>
                         <td>
                             <button class="btn" onclick="updatePassPrice('{{p.id}}')">Submit</button>
@@ -97,4 +115,18 @@
             </tbody>
         </table>
     </div>
+
+<h4 style="color:white;">Create New Pass</h4>
+
+<form id="createPassForm">
+    <input type="text" name="pass_name" placeholder="Pass Name" required>
+    <select name="pass_type">
+        <option value="event">Event</option>
+        <option value="workshop">Workshop</option>
+    </select>
+    <input type="text" name="description" placeholder="Description" required>
+    <input type="number" name="price" placeholder="Price" required>
+    <button type="submit" class="btn">Create</button>
+</form>
+
 {% endblock body %}

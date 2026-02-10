@@ -7,17 +7,27 @@ from datetime import datetime, timezone, timedelta
 import string
 import json
 
-from flask import Blueprint, render_template, request, jsonify, abort, send_file
+from flask import Blueprint, render_template, request, jsonify, abort, send_file, flash, current_app, redirect, url_for
 from flask_login import current_user
 import xlsxwriter
 
-from app.models import EventDetails, Users, Purchases, Passes, PassAccesses
+from werkzeug.utils import secure_filename
+from pathlib import Path
+from app.models import EventDetails, Users, Purchases, Passes, PassAccesses, PaymentSettings, Sponsor, EventOrganizers
 from app.extensions import db
 from app.mail_utils import send_mail_http as send_mail
 from app.utils import get_static_dir
 from app.utils_admin import get_data
 
 bp = Blueprint("admin", __name__)
+
+import random
+import string
+
+def random_string(length=10):
+    chars = string.ascii_letters + string.digits
+    return ''.join(random.choice(chars) for _ in range(length))
+
 
 @bp.route('/dashboard')
 def admin_dashboard():
@@ -36,35 +46,78 @@ def admin_modify_user():
 @bp.route('/get-user', methods=['POST'])
 def admin_get_user():
     if not current_user.is_authenticated or not current_user.isAdministrator:
-        return jsonify({'error':'unknown page'})
+        return jsonify({'error': 'unknown page'})
 
-    data = dict(request.form)
-    # print(data)
-    regno = data['regno']
+    regno = request.form.get('regno')
     user = Users.query.filter_by(reg_no=regno).first()
-    if user:
-        x = user.registered_events()
-        user_events = [i.event_id for i in x]
-        y = user.get_organizing_events()
-        user_org_events = [i.event_id for i in y]
-        return jsonify({
-                'userid':user.id,
-                'name':user.name,
-                'email':user.email,
-                'reg_no':user.reg_no,
-                'college':user.college,
-                'dept':user.dept,
-                'mobile':user.mobile,
-                'events':user_events,
-                'org_events':user_org_events,
-                'isOrganiser':user.isOrganiser,
-                'isParticipant':user.isParticipant,
-                'isVerifier':user.isVerifier
-            })
-        # return jsonify(user.__dict__)
-    else:
-        return jsonify({'error':'No Such Participant!'})
 
+    if not user:
+        return jsonify({'error': 'No Such Participant!'})
+
+    # 1. Fetch ALL events from DB
+    all_events = EventDetails.query.with_entities(
+        EventDetails.id,
+        EventDetails.name,
+        EventDetails.category
+    ).all()
+
+    # 2. Fetch events THIS USER organizes
+    assigned_event = EventOrganizers.query.filter_by(
+    organizer_key=user.id
+).first()
+
+
+    return jsonify({
+    'userid': user.id,
+    'name': user.name,
+    'email': user.email,
+    'reg_no': user.reg_no,
+    'college': user.college,
+    'dept': user.dept,
+    'mobile': user.mobile,
+    'isOrganiser': user.isOrganiser,
+    'isParticipant': user.isParticipant,
+    'isVerifier': user.isVerifier,
+
+
+    'all_events': [
+        {'id': e.id, 'name': e.name, 'category': e.category}
+        for e in EventDetails.query.all()
+    ],
+    'assigned_event_id': assigned_event.event_key if assigned_event else None
+})
+
+
+
+
+# @bp.route('/update-user', methods=['POST'])
+# def admin_update_user():
+#     if not current_user.is_authenticated or not current_user.isAdministrator:
+#         return jsonify({'error':'unknown page'})
+
+#     data = dict(request.form)
+
+#     user = Users.query.filter_by(reg_no=data['reg_no']).first()
+#     if not user:
+#         return jsonify({'error':'no such user'})
+#     if data.get('name'):
+#         user.name = data['name']
+#     if data.get('email'):
+#         user.email = data['email']
+#     if data.get('college'):
+#         user.college = data['college']
+#     if data.get('dept'):
+#         user.dept = data['dept']
+#     if data.get('mobile'):
+#         user.mobile = data['mobile']
+
+#     user.isOrganiser = data['isOrganiser'] == 'true'
+#     user.isParticipant = data['isParticipant'] == 'true'
+#     user.isVerifier = data['isVerifier'] == 'true'
+
+#     db.session.commit()
+
+#     return jsonify({'message':'success'})
 
 @bp.route('/update-user', methods=['POST'])
 def admin_update_user():
@@ -76,24 +129,48 @@ def admin_update_user():
     user = Users.query.filter_by(reg_no=data['reg_no']).first()
     if not user:
         return jsonify({'error':'no such user'})
-    if data.get('name'):
-        user.name = data['name']
-    if data.get('email'):
-        user.email = data['email']
-    if data.get('college'):
-        user.college = data['college']
-    if data.get('dept'):
-        user.dept = data['dept']
-    if data.get('mobile'):
-        user.mobile = data['mobile']
 
-    user.isOrganiser = data['isOrganiser'] == 'true'
-    user.isParticipant = data['isParticipant'] == 'true'
-    user.isVerifier = data['isVerifier'] == 'true'
+    # --- BASIC USER UPDATE ---
+    user.name = data.get('name', user.name)
+    user.email = data.get('email', user.email)
+    user.college = data.get('college', user.college)
+    user.dept = data.get('dept', user.dept)
+    user.mobile = data.get('mobile', user.mobile)
+
+    user.isOrganiser = data.get('isOrganiser') == 'true'
+    user.isParticipant = data.get('isParticipant') == 'true'
+    user.isVerifier = data.get('isVerifier') == 'true'
+
+    # --- ORGANIZER EVENT ASSIGNMENT ---
+    # selected_event_ids = request.form.getlist('organizer_events[]')
+
+    # if user.isOrganiser:
+    #     # Remove old assignments
+    #     EventOrganizers.query.filter_by(organizer_key=user.id).delete()
+
+    # if user.isOrganiser:
+    #     for event_id in selected_event_ids:
+    #         eo = EventOrganizers(
+    #             organizer_key=current_user.id,
+    #             event_key=int(event_id)
+    #     )
+    #     db.session.add(eo)
+
+    selected_event_id = request.form.get('organizing_event')
+
+# Remove old assignment ALWAYS (1 event per user)
+    EventOrganizers.query.filter_by(organizer_key=current_user.id).delete()
+
+    if user.isOrganiser and selected_event_id:
+        eo = EventOrganizers(
+            event_key=int(selected_event_id),
+            organizer_key=user.id
+        )
+        db.session.add(eo)
 
     db.session.commit()
 
-    return jsonify({'message':'success'})
+    return jsonify({'message': 'User updated successfully'})
 
 
 @bp.route('/see/data', methods=["GET", "POST"])
@@ -104,8 +181,8 @@ def admin_see_data():
         else:
             abort(404)
 
-    if not current_user.isAdministrator:
-        send_mail('super_admin@domain.com', 'Admin Login Detected', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
+    # if not current_user.isAdministrator:
+    #     send_mail('super_admin@domain.com', 'Admin Login Detected', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
 
     data = get_data('all')
 
@@ -188,7 +265,7 @@ def admin_modify_event():
         event.is_result_accepted = request.form['new_result_status'] == 'true'
 
     if 'accepted_pass_ids' in request.form:
-        if event.category == 'workshop':
+        if event.category != 'workshop':
             return jsonify({'status': 'error', 'details': 'workshop passes are not editable'})
 
         accepted_pass_ids = request.form['accepted_pass_ids'].split(',')
@@ -210,6 +287,34 @@ def admin_modify_event():
 
     return jsonify({'status': 'success', 'details': 'ok'})
 
+@bp.route('/assign-organizer-events', methods=['POST'])
+def assign_organizer_events():
+    if not current_user.is_authenticated or not current_user.isAdministrator:
+        return jsonify({'status': 'error', 'details': 'Unauthorized'})
+
+    user_id = request.form.get('user_id')
+    event_ids = request.form.getlist('event_ids[]')
+
+    user = Users.query.get(user_id)
+    if not user:
+        return jsonify({'status': 'error', 'details': 'User not found'})
+
+    # 🔥 Clear old assignments
+    EventOrganizers.query.filter_by(organizer_key=current_user.id).delete()
+
+    # 🔥 Add new assignments
+    for event_id in event_ids:
+        eo = EventOrganizers(
+            organizer_key=current_user.id,
+            event_key=int(event_id)
+        )
+        db.session.add(eo)
+
+    db.session.commit()
+
+    return jsonify({'status': 'success'})
+
+
 @bp.route('/all-users')
 def admin_all_users():
     if not current_user.is_authenticated or not current_user.isAdministrator:
@@ -224,8 +329,8 @@ def admin_all_payments():
     if not current_user.is_authenticated or not current_user.isAdministrator:
         abort(404)
 
-    if not current_user.isAdministrator:
-        send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
+    # if not current_user.isAdministrator:
+    #     send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
 
     purchases = Purchases.query.order_by(Purchases.purchased_at.asc()).all()
 
@@ -236,8 +341,8 @@ def all_payments_download():
     if not current_user.is_authenticated or not current_user.isAdministrator:
         abort(404)
 
-    if not current_user.isAdministrator:
-        send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
+    # if not current_user.isAdministrator:
+    #     send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
 
     IST = timezone(timedelta(hours=5, minutes=30))
     dt_cols = [3]
@@ -309,8 +414,8 @@ def manage_passes():
     if not current_user.is_authenticated or not current_user.isAdministrator:
         abort(404)
 
-    if not current_user.isAdministrator:
-        send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
+    # if not current_user.isAdministrator:
+    #     send_mail('super_admin@domain.com', 'All Payment Page Accessed', f'Admin Page Accessed! --- {current_user.name, current_user.mobile, current_user.email}')
 
     passes = Passes.query.all()
     return render_template('admin_manage_passes.html', passes=passes)
@@ -364,8 +469,11 @@ def update_pass_price():
         return jsonify({'status': 'error', 'details': 'Pass price invalid, should be > 0'})
 
     # workshop passes are only the passes that are less than zero by default
-    if p.price > 0:
-        return jsonify({'status': 'error', 'details': 'Pass price can ONLY be updated if it was <= zero; this ensures fairness once pass is bought'})
+    if p.is_active:
+        return jsonify({
+        'status': 'error',
+        'details': 'Cannot change price once pass is active'
+    })
 
     p.price = new_price
     db.session.commit()
@@ -472,3 +580,110 @@ def delete_unsent_mail(filename):
         return jsonify({'message': 'error', 'details': str(e)})
 
 # ***********************************************
+
+@bp.route('/create-pass', methods=['POST'])
+def create_pass():
+    if not current_user.is_authenticated or not current_user.isAdministrator:
+        return jsonify({'status': 'error', 'details': 'Unauthorized'})
+
+    data = dict(request.form)
+
+    pass_name = data.get('pass_name')
+    pass_type = data.get('pass_type')  # event / workshop
+    description = data.get('description')
+    price = int(data.get('price', -1))
+
+    new_pass = Passes(
+        pass_id=random_string(10),
+        created_by=current_user,
+        pass_type=pass_type,
+        pass_name=pass_name,
+        pass_description=description,
+        price=price,
+        is_active=False
+    )
+
+    db.session.add(new_pass)
+    db.session.commit()
+
+    return jsonify({'status': 'success', 'details': 'Pass created'})
+
+
+@bp.route('/payment-settings', methods=['GET', 'POST'])
+def payment_settings():
+    settings = PaymentSettings.query.first()
+
+    if not settings:
+        settings = PaymentSettings(
+            upi_id='default@upi',
+            qr_image='payment_qr/Payment_QR.jpeg'
+        )
+        db.session.add(settings)
+        db.session.commit()
+
+    if request.method == 'POST':
+        settings.upi_id = request.form['upi_id']
+
+        file = request.files.get('qr_code')
+        if file and file.filename:
+            filename = 'Payment_QR.jpeg'   # 🔒 FIXED NAME
+            save_path = Path(current_app.static_folder) / 'payment_qr'
+            save_path.mkdir(parents=True, exist_ok=True)
+            file.save(save_path / filename)
+
+            # IMPORTANT
+            settings.qr_image = f'payment_qr/{filename}'
+
+        db.session.commit()
+        flash('Payment details updated successfully', 'success')
+
+    return render_template(
+        'admin_payment_settings.html',
+        settings=settings
+    )
+
+@bp.route('/sponsors', methods=['GET', 'POST'])
+def manage_sponsors():
+    if not current_user.is_authenticated or not current_user.isAdministrator:
+        abort(404)
+
+    if request.method == 'POST':
+        name = request.form.get('name')
+        website = request.form.get('website')
+        file = request.files.get('logo')
+
+        if file and file.filename:
+            filename = secure_filename(file.filename)
+            save_path = Path(current_app.static_folder) / 'sponsor_logos'
+            save_path.mkdir(exist_ok=True)
+            file.save(save_path / filename)
+
+            sponsor = Sponsor(
+                name=name,
+                website=website,
+                logo=f'sponsor_logos/{filename}'
+            )
+            db.session.add(sponsor)
+            db.session.commit()
+
+    sponsors = Sponsor.query.order_by(Sponsor.created_at.desc()).all()
+    return render_template('admin_sponsors.html', sponsors=sponsors)
+
+@bp.route('/sponsors/delete/<int:sponsor_id>', methods=['POST'])
+def delete_sponsor(sponsor_id):
+    if not current_user.is_authenticated or not current_user.isAdministrator:
+        abort(404)
+
+    sponsor = Sponsor.query.get_or_404(sponsor_id)
+
+    # Optional: delete logo file from static folder
+    logo_path = Path(current_app.static_folder) / sponsor.logo
+    if logo_path.exists():
+        logo_path.unlink()
+
+    db.session.delete(sponsor)
+    db.session.commit()
+
+    flash('Sponsor deleted successfully', 'success')
+    return redirect(url_for('admin.manage_sponsors'))
+

@@ -4,9 +4,9 @@ Models
 
 from flask import current_app
 from flask_login import UserMixin
+from datetime import datetime
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from sqlalchemy.ext.associationproxy import association_proxy
-
 from app.extensions import db, login_manager
 
 @login_manager.user_loader
@@ -140,7 +140,7 @@ class Teams(db.Model):
         secondary='team_members',
         lazy=True
     )
-    tms = db.relationship('TeamMembers', lazy=True)
+    tms = db.relationship('TeamMembers', lazy=True, overlaps ="members")
 
     def __repr__(self):
         return f"Teams('{self.team_id}', '{self.event_key}', '{self.team_name}')"
@@ -162,8 +162,8 @@ class TeamMembers(db.Model):
         server_default=db.func.now()
     )
 
-    team = db.relationship('Teams', lazy=True)
-    user = db.relationship('Users', lazy=True)
+    team = db.relationship('Teams', lazy=True, overlaps="members,tms")
+    user = db.relationship('Users', lazy=True, overlaps="members")
 
     def is_winner(self):
         return (
@@ -303,8 +303,8 @@ class PassAccesses(db.Model):
     event_key = db.Column(db.Integer, db.ForeignKey('event_details.id'), nullable=False)
     pass_key = db.Column(db.Integer, db.ForeignKey('passes.id'), nullable=False)
 
-    event = db.relationship('EventDetails', lazy=True)
-    event_pass = db.relationship('Passes', lazy=True)
+    event = db.relationship('EventDetails', lazy=True, overlaps="events")
+    event_pass = db.relationship('Passes', lazy=True, overlaps="events")
 
 class Purchases(db.Model):
     __tablename__ = 'purchases'
@@ -366,4 +366,23 @@ class PurchaseStatusLogs(db.Model):
     #             )
     #     db.session.add(admin)
     #     db.session.commit()
+
+class PaymentSettings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    upi_id = db.Column(db.String(100), nullable=False)
+    qr_image = db.Column(db.String(255), nullable=False)
+    is_active = db.Column(db.Boolean, default=True)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @staticmethod
+    def get_active():
+        return PaymentSettings.query.filter_by(is_active=True).first()
+    
+class Sponsor(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100))
+    logo = db.Column(db.String(255), nullable=False)   # path like sponsor_logos/logo.png
+    website = db.Column(db.String(255))                # optional
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

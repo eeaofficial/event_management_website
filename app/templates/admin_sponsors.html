@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+
+{%block head%}
+
+{%endblock head%}
+
+{% block body %}
+
+<h2>Manage Sponsors</h2>
+
+<form method="POST" enctype="multipart/form-data">
+    <input type="text" name="name" placeholder="Sponsor name (optional)">
+    <input type="url" name="website" placeholder="Website (optional)">
+    <input type="file" name="logo" accept="image/*" required>
+    <button type="submit">Add Sponsor</button>
+</form>
+
+<hr>
+
+<!-- <div style="display:flex; gap:20px; flex-wrap:wrap;">
+{% for s in sponsors %}
+    <div>
+        <img src="{{ url_for('static', filename=s.logo) }}" width="120">
+        <p>{{ s.name }}</p>
+    </div>
+{% endfor %}
+</div> -->
+
+<div style="display:flex; gap:25px; flex-wrap:wrap;">
+{% for s in sponsors %}
+    <div style="text-align:center;">
+        <img src="{{ url_for('static', filename=s.logo) }}" width="120"><br>
+
+        {% if s.name %}
+            <small>{{ s.name }}</small><br>
+        {% endif %}
+
+        <form method="POST"
+              action="{{ url_for('admin.delete_sponsor', sponsor_id=s.id) }}"
+              onsubmit="return confirm('Delete this sponsor?');">
+            <button type="submit" style="margin-top:5px; color:red;">
+                Delete
+            </button>
+        </form>
+    </div>
+{% endfor %}
+</div>
+
+
+{% endblock %}

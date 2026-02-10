@@ -6,7 +6,7 @@
     
     {%for event in events%}
         <li>
-            <a style="text-decoration: none;color:inherit;" href="{{url_for('organizer.organiser_event', idx=event.event_id)}}">{{event.name}}</a> 
+            <a style="text-decoration: none;color:inherit;" href="{{url_for('organizer.event_details', idx=event.event_id)}}">{{event.name}}</a> 
             {% if not event.is_event_accepted %}
                 (To be Accepted)
             {%endif%}

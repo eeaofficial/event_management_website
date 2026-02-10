@@ -281,3 +281,9 @@ a:hover {
 
   
 }
+
+.mpic{
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}

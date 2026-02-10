@@ -58,6 +58,52 @@
         justify-content: center;
         height: 100%;
     }
+/* Sponsor Section Wrapper */
+.sponsor-section {
+    margin: 60px auto;
+    padding: 20px;
+    max-width: 1100px;
+    text-align: center;
+}
+
+/* Title */
+.sponsor-title {
+    font-size: 28px;
+    margin-bottom: 30px;
+    font-weight: 600;
+}
+
+/* Block that holds all sponsors */
+.sponsor-block {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 25px;
+    padding: 30px;
+    border: 3px solid #ffd400;
+    border-radius: 14px;
+    background: #4e834e;
+}
+
+/* Each sponsor logo card */
+.sponsor-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Logo itself */
+.sponsor-item img {
+    max-width: 100%;
+    max-height: 80px;
+    object-fit: contain;
+    transition: transform 0.2s ease;
+}
+
+/* Small interaction */
+.sponsor-item img:hover {
+    transform: scale(1.08);
+}
+
 
     @media only screen and (max-width: 1000px) {
         .parent-about {
@@ -127,7 +173,7 @@
 {%endblock head%}
 
 {%block body%}
-<div class="modal fade" id="myModal">
+<!-- <div class="modal fade" id="myModal">
     <div class="modal-dialog">
         <div class="modal-content" style="background-color: #0f4d69; border: #299cd1 solid ; color: #ffffff;">
             <div class="modal-header" style="border: 0;">
@@ -145,7 +191,7 @@
             </div>
         </div>
     </div>
-</div>
+</div> -->
 
 </div>
 <div class="section">
@@ -300,14 +346,48 @@
     </div>
 </div>
 
-<div class=" d-flex justify-content-center mb-5">
+<!-- <div class=" d-flex justify-content-center mb-5">
     <div class=" card text-center text-dark"
         style="background-color: rgb(243, 133, 133); border: gold 5px solid; box-shadow: 10px 10px 21px -12px gold; min-width: 80vw;">
         <div class="card-body">
             <h5 style="color: #a9ec4c;">Our Sponser</h5>
-            <!-- add sponsers if any -->
+            add sponsers if any
         </div>
     </div>
-</div>
+</div> -->
+
+<!-- {% if sponsors %}
+<section class="sponsor-section">
+    <h2 class="sponsor-title">Our Sponsors</h2>
+
+    <div class="sponsor-grid">
+        {% for s in sponsors %}
+            <div class="sponsor-card">
+                {% if s.website %}
+                    <a href="{{ s.website }}" target="_blank">
+                        <img src="{{ url_for('static', filename=s.logo) }}" alt="Sponsor">
+                    </a>
+                {% else %}
+                    <img src="{{ url_for('static', filename=s.logo) }}" alt="Sponsor">
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %} -->
+
+<section class="sponsor-section">
+    <h2 class="sponsor-title">Our Sponsors</h2>
+
+    <div class="sponsor-block">
+        {% for sponsor in sponsors %}
+            <div class="sponsor-item">
+                <img src="{{ url_for('static', filename=sponsor.logo) }}"
+                     alt="{{ sponsor.name }}">
+            </div>
+        {% endfor %}
+    </div>
+</section>
+
 
 {%endblock body%}

@@ -8,7 +8,7 @@ from flask_login import login_required, current_user
 
 from app.models import EventRegistrations, Teams, TeamMembers, Purchases, PurchaseStatusLogs
 from app.extensions import db
-from app.utils_routes import register_participants, send_registration_mail
+from app.utils_routes import register_participants
 from app.init_data import VALID_PAYMENT_STATUSES
 from app.utils_verifier import send_purchase_update_mail
 
@@ -79,7 +79,7 @@ def callback():
         event = allowed_events[0]
         if new_status == 'accepted':
             register_participants(event, u)
-            send_registration_mail(u, event)
+            # send_registration_mail(u, event)
         else:
             # de register if already registered
             registration_entry = (

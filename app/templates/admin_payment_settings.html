@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{%block head%}
+
+{%endblock head%}
+
+{% block body %}
+
+<h2>Update Payment Settings</h2>
+
+<form method="POST" enctype="multipart/form-data">
+    <label>UPI ID</label><br>
+    <input type="text" name="upi_id" value="{{ settings.upi_id if settings }}" required><br><br>
+
+    <label>QR Code Image</label><br>
+    <input type="file" name="qr_code" accept="image/*" required><br><br>
+
+    {% if settings %}
+        <p>Current QR:</p>
+<img src="{{ url_for('static', filename=settings.qr_image) }}?v={{ settings.updated_at.timestamp() }}" width="200">
+    {% endif %}
+
+    <br><br>
+    <button type="submit" class="btn btn-primary">Update</button>
+</form>
+
+{% endblock %}

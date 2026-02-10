@@ -3,6 +3,12 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     font-size: large;
 }
+/* 
+html, body {
+    overflow-x: hidden;
+    width: 100%;
+} */
+
 body {
     background-color: #002333;
     /* background-image: url('/static/images/bg.jpg'); */

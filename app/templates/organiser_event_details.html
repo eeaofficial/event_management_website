@@ -435,25 +435,25 @@
 
             });
 
-            $('#send-sample-mail').click(function(event){
-                event.preventDefault();
-                $.ajax({
-                    url: "{{url_for('organizer.send_sample_mail')}}",
-                    type: 'POST',
-                    data:{
-                        id:'{{event.event_id}}'
-                    },
-                    success:function(response){
-                        if(response.status == 'success')
-                            showFlashMessage("Success! " + response.details, 'success');
-                        else
-                            showFlashMessage("Error: " + response.details, 'danger', 1, false);
-                    },
-                    error: function(xhr, status, error) {
-                        showFlashMessage('Error sending mail: ' + error, 'danger', 1, false);
-                    }
-                })
-            });
+            // $('#send-sample-mail').click(function(event){
+            //     event.preventDefault();
+            //     $.ajax({
+            //         url: "{{url_for('organizer.event_details', idx=event.event_id)}}",
+            //         type: 'POST',
+            //         data:{
+            //             id:'{{event.event_id}}'
+            //         },
+            //         success:function(response){
+            //             if(response.status == 'success')
+            //                 showFlashMessage("Success! " + response.details, 'success');
+            //             else
+            //                 showFlashMessage("Error: " + response.details, 'danger', 1, false);
+            //         },
+            //         error: function(xhr, status, error) {
+            //             showFlashMessage('Error sending mail: ' + error, 'danger', 1, false);
+            //         }
+            //     })
+            // });
         });
     </script>
 
@@ -496,11 +496,11 @@
     {%set created_by_me = current_user==event.created_by %}
 
     {%if not event.is_event_accepted%}
-        <button id="update-button" class="btn" {%if event.is_result_submitted or not created_by_me %} disabled {% endif %}>Update Event</button>
+        <button id="update-button" class="btn" {%if event.is_result_submitted or not created_by_me %} {% endif %}>Update Event</button>
     {%endif%}
     <button id="participants-button" class="btn">See Registed Participants</button>
 
-    <button class="btn" id="send-sample-mail">Send Sample Mailing Content to you for preview</button>
+    <!-- <button class="btn" id="send-sample-mail">Send Sample Mailing Content to you for preview</button> -->
 
     {% if created_by_me and not event.is_result_submitted%}
         <button id="result-button" style="color:red">Confirm and Submit the selected winners and runners (Action CANNOT be undone and event gets FREEZED)</button>
@@ -660,7 +660,9 @@
         <tbody>
             <tr>
                 <td colspan="9" style="align-self: center;">
-                    <a href="{{ url_for('organizer.organiser_event_download',idx=event.event_id) }}">Download Participants Details as Excel</a>
+<a href="{{ url_for('organizer.event_download', idx=event.event_id) }}">
+    Download Participants Details as Excel
+</a>
                 </td>
             </tr>
             {% for tms in registered %}
