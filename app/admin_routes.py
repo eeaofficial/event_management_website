@@ -4,17 +4,17 @@ Admin Routes
 
 from io import BytesIO
 from datetime import datetime, timezone, timedelta
-import string
+import random, string
 import json
 
 from flask import Blueprint, render_template, request, jsonify, abort, send_file, flash, current_app, redirect, url_for
-from flask_login import current_user
+from flask_login import current_user, login_required
 import xlsxwriter
 
 from werkzeug.utils import secure_filename
 from pathlib import Path
-from app.models import EventDetails, Users, Purchases, Passes, PassAccesses, PaymentSettings, Sponsor, EventOrganizers
-from app.extensions import db
+from app.models import EventDetails, Users, Purchases, Passes, PassAccesses, PaymentSettings, Sponsor, EventOrganizers, MITPasscode, PasswordResetOTP
+from app.extensions import db, bcrypt
 from app.mail_utils import send_mail_http as send_mail
 from app.utils import get_static_dir
 from app.utils_admin import get_data
@@ -687,3 +687,78 @@ def delete_sponsor(sponsor_id):
     flash('Sponsor deleted successfully', 'success')
     return redirect(url_for('admin.manage_sponsors'))
 
+@bp.route('/mit-passcodes')
+@login_required
+def mit_passcodes():
+
+    requests = MITPasscode.query.order_by(
+        MITPasscode.created_at.desc()
+    ).all()
+
+    return render_template(
+        'mit_passcodes.html',
+        requests=requests,
+        timedelta = timedelta
+    )
+
+@bp.route('/mit-passcodes/generate/<int:req_id>', methods=['POST'])
+@login_required
+def generate_mit_passcode(req_id):
+
+    req = MITPasscode.query.get_or_404(req_id)
+
+    if req.status != 'PENDING':
+        flash("Passcode already generated or invalid.", "warning")
+        return redirect(url_for('admin.mit_passcodes'))
+
+    code = "MIT-" + ''.join(
+        random.choices(string.ascii_uppercase + string.digits, k=10)
+    )
+
+    req.passcode = code
+    req.status = 'GENERATED'
+    req.expires_at = datetime.utcnow() + timedelta(minutes=30)
+
+    db.session.commit()
+
+    flash(f"Passcode generated: {code} (valid 30 mins)", "success")
+    return redirect(url_for('admin.mit_passcodes'))
+
+@bp.route('/password-resets')
+@login_required
+def password_resets():
+
+    requests = PasswordResetOTP.query.order_by(
+        PasswordResetOTP.created_at.desc()
+    ).all()
+
+    return render_template(
+        'password_resets.html',
+        requests=requests
+    )
+
+@bp.route('/password-resets/generate/<int:req_id>', methods=['POST'])
+@login_required
+def generate_password_reset_otp(req_id):
+
+    req = PasswordResetOTP.query.get_or_404(req_id)
+
+    if req.status != 'PENDING':
+        flash("OTP already generated or request invalid.", "warning")
+        return redirect(url_for('admin.password_resets'))
+
+    # 🔢 Generate 6-digit numeric OTP
+    otp = ''.join(random.choices('0123456789', k=6))
+
+    req.otp_plain = otp   # 👈 store temporarily
+    req.otp_hash = bcrypt.generate_password_hash(otp).decode('utf-8')
+    req.status = 'GENERATED'
+    req.expires_at = datetime.utcnow() + timedelta(minutes=30)
+
+    db.session.commit()
+
+    flash(
+        f"OTP generated: {otp} (valid for 30 minutes)",
+        "success"
+    )
+    return redirect(url_for('admin.password_resets'))

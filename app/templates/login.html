@@ -89,8 +89,16 @@
             
         </form>
         <small class="text-muted" style="margin-left: 8%;color:white;">
-            Forgot Password? <a style="text-decoration: none;" class="ml-2" href="{{ url_for('forgot_password') }}">Reset</a>
+Forgot Password?
+<a style="text-decoration: none;" class="ml-2" href="{{ url_for('forgot_password') }}">
+    Reset 
+</a>
         </small>
+        
+<small style="margin-left: 8%; color: #aaa;">
+    Password reset requires admin approval.
+</small>
+<br>
         <small class="text-muted mb-2" style="margin-left: 8%;color:white;">
             Create new Account? <a style="text-decoration: none;" class="ml-2" href="{{ url_for('signup') }}">Sign Up</a>
         </small>

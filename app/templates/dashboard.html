@@ -63,7 +63,7 @@
     $('#code-btn').click(function(event){
       event.preventDefault();
       $.ajax({
-        url: "{{url_for('verify_code_mit')}}",
+url: "{{ url_for('verify_mit_passcode') }}",
         type:'POST',
         data:{
           code:$('#code').val()
@@ -251,15 +251,18 @@
                 <hr class="mt-0 mb-4"/>
                 <div class="card-body text-center">
                     <div class="row">
+                        <form method="POST" action="{{ url_for('request_mit_passcode') }}">
+    <button class="btn" style="margin-bottom:10px;">
+        Request MIT Passcode
+    </button>
+</form>
+
                         <div class="col-12">
-                            Your Code Received Via your University mail account
+Enter the MIT Passcode shared by Admin
                             <input type="text" placeholder="Your Code" id="code"/>
-                            <button class="btn" id="code-btn" style="margin:10px;">Click here to Apply Code</button>
-                        </div>
-                        <div class="col-12">&nbsp;</div>
-                        <div class="col-12">
-                            <a href="{{url_for('send_code_mit')}}" class="btn" >Click here to Send Code to your University mail</a><br>
-                            xxxx@student.annauniv.edu, where xxxx is your registration number (if not <b>{{current_user.email}}</b>)
+<button class="btn" id="code-btn" style="margin:10px;">
+    Apply MIT Passcode
+</button>
                         </div>
                     </div>
                 </div>

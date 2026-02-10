@@ -1,0 +1,131 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<style>
+    table,
+  table th,
+  table td,
+  h2 {
+    color: #ffffff !important;
+  }
+  .status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .status-PENDING {
+    background-color: #ffc107;
+    color: #1f1919;
+  }
+  .status-GENERATED {
+    background-color: #0d6efd;
+    color: #fff;
+  }
+  .status-USED {
+    background-color: #198754;
+    color: #fff;
+  }
+  .status-EXPIRED {
+    background-color: #dc3545;
+    color: #fff;
+  }
+</style>
+{% endblock head %}
+
+{% block body %}
+
+<div class="container mt-4">
+  <h2 class="mb-4 text-center">MIT Passcode Requests</h2>
+
+  <div class="table-responsive">
+    <table class="table table-bordered table-hover align-middle text-center">
+      <thead class="table-dark">
+        <tr>
+          <th>Name</th>
+          <th>Reg No</th>
+          <th>Status</th>
+          <th>WhatsApp Number</th>
+          <th>Request Time</th>
+          <th>Passcode</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for r in requests %}
+        <tr>
+          <!-- Name -->
+          <td>
+            {{ r.user.name if r.user else '-' }}
+          </td>
+
+          <!-- Reg No -->
+          <td>
+            <strong>{{ r.reg_no }}</strong>
+          </td>
+
+          <!-- Status -->
+          <td>
+            <span class="status-badge status-{{ r.status }}">
+              {{ r.status }}
+            </span>
+          </td>
+
+          <!-- WhatsApp Number -->
+          <td>
+            {{ r.user.mobile if r.user else '-' }}
+          </td>
+
+          <!-- Request Time -->
+<td>
+  {% if r.created_at %}
+    {{ (r.created_at + timedelta(hours=5, minutes=30)).strftime('%d %b, %I:%M:%S %p') }}
+  {% else %}
+    —
+  {% endif %}
+</td>
+
+
+
+
+          <!-- Passcode -->
+          <td>
+            {% if r.status == 'GENERATED' %}
+              <code>{{ r.passcode }}</code>
+            {% elif r.status == 'USED' %}
+              <span class="text-success">Used</span>
+            {% elif r.status == 'EXPIRED' %}
+              <span class="text-danger">Expired</span>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <!-- Action -->
+          <td>
+            {% if r.status == 'PENDING' %}
+              <form method="POST"
+                    action="{{ url_for('admin.generate_mit_passcode', req_id=r.id) }}">
+                <button type="submit" class="btn btn-sm btn-primary">
+                  Generate
+                </button>
+              </form>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6" class="text-muted">
+            No MIT passcode requests found
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock body %}

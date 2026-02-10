@@ -4,10 +4,12 @@ Models
 
 from flask import current_app
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, timedelta
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
 from sqlalchemy.ext.associationproxy import association_proxy
 from app.extensions import db, login_manager
+from app import db
+from app.extensions import db
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -24,6 +26,8 @@ class Users(db.Model, UserMixin):
     dept = db.Column(db.String(30), nullable=False)
     mobile = db.Column(db.String(10), nullable=False)
     password = db.Column(db.String(128), nullable=False)
+    is_mit = db.Column(db.Boolean, default=False, nullable=False)
+
 
     # same account can be used for both organising and participating
     isOrganiser = db.Column(db.Boolean, default=False, nullable=False) # subject to approval from an admin
@@ -386,3 +390,41 @@ class Sponsor(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class MITPasscode(db.Model):
+    __tablename__ = 'mit_passcodes'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    reg_no = db.Column(db.String(20), nullable=False)
+
+    passcode = db.Column(db.String(20))
+    status = db.Column(db.String(20), default='PENDING')
+    # PENDING | GENERATED | USED | EXPIRED
+
+    expires_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('Users', backref='mit_passcodes')
+
+class PasswordResetOTP(db.Model):
+    __tablename__ = 'password_reset_otps'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    reg_no = db.Column(db.String(30), nullable=False)
+    mobile = db.Column(db.String(15), nullable=False)
+    otp_plain = db.Column(db.String(10), nullable=True)
+    otp_hash = db.Column(db.String(128), nullable=True)
+
+    status = db.Column(
+        db.String(20),
+        default='PENDING'
+    )
+    # PENDING | GENERATED | VERIFIED | EXPIRED
+
+    expires_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship('Users', backref='password_reset_requests')

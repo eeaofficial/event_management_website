@@ -6,12 +6,13 @@ General Routes
 import hashlib
 import json
 
-from flask import  render_template, flash, redirect, url_for, request, jsonify, send_from_directory, Blueprint
+from flask import  render_template, flash, redirect, url_for, request, jsonify, send_from_directory, Blueprint, session
 from flask_login import login_user, current_user, logout_user, login_required
+from datetime import datetime
 
 from app.extensions import db, bcrypt
 from app.forms import SignUpForm, LoginForm, ResetRequestForm, ResetPasswordForm, UpdateProfileForm
-from app.models import Users, EventDetails, Passes, Purchases, EventOrganizers, PaymentSettings, Sponsor
+from app.models import Users, EventDetails, Passes, Purchases, EventOrganizers, PaymentSettings, Sponsor, MITPasscode, PasswordResetOTP
 from app.utils import is_code_applicable, save_image, get_upload_dir, random_string
 from app.mail_utils import send_mail_http as send_mail
 from app.utils_routes import check_user_event_eligibility, register_participants, send_reset_email, get_mit_code_pass, get_event_results
@@ -107,18 +108,64 @@ def logout():
 def forgot_password():
     if current_user.is_authenticated:
         return redirect(url_for('dashboard'))
+
     form = ResetRequestForm()
 
     if form.validate_on_submit():
-        user = Users.query.filter_by(email=form.email.data, reg_no=form.reg_no.data).first()
-        ret = send_reset_email(user)
-        if ret['status'] == 'success':
-            flash('Please check your mail for reset !', 'info')
-        else:
-            flash('Could not send mail, contact admin', 'info')
+
+        user = Users.query.filter_by(
+            email=form.email.data,
+            reg_no=form.reg_no.data
+        ).first()
+
+        if not user:
+            flash("No account found with given details.", "danger")
+            return redirect(url_for('forgot_password'))
+
+        # ❌ Block duplicate active reset requests
+        existing = PasswordResetOTP.query.filter(
+            PasswordResetOTP.user_id == user.id,
+            PasswordResetOTP.status.in_(["PENDING", "GENERATED"])
+        ).first()
+
+        if existing:
+            # 🔁 Reuse existing request
+            existing.status = 'PENDING'
+            existing.otp_hash = None
+            existing.otp_plain = None
+            existing.expires_at = None
+            existing.created_at = datetime.utcnow()
+
+            db.session.commit()
+
+            flash(
+                "Password reset request re-submitted. Admin will contact you with a new OTP.",
+                "info"
+            )
+            return redirect(url_for('login'))
+
+
+        # ✅ Create reset request
+        req = PasswordResetOTP(
+            user_id=user.id,
+            reg_no=user.reg_no,
+            mobile=user.mobile
+        )
+
+        db.session.add(req)
+        db.session.commit()
+
+        flash(
+            "Password reset request submitted. Admin will contact you with an OTP.",
+            "success"
+        )
         return redirect(url_for('login'))
 
-    return render_template('forgot_password.html', title='Forgot Password', form=form)
+    return render_template(
+        'forgot_password.html',
+        title='Request Password Reset',
+        form=form
+    )
 
 @bp.route('/forgot-password/<token>', methods=["GET", "POST"])
 def reset_password(token):
@@ -249,6 +296,9 @@ def update_profile():
 def buy_pass():
     all_passes = Passes.query.order_by(Passes.id).all()
     user_passes = current_user.event_passes()
+    if current_user.is_mit:
+        flash("MIT Pass holders can attend all events for free.", "info")
+        return redirect(url_for('events'))
 
     return render_template('buy_pass.html', all_passes=all_passes, user_passes=user_passes)
 
@@ -441,8 +491,9 @@ def register():
     users = set(users)
 
     for user in users:
-        if not check_user_event_eligibility(user, event):
-            return jsonify({'error':'No pass!'})
+        if not user.is_mit and not check_user_event_eligibility(user, event):
+            return jsonify({'error': 'No pass!'})
+
 
     register_participants(event, current_user, users)
 
@@ -460,3 +511,208 @@ def register():
 #     return message
 
 # # ****************************************
+
+@bp.route('/request-mit-passcode', methods=['POST'])
+@login_required
+def request_mit_passcode():
+
+    # ❌ Block duplicate pending requests
+    existing = MITPasscode.query.filter_by(
+        user_id=current_user.id,
+        status='PENDING'
+    ).first()
+
+    if existing:
+        flash("MIT passcode already requested. Please wait for admin approval.", "warning")
+        return redirect(url_for('dashboard'))  # change if dashboard route name differs
+
+    # ✅ Create new request
+    req = MITPasscode(
+        user_id=current_user.id,
+        reg_no=current_user.reg_no
+    )
+
+    db.session.add(req)
+    db.session.commit()
+
+    flash("MIT passcode request submitted. Contact admin after approval.", "success")
+    return redirect(url_for('dashboard'))
+
+@bp.route('/verify-mit-passcode', methods=['POST'])
+@login_required
+def verify_mit_passcode():
+
+    code = request.form.get('code')
+
+    if not code:
+        return jsonify({
+            "status": "error",
+            "message": "Please enter a passcode."
+        }), 400
+
+    record = MITPasscode.query.filter_by(
+        user_id=current_user.id,
+        passcode=code,
+        status='GENERATED'
+    ).first()
+
+    if not record:
+        return jsonify({
+            "status": "error",
+            "message": "Invalid passcode."
+        }), 400
+
+    # ⏱ Expiry check
+    if datetime.utcnow() > record.expires_at:
+        record.status = 'EXPIRED'
+        db.session.commit()
+
+        flash(
+        "Your MIT passcode has expired. Please request a new one and contact admin.",
+        "warning"
+        )
+        return redirect(url_for('dashboard'))
+
+        return jsonify({
+        "status": "error",
+        "message": "Passcode expired."
+        }), 400
+
+    # ✅ SUCCESS
+    record.status = 'USED'
+    current_user.is_mit = True   # or whatever flag you use
+
+    db.session.commit()
+
+    return jsonify({
+        "status": "success",
+        "message": "MIT access activated successfully!"
+    })
+
+@bp.route('/request-password-reset', methods=['POST'])
+@login_required
+def request_password_reset():
+
+    # ❌ Block duplicate active requests
+    existing = PasswordResetOTP.query.filter(
+        PasswordResetOTP.user_id == current_user.id,
+        PasswordResetOTP.status.in_(["PENDING", "GENERATED"])
+    ).first()
+
+    if existing:
+        flash(
+            "Password reset already requested. Please wait for admin approval.",
+            "warning"
+        )
+        return redirect(url_for('dashboard'))
+
+    # ✅ Create new reset request
+    req = PasswordResetOTP(
+        user_id=current_user.id,
+        reg_no=current_user.reg_no,
+        mobile=current_user.mobile
+    )
+
+    db.session.add(req)
+    db.session.commit()
+
+    flash(
+        "Password reset request sent. You will receive an OTP shortly.",
+        "success"
+    )
+    return redirect(url_for('dashboard'))
+
+@bp.route('/verify-reset-otp', methods=['GET', 'POST'])
+def verify_reset_otp():
+
+    if request.method == 'POST':
+        email = request.form.get('email')
+        reg_no = request.form.get('reg_no')
+        otp_entered = request.form.get('otp')
+
+        if not email or not reg_no or not otp_entered:
+            flash("All fields are required.", "danger")
+            return redirect(url_for('verify_reset_otp'))
+
+        # 1️⃣ Find user
+        user = Users.query.filter_by(
+            email=email,
+            reg_no=reg_no
+        ).first()
+
+        if not user:
+            flash("Invalid user details.", "danger")
+            return redirect(url_for('verify_reset_otp'))
+
+        # 2️⃣ Find OTP request for THIS USER ONLY
+        req = PasswordResetOTP.query.filter_by(
+            user_id=user.id,
+            status='GENERATED'
+        ).order_by(PasswordResetOTP.created_at.desc()).first()
+
+        if not req:
+            flash("No active OTP request found for this user.", "danger")
+            return redirect(url_for('verify_reset_otp'))
+
+        # 3️⃣ Expiry check
+        if datetime.utcnow() > req.expires_at:
+            req.status = 'EXPIRED'
+            req.otp_plain = None
+            db.session.commit()
+
+            flash("OTP expired. Please request password reset again.", "warning")
+            return redirect(url_for('login'))
+
+        # 4️⃣ OTP validation
+        if not bcrypt.check_password_hash(req.otp_hash, otp_entered):
+            flash("Invalid OTP.", "danger")
+            return redirect(url_for('verify_reset_otp'))
+
+        # ✅ SUCCESS
+        req.status = 'VERIFIED'
+        req.otp_plain = None
+        db.session.commit()
+
+        session['password_reset_user_id'] = user.id
+
+        flash("OTP verified successfully. You may reset your password.", "success")
+        return redirect(url_for('reset_password_manual'))
+
+    return render_template('verify_reset_otp.html')
+
+@bp.route('/reset-password-manual', methods=['GET', 'POST'])
+def reset_password_manual():
+
+    user_id = session.get('password_reset_user_id')
+
+    if not user_id:
+        flash("Unauthorized password reset attempt.", "danger")
+        return redirect(url_for('login'))
+
+    user = Users.query.get(user_id)
+    if not user:
+        flash("Invalid reset session.", "danger")
+        return redirect(url_for('login'))
+
+    form = ResetPasswordForm()
+
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(
+            form.password.data
+        ).decode('utf-8')
+
+        user.password = hashed_password
+        db.session.commit()
+
+        # cleanup
+        session.pop('password_reset_user_id', None)
+
+        flash("Password reset successful. Please login.", "success")
+        return redirect(url_for('login'))
+
+    return render_template(
+        'reset_password.html',
+        form=form,
+        title="Reset Password"
+    )
+

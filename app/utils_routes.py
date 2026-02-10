@@ -73,6 +73,8 @@ def check_user_event_eligibility(user: Users, event: EventDetails) -> bool:
     allowed_events = eligible_events(user)
     if event.event_id in allowed_events:
         return True
+    if user and user.is_mit:
+        return True
 
     return False
 

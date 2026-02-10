@@ -1,0 +1,124 @@
+{% extends "layout.html" %}
+
+{% block head %}
+<style>
+  .otp-container {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #002333;
+  }
+
+  .otp-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 30px 25px;
+    border-radius: 15px;
+    border: 2px solid #4cd0ec;
+    background-color: rgba(0, 0, 0, 0.6);
+    box-shadow: 0 0 20px rgba(76, 208, 236, 0.3);
+  }
+
+  .otp-card h4 {
+    text-align: center;
+    color: #ffffff;
+    margin-bottom: 10px;
+  }
+
+  .otp-card p {
+    text-align: center;
+    color: #bbbbbb;
+    font-size: 0.9rem;
+    margin-bottom: 25px;
+  }
+
+  .otp-card input {
+    background-color: transparent;
+    border: 1px solid #4cd0ec;
+    color: #ffffff;
+  }
+
+  .otp-card input::placeholder {
+    color: #aaaaaa;
+  }
+
+  .otp-card input:focus {
+    background-color: transparent;
+    color: #ffffff;
+    box-shadow: none;
+    border-color: #00ffff;
+  }
+
+  .otp-card button {
+    margin-top: 10px;
+    background-color: #4cd0ec;
+    border: none;
+    font-weight: bold;
+  }
+
+  .otp-card button:hover {
+    background-color: #35b8d6;
+  }
+
+  @media (max-width: 576px) {
+    .otp-card {
+      margin: 15px;
+      padding: 25px 20px;
+    }
+  }
+</style>
+{% endblock head %}
+
+{% block body %}
+<div class="otp-container">
+  <div class="otp-card">
+
+    <h4>Verify Reset OTP</h4>
+    <p>
+      Enter the details exactly as provided during registration.<br>
+      OTP is valid for a limited time.
+    </p>
+
+    <form method="POST">
+
+      <div class="mb-3">
+        <input
+          type="email"
+          name="email"
+          class="form-control"
+          placeholder="Registered Email ID"
+          required
+        />
+      </div>
+
+      <div class="mb-3">
+        <input
+          type="text"
+          name="reg_no"
+          class="form-control"
+          placeholder="Registration Number"
+          required
+        />
+      </div>
+
+      <div class="mb-4">
+        <input
+          type="text"
+          name="otp"
+          class="form-control text-center"
+          placeholder="6-digit OTP"
+          maxlength="6"
+          required
+        />
+      </div>
+
+      <button type="submit" class="btn w-100">
+        Verify OTP
+      </button>
+
+    </form>
+
+  </div>
+</div>
+{% endblock body %}

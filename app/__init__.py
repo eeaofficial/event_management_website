@@ -57,6 +57,6 @@ app.register_blueprint(admin_bp, url_prefix='/admin')
 register_error_handlers(app)
 
 with app.app_context():
-    db.create_all()
+    # db.create_all()
     ensure_super_admin()
     create_passes()
