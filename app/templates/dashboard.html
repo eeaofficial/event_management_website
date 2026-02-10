@@ -282,5 +282,9 @@ Enter the MIT Passcode shared by Admin
     {% if current_user.isVerifier %}
         <a style="text-decoration: none;color:inherit;" href="{{url_for('verifier.verifier_verify')}}">Payment Verifier Dashboard</a>
     {%endif%}
+    <br/><br/>
+    {% if current_user.isSpectator or current_user.isAdministrator %}
+        <a style="text-decoration: none;color:inherit;" href="{{url_for('spectator.spectator_dashboard')}}">Spectator Dashboard</a>
+    {%endif%}
 
 {%endblock body%}

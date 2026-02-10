@@ -32,11 +32,13 @@ class Users(db.Model, UserMixin):
     # same account can be used for both organising and participating
     isOrganiser = db.Column(db.Boolean, default=False, nullable=False) # subject to approval from an admin
     isParticipant  = db.Column(db.Boolean, default=True, nullable=False)
-
+    
     # not created as other accounts; hard coded in db
     isAdministrator = db.Column(db.Boolean, default=False, nullable=False)
 
     isVerifier = db.Column(db.Boolean, default=False, nullable=False)
+    isSpectator = db.Column(db.Boolean, default=False, nullable=False)
+
 
     # while join, sqlalchemy will figure out the FK column, if not InvalidRequestError is raised
     # we can join by giving any column as we need

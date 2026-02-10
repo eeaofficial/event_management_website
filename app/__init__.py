@@ -20,6 +20,7 @@ from app.routes import bp
 from app.verifier_routes import bp as verifier_bp
 from app.organizer_routes import bp as organizer_bp
 from app.admin_routes import bp as admin_bp
+from app.spectator_routes import spectator_bp
 
 
 load_dotenv()
@@ -53,6 +54,7 @@ app.register_blueprint(bp, url_prefix='/')
 app.register_blueprint(verifier_bp, url_prefix='/verifier')
 app.register_blueprint(organizer_bp, url_prefix='/organizer')
 app.register_blueprint(admin_bp, url_prefix='/admin')
+app.register_blueprint(spectator_bp, url_preview='/spectator')
 
 register_error_handlers(app)
 

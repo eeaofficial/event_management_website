@@ -1,0 +1,15 @@
+{%extends "layout.html"%}
+
+{%block head%}
+    
+{%endblock head%}
+
+{%block body%}
+
+<h2>Spectator Dashboard</h2>
+
+<ul>
+    <li><a href="{{url_for('admin.mit_passcodes')}}">MIT Passcodes</a></li>
+    <li><a href="{{url_for('admin.password_resets')}}">Password Reset Request</a></li>
+</ul>
+{%endblock body%}

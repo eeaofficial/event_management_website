@@ -131,15 +131,22 @@ def admin_update_user():
         return jsonify({'error':'no such user'})
 
     # --- BASIC USER UPDATE ---
+    def to_bool(val):
+        return str(val).lower() in ('true', '1', 'yes', 'on')
+
     user.name = data.get('name', user.name)
     user.email = data.get('email', user.email)
     user.college = data.get('college', user.college)
     user.dept = data.get('dept', user.dept)
     user.mobile = data.get('mobile', user.mobile)
 
-    user.isOrganiser = data.get('isOrganiser') == 'true'
-    user.isParticipant = data.get('isParticipant') == 'true'
-    user.isVerifier = data.get('isVerifier') == 'true'
+    user.isOrganiser   = to_bool(data.get('isOrganiser'))
+    user.isParticipant = to_bool(data.get('isParticipant'))
+    user.isVerifier    = to_bool(data.get('isVerifier'))
+    user.isSpectator   = to_bool(data.get('isSpectator'))
+
+    db.session.commit()
+
 
     # --- ORGANIZER EVENT ASSIGNMENT ---
     # selected_event_ids = request.form.getlist('organizer_events[]')
