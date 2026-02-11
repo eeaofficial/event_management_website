@@ -5,6 +5,7 @@ utils for routes.py
 from typing import Optional
 
 from flask import url_for
+from flask_login import current_user
 
 from app.models import EventDetails, Users, Purchases, \
     Teams, TeamMembers, EventRegistrations, Passes, PassAccesses, \
@@ -73,7 +74,7 @@ def check_user_event_eligibility(user: Users, event: EventDetails) -> bool:
     allowed_events = eligible_events(user)
     if event.event_id in allowed_events:
         return True
-    if user and user.is_mit:
+    if current_user.is_authenticated and getattr(user, "is_mit", False):
         return True
 
     return False
