@@ -28,7 +28,8 @@ load_dotenv()
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("SQLALCHEMY_DATABASE_URI")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # db = SQLAlchemy(app)
 migrate = Migrate(app, db) 
 
@@ -54,7 +55,7 @@ app.register_blueprint(bp, url_prefix='/')
 app.register_blueprint(verifier_bp, url_prefix='/verifier')
 app.register_blueprint(organizer_bp, url_prefix='/organizer')
 app.register_blueprint(admin_bp, url_prefix='/admin')
-app.register_blueprint(spectator_bp, url_preview='/spectator')
+app.register_blueprint(spectator_bp, url_prefix='/spectator')
 
 register_error_handlers(app)
 
