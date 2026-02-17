@@ -213,7 +213,7 @@ class EventDetails(db.Model):
     max_team_size = db.Column(db.Integer, nullable=False)
     num_rounds = db.Column(db.Integer, nullable=False)
     rounds = db.Column(db.JSON, nullable=False) # json string with name, description, time, mode
-    thumbnail = db.Column(db.String(20))
+    thumbnail = db.Column(db.Text)
     topic = db.Column(db.String(40))
     # send via mail once registered
     participant_instructions = db.Column(db.String(1000), default='', nullable=False)

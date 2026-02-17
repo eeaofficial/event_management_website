@@ -1,6 +1,8 @@
 """
 organizer routes
 """
+import cloudinary.uploader
+
 
 import string
 from io import BytesIO
@@ -340,6 +342,15 @@ def organiser_event(idx):
         evt.max_team_size = form.get('max_team_size')
         evt.topic = form.get('topic')
         evt.participant_instructions = form.get('mail_cnt')
+
+        file = request.files.get('event_pic')
+
+        if file and file.filename != "":
+            result = cloudinary.uploader.upload(
+                file,
+                folder="events/posters"
+            )
+            evt.thumbnail = result["secure_url"]
 
         db.session.commit()
 

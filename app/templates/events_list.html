@@ -13,8 +13,14 @@
                 <div class="col">
                         <div class="card">
                             <a href="{{url_for('event_details', idx=event.event_id)}}" style="color:inherit; text-decoration:none;">
-                            <img src="{{ url_for('uploaded_file', filename='event_thumbnails/'+event.thumbnail) }}" class="card-img-top">
-                            
+                            {% if event.thumbnail %}
+    <img src="{{ event.thumbnail }}" 
+         style="width:100%; height:250px; object-fit:cover;">
+{% else %}
+    <img src="{{ url_for('static', filename='default_event.jpg') }}"
+         style="width:100%; height:150px; object-fit:cover;">
+{% endif %}
+
                                 <div class="card-body">
                                     {{event.name}}<br>
                                     {%if event.topic%}
