@@ -5,7 +5,8 @@ Utility functions
 from pathlib import Path
 import random
 import string
-
+import cloudinary.uploader
+from io import BytesIO
 from PIL import Image
 from flask_login import current_user
 from werkzeug.datastructures import FileStorage
@@ -53,47 +54,50 @@ def make_valid_file_name(filename: str) -> str:
 def save_image(
         image: FileStorage,
         filename: str,
-        category:str='',
-        size:tuple[int]=(500,500)
+        category: str = '',
+        size: tuple[int] = (500, 500)
     ) -> tuple[bool, str, str]:
+
     """
-        image is a FileStorage object
-        category is used to store images separately
-        category will be the subdirectory in static/images/<>
-
-        File extension will be preserved as that of the image object
-
-        Return 
-        (bool, str, str): success status, message, relative path to store to fetch the file
+    Upload image to Cloudinary instead of local storage.
+    Returns (success, message, secure_url)
     """
 
     if not image:
         return (False, 'No image provided', '')
 
-    valid_size = len(size)==2 and isinstance(size[0], float) and isinstance(size[1], float)
-    if not valid_size:
+    # Validate size
+    if not (len(size) == 2 and isinstance(size[0], int) and isinstance(size[1], int)):
         size = (500, 500)
-
-    res_dir = get_upload_dir() / category
-    res_dir.mkdir(parents=True, exist_ok=True)
 
     filename = make_valid_file_name(filename)
     if not filename:
         return (False, 'Invalid file name', '')
 
-    img_ext = Path(image.filename).suffix
-    filename = f'{filename}{img_ext}'
-    file_path = res_dir / filename
+    try:
+        # Open and resize image
+        img = Image.open(image)
+        img = img.resize(size)
 
-    img = Image.open(image)
-    img = img.resize(size)
-    img.save(file_path)
-    img.close()
+        # Save resized image to memory instead of disk
+        buffer = BytesIO()
+        img_format = img.format if img.format else "PNG"
+        img.save(buffer, format=img_format)
+        buffer.seek(0)
+        img.close()
 
-    if file_path.exists():
-        return (True, 'success',filename)
+        # Upload to Cloudinary
+        upload_result = cloudinary.uploader.upload(
+            buffer,
+            folder=f"electrofocus/{category}",
+            public_id=filename,
+            overwrite=True
+        )
 
-    return (False, 'Error saving image', '')
+        return (True, 'success', upload_result["secure_url"])
+
+    except Exception as e:
+        return (False, f'Error uploading image: {str(e)}', '')
 
 def random_string(length: int=5) -> str:
     """

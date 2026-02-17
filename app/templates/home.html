@@ -382,8 +382,12 @@
     <div class="sponsor-block">
         {% for sponsor in sponsors %}
             <div class="sponsor-item">
-                <img src="{{ url_for('static', filename=sponsor.logo) }}"
-                     alt="{{ sponsor.name }}">
+                {% if sponsor.logo.startswith('http') %}
+    <img src="{{ sponsor.logo }}" alt="{{ sponsor.name }}">
+{% else %}
+    <img src="{{ url_for('static', filename=sponsor.logo) }}" alt="{{ sponsor.name }}">
+{% endif %}
+
             </div>
         {% endfor %}
     </div>

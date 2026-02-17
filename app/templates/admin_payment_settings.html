@@ -17,7 +17,12 @@
 
     {% if settings %}
         <p>Current QR:</p>
-<img src="{{ url_for('static', filename=settings.qr_image) }}?v={{ settings.updated_at.timestamp() }}" width="200">
+{% if settings.qr_image.startswith('http') %}
+    <img src="{{ settings.qr_image }}?v={{ settings.updated_at.timestamp() }}" width="250">
+{% else %}
+    <img src="{{ url_for('static', filename=settings.qr_image) }}?v={{ settings.updated_at.timestamp() }}" width="250">
+{% endif %}
+
     {% endif %}
 
     <br><br>

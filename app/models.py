@@ -320,7 +320,7 @@ class Purchases(db.Model):
     purchased_by_key = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     purchase_id = db.Column(db.String(40), nullable=False, unique=True)
-    payment_proof = db.Column(db.String(40), nullable=False, unique=True) # screenshot file name
+    payment_proof = db.Column(db.Text, nullable=False) # screenshot file name
     transaction_id = db.Column(db.String(40)) # nullable
     payer_account = db.Column(db.String(40), nullable=False)
     purchased_at = db.Column(db.DateTime, nullable=False,
@@ -376,7 +376,7 @@ class PurchaseStatusLogs(db.Model):
 class PaymentSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     upi_id = db.Column(db.String(100), nullable=False)
-    qr_image = db.Column(db.String(255), nullable=False)
+    qr_image = db.Column(db.Text, nullable=False)
     is_active = db.Column(db.Boolean, default=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -387,7 +387,7 @@ class PaymentSettings(db.Model):
 class Sponsor(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
-    logo = db.Column(db.String(255), nullable=False)   # path like sponsor_logos/logo.png
+    logo = db.Column(db.Text, nullable=False)   # path like sponsor_logos/logo.png
     website = db.Column(db.String(255))                # optional
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

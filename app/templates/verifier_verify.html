@@ -107,7 +107,12 @@
         <td>{{item.purchase_id}}</td>
         <td>{{item.event_pass.pass_name}}<hr/>Type: {{item.event_pass.pass_type}}
         <td id="disp_{{item.purchase_id}}">{{item.payment_status}}</td>
-        <td><img src="{{ url_for('uploaded_file', filename='payment_screenshots/' + item.payment_proof) }}" alt="Missing Image Proof"></td>
+        <td>{% if item.payment_proof.startswith('http') %}
+    <img src="{{ item.payment_proof }}" width="200">
+{% else %}
+    <img src="{{ url_for('static', filename='payment_screenshots/' + item.payment_proof) }}" width="200">
+{% endif %}
+</td>
         <td>{{item.payer_account}}</td>
         <td>
             <select id="status_{{item.purchase_id}}">

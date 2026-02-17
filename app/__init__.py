@@ -12,7 +12,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from flask import Flask
-
+import cloudinary
 from app.extensions import db, bcrypt, login_manager
 from app.init_data import ensure_super_admin, create_passes
 from app.error_handlers import register_error_handlers
@@ -38,6 +38,14 @@ migrate = Migrate(app, db)
 # login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
+
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+    secure=True
+)
+
 
 app.config["UPLOAD_FOLDER"] = os.environ.get("UPLOAD_FOLDER")
 

@@ -29,7 +29,11 @@
 <div style="display:flex; gap:25px; flex-wrap:wrap;">
 {% for s in sponsors %}
     <div style="text-align:center;">
-        <img src="{{ url_for('static', filename=s.logo) }}" width="120"><br>
+        {% if s.logo.startswith('http') %}
+    <img src="{{ s.logo }}" alt="{{ s.name }}">
+{% else %}
+    <img src="{{ url_for('static', filename=s.logo) }}" alt="{{ s.name }}">
+{% endif %}
 
         {% if s.name %}
             <small>{{ s.name }}</small><br>

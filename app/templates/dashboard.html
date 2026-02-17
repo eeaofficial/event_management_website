@@ -216,7 +216,12 @@ url: "{{ url_for('verify_mit_passcode') }}",
                                                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="background-color:white;"></button>
                                                                                 </div>
                                                                                 <div class="modal-body text-center">
-                                                                                    <img src="{{ url_for('uploaded_file', filename='payment_screenshots/' + i.payment_proof) }}" alt="Payment Proof" class="img-fluid rounded" style="max-height: 400px;">
+                                                                                    {% if i.payment_proof.startswith('http') %}
+                                                                                        <img src="{{ i.payment_proof }}" width="200">
+                                                                                    {% else %}
+                                                                                        <img src="{{ url_for('static', filename='payment_screenshots/' + i.payment_proof) }}" width="200">
+                                                                                    {% endif %}
+                                                                                    <!-- <img src="{{ url_for('uploaded_file', filename='payment_screenshots/' + i.payment_proof) }}" alt="Payment Proof" class="img-fluid rounded" style="max-height: 400px;"> -->
                                                                                 </div>
                                                                                 </div>
                                                                             </div>

@@ -10,7 +10,7 @@ import json
 from flask import Blueprint, render_template, request, jsonify, abort, send_file, flash, current_app, redirect, url_for
 from flask_login import current_user, login_required
 import xlsxwriter
-
+import cloudinary.uploader
 from werkzeug.utils import secure_filename
 from pathlib import Path
 from app.models import EventDetails, Users, Purchases, Passes, PassAccesses, PaymentSettings, Sponsor, EventOrganizers, MITPasscode, PasswordResetOTP
@@ -632,14 +632,17 @@ def payment_settings():
         settings.upi_id = request.form['upi_id']
 
         file = request.files.get('qr_code')
-        if file and file.filename:
-            filename = 'Payment_QR.jpeg'   # 🔒 FIXED NAME
-            save_path = Path(current_app.static_folder) / 'payment_qr'
-            save_path.mkdir(parents=True, exist_ok=True)
-            file.save(save_path / filename)
 
-            # IMPORTANT
-            settings.qr_image = f'payment_qr/{filename}'
+        if file and file.filename:
+            upload_result = cloudinary.uploader.upload(
+                file,
+                folder="electrofocus/payment_qr",
+                public_id="payment_qr",   # fixed name (optional)
+                overwrite=True
+            )
+
+            settings.qr_image = upload_result["secure_url"]
+
 
         db.session.commit()
         flash('Payment details updated successfully', 'success')
@@ -660,18 +663,22 @@ def manage_sponsors():
         file = request.files.get('logo')
 
         if file and file.filename:
-            filename = secure_filename(file.filename)
-            save_path = Path(current_app.static_folder) / 'sponsor_logos'
-            save_path.mkdir(exist_ok=True)
-            file.save(save_path / filename)
+            upload_result = cloudinary.uploader.upload(
+                file,
+                folder="electrofocus/sponsors"
+            )
+
+            image_url = upload_result["secure_url"]
 
             sponsor = Sponsor(
                 name=name,
                 website=website,
-                logo=f'sponsor_logos/{filename}'
+                logo=image_url   # 🔥 store full Cloudinary URL
             )
+
             db.session.add(sponsor)
             db.session.commit()
+
 
     sponsors = Sponsor.query.order_by(Sponsor.created_at.desc()).all()
     return render_template('admin_sponsors.html', sponsors=sponsors)
@@ -683,16 +690,19 @@ def delete_sponsor(sponsor_id):
 
     sponsor = Sponsor.query.get_or_404(sponsor_id)
 
-    # Optional: delete logo file from static folder
-    logo_path = Path(current_app.static_folder) / sponsor.logo
-    if logo_path.exists():
-        logo_path.unlink()
+    # Optional: delete from Cloudinary
+    try:
+        public_id = sponsor.logo.split("/")[-1].split(".")[0]
+        cloudinary.uploader.destroy(f"electrofocus/sponsors/{public_id}")
+    except Exception:
+        pass
 
     db.session.delete(sponsor)
     db.session.commit()
 
     flash('Sponsor deleted successfully', 'success')
     return redirect(url_for('admin.manage_sponsors'))
+
 
 @bp.route('/mit-passcodes')
 @login_required
