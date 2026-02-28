@@ -71,7 +71,13 @@
                 
                 <div class="formGroup">
                     <div>
-                        <input type="file" class="for_nam" name="screenshot" id="screenshot" required/> <br>
+                        <input type="file" 
+       class="for_nam" 
+       name="screenshot" 
+       id="screenshot" 
+       accept="image/*" 
+       capture="environment"
+       required/> <br>
                         Proof of payment (Screenshot)
                     </div>
                 </div>
@@ -104,4 +110,26 @@
             <br><br>
         </div>
     </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+
+const form = document.getElementById("paymentForm");
+const fileInput = document.getElementById("screenshot");
+
+fileInput.addEventListener("change", function() {
+    if (fileInput.files.length > 0) {
+        console.log("File selected:", fileInput.files[0].name);
+    }
+});
+
+form.addEventListener("submit", function(e) {
+    if (!fileInput.files.length) {
+        alert("Please reselect the screenshot before submitting.");
+        e.preventDefault();
+    }
+});
+
+});
+</script>
 {%endblock body%}
