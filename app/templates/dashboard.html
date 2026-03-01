@@ -248,7 +248,7 @@ url: "{{ url_for('verify_mit_passcode') }}",
                 </div>
             </div>
         </div>
-
+        {% if code_possible %}
             <div class="card electrify glow "
                 style="width:100%;border-radius: 15px;border:2px solid #ff00de;background-color: rgba(0, 0, 0, 0.5);">
                 <div class="card-header text-center">For MIT Students</div>
@@ -271,6 +271,7 @@ Enter the MIT Passcode shared by Admin
                     </div>
                 </div>
             </div>
+            {%endif%}
     </section>
 
     <br/><br/>

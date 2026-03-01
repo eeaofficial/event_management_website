@@ -33,7 +33,7 @@ def is_code_applicable() -> bool:
     code_applicable = False
 
     if current_user.college == 'MIT':
-        if '201950' in reg_no or '202050' in reg_no or '202150' in reg_no or '202250' in reg_no:
+        if '202250' in reg_no or '202350' in reg_no or '202450' in reg_no or '202550' in reg_no:
             code_applicable = True
 
     return code_applicable
