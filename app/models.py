@@ -19,12 +19,12 @@ class Users(db.Model, UserMixin):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
 
-    name = db.Column(db.String(30), nullable=False)
+    name = db.Column(db.String(40), nullable=False)
     email = db.Column(db.String(100), nullable=False)
     reg_no = db.Column(db.String(30), unique=True, nullable=False)
-    college = db.Column(db.String(50), nullable=False)
-    dept = db.Column(db.String(30), nullable=False)
-    mobile = db.Column(db.String(10), nullable=False)
+    college = db.Column(db.String(75), nullable=False)
+    dept = db.Column(db.String(40), nullable=False)
+    mobile = db.Column(db.String(15), nullable=False)
     password = db.Column(db.String(128), nullable=False)
     is_mit = db.Column(db.Boolean, default=False, nullable=False)
 
