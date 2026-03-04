@@ -24,6 +24,32 @@
         });
         
     </script>
+    <style>
+        .pass-table{
+    width:100%;
+    border-collapse: collapse;
+    margin-top:15px;
+}
+
+.pass-table th,
+.pass-table td{
+    padding:8px 10px;
+    text-align:left;
+}
+
+.pass-table th{
+    border-bottom:2px solid #00eaff;
+    font-weight:bold;
+}
+
+.pass-table td:last-child{
+    text-align:right;
+}
+
+.pass-table tr{
+    border-bottom:1px solid rgba(255,255,255,0.2);
+}
+    </style>
 
 {%endblock head%}
 
@@ -38,24 +64,33 @@
                 <marquee><h1>
                 !!! ON DISCOUNT !!!</h1>
             </marquee>
-            </div>
+            </div><br>
+            <div>
+                    <p style="text-align: center;">EACH PARTICIPANT MUST PURCHASE THEIR PASS INDIVIDUALLY!!</p>
+                </div>
+                <br>
             <div>
                 Please Select below the pass required according to the type of event that you wish to participate<br>
 
-                <table>
-                    <thead>
-                        <td>Name</td>
-                        <td>Description</td>
-                    </thead>
-                    <tbody>
-                        {% for each_pass in all_passes %}
-                            <tr>
-                                <td>{{each_pass.pass_name}}</td>
-                                <td>{{each_pass.pass_description}}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <table class="pass-table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Price</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for each_pass in all_passes %}
+        <tr>
+            <td>{{ each_pass.pass_name }}</td>
+            <td>{{ each_pass.pass_description }}</td>
+            <td>{{ each_pass.price }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
             </div>
             <br/><br/>
             <form id="buy-pass-form" action="" method="post" class="signUp">
@@ -101,6 +136,7 @@
                     </button>
                 </div>
                 <br/><br/>
+                
             </form>
             
         </div>
