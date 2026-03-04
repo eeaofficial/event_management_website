@@ -291,16 +291,34 @@ def update_profile():
     return render_template('update_profile.html', form=form)
 
 # based on pass idea you have for your sympo
-@bp.route('/buy-pass')
-@login_required
-def buy_pass():
-    all_passes = Passes.query.order_by(Passes.id).all()
-    user_passes = current_user.event_passes()
-    if current_user.is_mit:
-        flash("MIT Pass holders can attend all events for free.", "info")
-        return redirect(url_for('events'))
+# @bp.route('/buy-pass')
+# def buy_pass():
+#     all_passes = Passes.query.order_by(Passes.id).all()
+#     user_passes = current_user.event_passes()
+#     if current_user.is_mit:
+#         flash("MIT Pass holders can attend all events for free.", "info")
+#         return redirect(url_for('events'))
 
-    return render_template('buy_pass.html', all_passes=all_passes, user_passes=user_passes)
+#     return render_template('buy_pass.html', all_passes=all_passes, user_passes=user_passes)
+
+@bp.route('/buy-pass')
+def buy_pass():
+
+    all_passes = Passes.query.order_by(Passes.id).all()
+
+    user_passes = []
+    if current_user.is_authenticated:
+        user_passes = current_user.event_passes()
+
+        if current_user.is_mit:
+            flash("MIT Pass holders can attend all events for free.", "info")
+            return redirect(url_for('events'))
+
+    return render_template(
+        'buy_pass.html',
+        all_passes=all_passes,
+        user_passes=user_passes
+    )
 
 @bp.route('/payment', methods=['GET', 'POST'])
 @login_required
